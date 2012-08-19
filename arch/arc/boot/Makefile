@@ -15,13 +15,13 @@ quiet_cmd_uimage = UIMAGE $@
 			-C gzip -a $(CONFIG_LINUX_LINK_BASE) \
 			-e $(LINUX_START_TEXT) -d $< $@
 
-vmlinux.bin: vmlinux FORCE
+$(obj)/vmlinux.bin: vmlinux FORCE
 	$(call if_changed,objcopy)
 
-vmlinux.bin.gz: vmlinux.bin FORCE
+$(obj)/vmlinux.bin.gz: $(obj)/vmlinux.bin FORCE
 	$(call if_changed,gzip)
 
-uImage: vmlinux.bin.gz FORCE
+$(obj)/uImage: $(obj)/vmlinux.bin.gz FORCE
 	$(call if_changed,uimage)
 
 # build targets above don't need $(objtree) prefix for setting Dest folder to

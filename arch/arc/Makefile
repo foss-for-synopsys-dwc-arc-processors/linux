@@ -106,7 +106,7 @@ boot	:= arch/arc/boot
 bootpImage: vmlinux
 
 uImage: vmlinux
-	$(Q)$(MAKE) $(build)=$(boot) $@
+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
 
 archclean:
 	$(Q)$(MAKE) $(clean)=$(boot)
