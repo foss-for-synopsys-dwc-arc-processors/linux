@@ -316,7 +316,7 @@ void __init arc_chk_fpu(void)
 
 void __init setup_processor(void)
 {
-	char str[256];
+	char str[512];
 	int cpu_id = smp_processor_id();
 
 	read_arc_build_cfg_regs();
