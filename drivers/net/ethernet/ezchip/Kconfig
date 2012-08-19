@@ -1,0 +1,11 @@
+#
+# EZchip network device configuration
+#
+
+config EZNPS_NET
+	tristate "NPS LAN support"
+	depends on ARC
+	default y
+	---help---
+	  Simple LAN device without multicast support.
+
