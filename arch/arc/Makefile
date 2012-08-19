@@ -13,6 +13,7 @@ KBUILD_DEFCONFIG := fpga_defconfig
 # For ARC FPGA Platforms
 platform-$(CONFIG_ARC_PLAT_FPGA_LEGACY)	:= arcfpga
 #New platform adds here
+platform-$(CONFIG_ARC_PLAT_EZNPS) += eznps
 
 PLATFORM := $(platform-y)
 export PLATFORM

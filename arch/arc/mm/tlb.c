@@ -253,6 +253,16 @@ noinline void local_flush_tlb_all(void)
 
 	utlb_invalidate();
 
+#ifndef CONFIG_NPS_NSIM_VIRT_PERIP
+	/*
+	 * HW bug of speculative MMU.
+	 * which create memory error exceptions.
+	 * this WA flush the BPU which only
+	 * decrease chances for this to happen.
+	 */
+	write_aux_reg(0xf, 0xf);
+#endif
+
 	local_irq_restore(flags);
 }
 

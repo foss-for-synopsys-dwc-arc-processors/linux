@@ -1,0 +1,47 @@
+# For a description of the syntax of this configuration file,
+# see Documentation/kbuild/kconfig-language.txt.
+
+if ARC_PLAT_EZNPS
+
+choice
+	prompt "NPS Board"
+
+config NPS_BOARD_HE0
+	bool "NPS HE0"
+	help
+	  NPS HE0 (Hardware Emulator)
+	  This is EZchip Reference Platform.
+
+config NPS_BOARD_HE1
+	bool "NPS HE1"
+	help
+	  NPS HE1 (Hardware Emulator).
+	  This is EZchip Reference Platform.
+
+config NPS_NSIM_VIRT_PERIP
+	bool "NPS NSIM"
+	help
+	  NPS Linux can run on ARC simulation.
+	  Base upon nSIM as ARC core.
+
+endchoice
+
+config NPS_SMP_EXTN
+	bool "ARC SMP Extensions"
+	default y
+	select ARC_HAS_IPI
+	help
+	  SMP Extensions to ARC700.
+	  The SMP extensions include:
+	  -IDU (Interrupt Distribution Unit)
+	  It doesn't provide coherent Caches and/or Atomic Ops (LLOCK/SCOND)
+	  We assume only instruction cache coherency.
+
+# Platform specific IRQ wiring - tied to devices - feeds into non-plat-arc code
+config ARC_TIMER_LV2
+	bool "High Priority Timer0 IRQ"
+	select ARC_IRQ3_LV2
+
+# Timer HAS to be high priority, for any other high priority config
+
+endif

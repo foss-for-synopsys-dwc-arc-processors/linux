@@ -112,6 +112,18 @@ config ARC_PLAT_FPGA_LEGACY
 	  - MetaWare ISS
 
 #New platform adds here
+config ARC_PLAT_EZNPS
+	bool "\"EZchip\" ARC dev platform"
+	select CPU_BIG_ENDIAN
+	select ARC_HAS_COH_CACHES if SMP
+	select CMDLINE_UBOOT
+	select EZNPS_NET
+	help
+	  Support for ARC development platforms, provided by EZchip.
+	  These are based on FPGA or nSIM. e.g.
+	  - HE0
+	  - HE1
+	  - MetaWare nSIM
 endchoice
 
 menu "ARC CPU Configuration"
@@ -355,6 +367,7 @@ menu "Platform Board Configuration"
 
 source "arch/arc/plat-arcfpga/Kconfig"
 #New platform adds here
+source "arch/arc/plat-eznps/Kconfig"
 
 config ARC_PLAT_CLK
 	int "Clock speed"
