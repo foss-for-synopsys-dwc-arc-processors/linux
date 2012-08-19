@@ -98,7 +98,19 @@ void __cpuinit arc_clock_counter_setup(void)
 
 static cycle_t cycle_read_t1(struct clocksource *cs)
 {
+#ifdef CONFIG_SMP
+#ifdef CONFIG_ARC_HAS_RTSC
+	unsigned long cyc;
+
+	 __asm__ __volatile__("rtsc %0,0 \r\n" : "=r" (cyc));
+
+	return (cycle_t) cyc;
+#else
+	return (cycle_t) (*(u32 *)0xC0002024);
+#endif
+#else
 	return (cycle_t) read_aux_reg(ARC_REG_TIMER1_CNT);
+#endif
 }
 
 static struct clocksource clocksource_t1 = {
