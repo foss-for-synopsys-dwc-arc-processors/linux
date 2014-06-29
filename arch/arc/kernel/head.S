@@ -42,11 +42,11 @@
 	lr	r5, [ARC_REG_DC_BCR]
 	breq    r5, 0, 1f		; D$ doesn't exist
 	lr	r5, [ARC_REG_DC_CTRL]
-	bclr	r5, r5, 6		; Invalidate (discard w/o wback)
+	or	r5, r5, DC_CTRL_INV_MODE_FLUSH	; wback+Invalidate
 #ifdef CONFIG_ARC_HAS_DCACHE
-	bclr	r5, r5, 0		; Enable (+Inv)
+	bclr	r5, r5, 0		; Enable
 #else
-	bset	r5, r5, 0		; Disable (+Inv)
+	bset	r5, r5, 0		; Disable
 #endif
 	sr	r5, [ARC_REG_DC_CTRL]
 
