@@ -468,6 +468,8 @@ static char * __init unpack_to_rootfs(char *buf, unsigned long len)
 	const char *compress_name;
 	static __initdata char msg_buf[64];
 
+	printk(KERN_INFO "unpack rootfs image as initramfs...\n");
+
 	header_buf = kmalloc(110, GFP_KERNEL);
 	symlink_buf = kmalloc(PATH_MAX + N_ALIGN(PATH_MAX) + 1, GFP_KERNEL);
 	name_buf = kmalloc(N_ALIGN(PATH_MAX), GFP_KERNEL);
@@ -520,6 +522,7 @@ static char * __init unpack_to_rootfs(char *buf, unsigned long len)
 	kfree(name_buf);
 	kfree(symlink_buf);
 	kfree(header_buf);
+	printk(KERN_INFO "unpack initramfs done !\n");
 	return message;
 }
 
