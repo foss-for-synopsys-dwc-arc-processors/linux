@@ -44,9 +44,19 @@ void dma_cache_wback(phys_addr_t start, unsigned long sz);
 #define flush_dcache_mmap_lock(mapping)		do { } while (0)
 #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
 
-/* TBD: optimize this */
-#define flush_cache_vmap(start, end)		flush_cache_all()
-#define flush_cache_vunmap(start, end)		flush_cache_all()
+/*
+ * These are called from 2 places: dma_alloc_coherent() / vmalloc()
+ *
+ * - dma_alloc_coherent() needs to make sure no stale cache lines exist for the
+ *   backing page, since it is now mapped uncached (possible it was prev used
+ *   as a "normal" page)
+ *   However ARC needs paddr to do range flush, which the APIs don't provide
+ *   So we workaround by adding explicit cache inv in ARC:dma_alloc_coherent()
+ *
+ * - vmalloc() doesn't get hurt with existing cache lines for page
+ */
+#define flush_cache_vmap(start, end)
+#define flush_cache_vunmap(start, end)
 
 #define flush_cache_dup_mm(mm)			/* called on fork (VIVT only) */
 
