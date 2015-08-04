@@ -228,8 +228,6 @@ static inline void arch_read_unlock(arch_rwlock_t *rw)
 
 static inline void arch_write_unlock(arch_rwlock_t *rw)
 {
-	unsigned int val;
-
 	smp_mb();
 
 	rw->counter = __ARCH_RW_LOCK_UNLOCKED__;
