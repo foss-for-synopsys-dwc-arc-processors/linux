@@ -128,11 +128,6 @@ archclean:
 
 # Hacks to enable final link due to absence of link-time branch relexation
 # and gcc choosing optimal(shorter) branches at -O3
-#
-# vineetg Feb 2010: -mlong-calls switched off for overall kernel build
-# However lib/decompress_inflate.o (.init.text) calls
-# zlib_inflate_workspacesize (.text) causing relocation errors.
-# Thus forcing all exten calls in this file to be long calls
 export CFLAGS_decompress_inflate.o = -mmedium-calls
 export CFLAGS_initramfs.o = -mmedium-calls
 ifdef CONFIG_SMP
