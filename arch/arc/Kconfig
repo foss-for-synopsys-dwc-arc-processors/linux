@@ -343,6 +343,16 @@ config ARC_HAS_SWAPE
 
 if ISA_ARCV2
 
+config ARC_LACKS_ZOL
+	bool "Disable Zero Delay hardware loops"
+	help
+	  ARC CPU historically have had ZOL hardware loop mechanism which
+	  the ARCv3 ISA drops. Architecturally ZOL provides
+	    - LPcc instruction
+	    - LP_COUNT core reg
+	    - LP_START, LP_END aux regs
+	  This optional removes any use of ZOL instructions/regs from code
+
 config ARC_USE_UNALIGNED_MEM_ACCESS
 	bool "Enable unaligned access in HW"
 	default y
