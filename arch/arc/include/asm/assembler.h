@@ -5,6 +5,12 @@
 
 #ifdef __ASSEMBLY__
 
+#ifdef CONFIG_ARC_HAS_LL64
+#include <asm/asm-macro-ll64.h>
+#else
+#include <asm/asm-macro-ll64-emul.h>
+#endif
+
 #ifdef CONFIG_ARC_LACKS_ZOL
 #include <asm/asm-macro-dbnz.h>
 #else
@@ -12,6 +18,12 @@
 #endif
 
 #else	/* !__ASSEMBLY__ */
+
+#ifdef CONFIG_ARC_HAS_LL64
+asm(".include \"asm/asm-macro-ll64.h\"\n");
+#else
+asm(".include \"asm/asm-macro-ll64-emul.h\"\n");
+#endif
 
 /*
  * ARCv2 cores have both LPcc and DBNZ instructions (starting 3.5a release).

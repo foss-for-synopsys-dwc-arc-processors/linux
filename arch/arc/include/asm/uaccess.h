@@ -165,6 +165,7 @@
 	: "+r" (ret)				\
 	: "r" (src), "r" (dst), "ir" (-EFAULT))
 
+#ifndef CONFIG_ARC_LACKS_ZOL
 
 static inline unsigned long
 raw_copy_from_user(void *to, const void __user *from, unsigned long n)
@@ -661,6 +662,17 @@ static inline unsigned long __clear_user(void __user *to, unsigned long n)
 
 #define INLINE_COPY_TO_USER
 #define INLINE_COPY_FROM_USER
+
+#else
+
+extern unsigned long raw_copy_from_user(void *to, const void __user *from,
+					  unsigned long n);
+extern unsigned long raw_copy_to_user(void *to, const void __user *from,
+					unsigned long n);
+
+extern unsigned long __clear_user(void __user *to, unsigned long n);
+
+#endif
 
 #define __clear_user		__clear_user
 

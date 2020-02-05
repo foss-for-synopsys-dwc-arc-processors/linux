@@ -13,3 +13,5 @@ lib-$(CONFIG_ISA_ARCV2)		+=memcpy-archs-unaligned.o
 else
 lib-$(CONFIG_ISA_ARCV2)		+=memcpy-archs.o
 endif
+
+lib-$(CONFIG_ARC_LACKS_ZOL)	+= uaccess.o
