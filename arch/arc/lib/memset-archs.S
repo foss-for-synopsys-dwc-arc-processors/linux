@@ -5,6 +5,7 @@
 
 #include <linux/linkage.h>
 #include <asm/cache.h>
+#include <asm/assembler.h>
 
 /*
  * The memset implementation below is optimized to use prefetchw and prealloc
@@ -17,44 +18,45 @@
 
 #if L1_CACHE_SHIFT == 6
 
-.macro PREALLOC_INSTR	reg, off
-	prealloc	[\reg, \off]
+.macro PREALLOCR s, off=0
+	prealloc [\s, \off]
 .endm
 
-.macro PREFETCHW_INSTR	reg, off
-	prefetchw	[\reg, \off]
+.macro PREFETCHWR s, off=0
+	prefetchw [\s, \off]
 .endm
 
 #else
 
-.macro PREALLOC_INSTR	reg, off
+.macro PREALLOCR s, off=0
 .endm
 
-.macro PREFETCHW_INSTR	reg, off
+.macro PREFETCHWR s, off=0
 .endm
 
 #endif
 
 ENTRY_CFI(memset)
-	PREFETCHW_INSTR	r0, 0	; Prefetch the first write location
+	; return if size 0 (happens lot)
 	mov.f	0, r2
-;;; if size is zero
 	jz.d	[blink]
-	mov	r3, r0		; don't clobber ret val
+	mov	r3, r0	; make a copy of input pointer reg
 
-;;; if length < 8
-	brls.d.nt	r2, 8, .Lsmallchunk
-	mov.f	lp_count,r2
+	PREFETCHWR r0
 
-	and.f	r4, r0, 0x03
-	rsub	lp_count, r4, 4
-	lpnz	@.Laligndestination
-	;; LOOP BEGIN
+	; small 1-8 byte handled in tail byte loop :-)
+	brlo	r2, 8, .Lbyteloop
+
+#ifndef CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS
+	; handle any starting unaligned bytes (upto 3)
+	and.f	lp_count, r0, 0x3
+	lpnz	1f
 	stb.ab	r1, [r3,1]
 	sub	r2, r2, 1
-.Laligndestination:
+1:
+#endif
 
-;;; Destination is aligned
+	; promote memset pattern from char to int (double actually for STD)
 	and	r1, r1, 0xFF
 	asl	r4, r1, 8
 	or	r4, r4, r1
@@ -62,75 +64,48 @@ ENTRY_CFI(memset)
 	or	r5, r5, r4
 	mov	r4, r5
 
-	sub3	lp_count, r2, 8
-	cmp     r2, 64
-	bmsk.hi	r2, r2, 5
-	mov.ls	lp_count, 0
-	add3.hi	r2, r2, 8
+	; Loop #a:
+	; - Updates 1 cache line worth data (64 bytes) per iteration
+	; - PREALLOC the next line.
+	;
+	; = Only entered if atleast 2 lines worth of work (i.e. >= 128 bytes),
+	;   else PREALLOC for next can "bleed" past end of buffer, causing data
+	;   corruption issue if that line is owned by some other core.
+	; = Last 64 bytes (even for min 128 bytes work) are NOT done here to
+	;   avoid PREALLOC issue
 
-;;; Convert len to Dwords, unfold x8
-	lsr.f	lp_count, lp_count, 6
+	sub     r6, r2, 64
+	cmp	r2, 64
+	bmsk.hi	r2, r2, 5	; trailing 63 bytes
+	mov.ls	r6, 0
+	add.hi	r2, r2, 64	; line skipped in loop below
 
-	lpnz	@.Lset64bytes
-	;; LOOP START
-	PREALLOC_INSTR	r3, 64	; alloc next line w/o fetching
+	lsr.f	lp_count, r6, 6
+	lpnz	2f
+	PREALLOCR r3, 64
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+2:
+	; Loop #b: Remaining 32 / 64 bytes
+	lsr.f	lp_count, r2, 5
+	lpnz	.Lbyteloop
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
+	ST64.ab	r4, r3, 8
 
-#ifdef CONFIG_ARC_HAS_LL64
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-#else
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-#endif
-.Lset64bytes:
-
-	lsr.f	lp_count, r2, 5 ;Last remaining  max 124 bytes
-	lpnz	.Lset32bytes
-	;; LOOP START
-#ifdef CONFIG_ARC_HAS_LL64
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-	std.ab	r4, [r3, 8]
-#else
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-	st.ab	r4, [r3, 4]
-#endif
-.Lset32bytes:
-
-	and.f	lp_count, r2, 0x1F ;Last remaining 31 bytes
-.Lsmallchunk:
-	lpnz	.Lcopy3bytes
-	;; LOOP START
+.Lbyteloop:
+	; Loop #c: straggler 31 bytes
+	and.f	lp_count, r2, 0x1F
+	lpnz	4f
 	stb.ab	r1, [r3, 1]
-.Lcopy3bytes:
-
+4:
 	j	[blink]
 
 END_CFI(memset)
