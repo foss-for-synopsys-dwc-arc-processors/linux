@@ -45,6 +45,7 @@ EXPORT_SYMBOL(__floatunsisf);
 EXPORT_SYMBOL(__udivdi3);
 
 /* ARC optimised assembler routines */
+#ifndef CONFIG_ARC_LACKS_ZOL
 EXPORT_SYMBOL(memset);
 EXPORT_SYMBOL(memcpy);
 EXPORT_SYMBOL(memcmp);
@@ -52,3 +53,4 @@ EXPORT_SYMBOL(strchr);
 EXPORT_SYMBOL(strcpy);
 EXPORT_SYMBOL(strcmp);
 EXPORT_SYMBOL(strlen);
+#endif
