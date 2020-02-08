@@ -16,8 +16,11 @@
 
 #include <asm-generic/types.h>
 #include <asm/param.h>		/* HZ */
+#include <asm/assembler.h>
 
 extern unsigned long loops_per_jiffy;
+
+#ifndef CONFIG_ARC_LACKS_ZOL
 
 static inline void __delay(unsigned long loops)
 {
@@ -30,6 +33,21 @@ static inline void __delay(unsigned long loops)
         : "r"(loops)
         : "lp_count");
 }
+
+#else
+
+static inline void __delay(unsigned long loops)
+{
+        /* TBD: insn per loop now vs. 1 + implied branch */
+
+	__asm__ __volatile__(
+	"	add   %0, %0, 1         \n"
+	"1:	nop			\n"
+	"	DBNZR %0, 1b		\n"
+	: "+r"(loops));
+}
+
+#endif
 
 extern void __bad_udelay(void);
 
