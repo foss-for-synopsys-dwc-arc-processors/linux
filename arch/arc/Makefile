@@ -44,6 +44,8 @@ cflags-y				+= -Wa,-I$(srctree)/arch/arc/include
 cflags-$(CONFIG_ARC_HAS_LLSC)		+= -mlock
 cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -mswape
 
+cflags-$(CONFIG_ARC_LACKS_ZOL)		+= -fno-branch-count-reg
+
 ifdef CONFIG_ISA_ARCV2
 
 ifdef CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS
