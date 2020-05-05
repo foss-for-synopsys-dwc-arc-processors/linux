@@ -107,7 +107,7 @@ static inline __attribute__ ((const)) unsigned long __ffs(unsigned long word)
 	return ffs(word) - 1;
 }
 
-#else	/* CONFIG_ISA_ARCV2 */
+#else	/* CONFIG_ISA_ARCV2 and CONFIG_ISA_ARCV3 */
 
 /*
  * fls = Find Last Set in word
@@ -133,8 +133,18 @@ static inline __attribute__ ((const)) int fls(unsigned int x)
  */
 static inline __attribute__ ((const)) int __fls(unsigned long x)
 {
-	/* FLS insn has exactly same semantics as the API */
-	return	__builtin_arc_fls(x);
+	long n;
+
+	asm volatile(
+#ifdef CONFIG_64BIT
+	"	flsl	%0, %1		\n"
+#else
+	"	fls	%0, %1		\n"  /* 0:31; 0 if src 0 */
+#endif
+	: "=r"(n)
+	: "r"(x));
+
+	return n;
 }
 
 /*
@@ -164,7 +174,11 @@ static inline __attribute__ ((const)) unsigned long __ffs(unsigned long x)
 	unsigned long n;
 
 	asm volatile(
+#ifdef CONFIG_64BIT
+	"	ffsl.f	%0, %1		\n"
+#else
 	"	ffs.f	%0, %1		\n"  /* 0:31; 31(Z) if src 0 */
+#endif
 	"	mov.z	%0, 0		\n"  /* 31(Z)-> 0 */
 	: "=r"(n)
 	: "r"(x)
