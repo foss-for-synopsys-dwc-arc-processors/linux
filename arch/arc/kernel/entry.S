@@ -80,11 +80,6 @@ ENTRY(instr_service)
 
 	EXCEPTION_PROLOGUE
 
-	lr  r0, [efa]
-	mov r1, sp
-
-	FAKE_RET_FROM_EXCPN
-
 	bl  do_insterror_or_kprobe
 	b   ret_from_exception
 END(instr_service)
@@ -95,7 +90,7 @@ END(instr_service)
 
 ENTRY(EV_MachineCheck)
 
-	EXCEPTION_PROLOGUE	; ECR returned in r10
+	EXCEPTION_PROLOGUE_KEEP_AE	; ECR returned in r10
 
 	lr  r0, [efa]
 	mov r1, sp
@@ -125,11 +120,6 @@ ENTRY(EV_PrivilegeV)
 
 	EXCEPTION_PROLOGUE
 
-	lr  r0, [efa]
-	mov r1, sp
-
-	FAKE_RET_FROM_EXCPN
-
 	bl  do_privilege_fault
 	b   ret_from_exception
 END(EV_PrivilegeV)
@@ -140,11 +130,6 @@ END(EV_PrivilegeV)
 ENTRY(EV_Extension)
 
 	EXCEPTION_PROLOGUE
-
-	lr  r0, [efa]
-	mov r1, sp
-
-	FAKE_RET_FROM_EXCPN
 
 	bl  do_extension_fault
 	b   ret_from_exception
@@ -225,7 +210,7 @@ trap_with_param:
 
 ENTRY(EV_Trap)
 
-	EXCEPTION_PROLOGUE
+	EXCEPTION_PROLOGUE_KEEP_AE
 
 	lr  r12, [efa]
 
