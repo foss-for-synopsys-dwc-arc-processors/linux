@@ -7,8 +7,15 @@ obj-y	:= arcksyms.o setup.o irq.o reset.o ptrace.o process.o devtree.o
 obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o disasm.o
 obj-y	+= ctx_sw_asm.o
 
-obj-$(CONFIG_ISA_ARCOMPACT)		+= entry-compact.o intc-compact.o
-obj-$(CONFIG_ISA_ARCV2)			+= entry-arcv2.o intc-arcv2.o
+ifdef CONFIG_ISA_ARCOMPACT
+obj-y	+= intc-compact.o
+else
+obj-y	+= intc-arcv2.o
+endif
+
+obj-$(CONFIG_ISA_ARCOMPACT)		+= entry-compact.o
+obj-$(CONFIG_ISA_ARCV2)			+= entry-arcv2.o
+obj-$(CONFIG_ISA_ARCV3)			+= entry-arcv3.o
 
 obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
 obj-$(CONFIG_SMP) 			+= smp.o

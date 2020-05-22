@@ -152,9 +152,13 @@
 .macro __SAVE_REGFILE_SOFT
 
 	STR	fp,  sp, PT_fp		; r27
+	STR	gp, sp, PT_gp
+
+	/* ARCv3: r12 autosaved, r26 is callee-saved (not gp) */
+#ifdef CONFIG_ISA_ARCV2
 	STR	r30, sp, PT_r30
 	STR	r12, sp, PT_r12
-	STR	gp, sp, PT_gp		; gp
+#endif
 
 	; Saving pt_regs->sp correctly requires some extra work due to the way
 	; Auto stack switch works
@@ -188,9 +192,12 @@
 .macro __RESTORE_REGFILE_SOFT
 
 	LDR	fp,  sp, PT_fp
+	LDR	gp, sp, PT_gp
+
+#ifdef CONFIG_ISA_ARCV2
 	LDR	r30, sp, PT_r30
 	LDR	r12, sp, PT_r12
-	LDR	gp, sp, PT_gp
+#endif
 
 	; Restore SP (into AUX_USER_SP) only if returning to U mode
 	;  - for K mode, it will be implicitly restored as stack is unwound

@@ -1,0 +1,40 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+#ifndef __ASM_ARC_ENTRY_ARCV3_H
+#define __ASM_ARC_ENTRY_ARCV3_H
+
+#include <asm/entry-cmn.h>
+
+.macro SAVE_ABI_CALLEE_REGS
+	PUSHR	r14
+	PUSHR	r15
+	PUSHR	r16
+	PUSHR	r17
+	PUSHR	r18
+	PUSHR	r19
+	PUSHR	r20
+	PUSHR	r21
+	PUSHR	r22
+	PUSHR	r23
+	PUSHR	r24
+	PUSHR	r25
+	PUSHR	r26
+.endm
+
+.macro RESTORE_ABI_CALLEE_REGS
+	POPR	r26
+	POPR	r25
+	POPR	r24
+	POPR	r23
+	POPR	r22
+	POPR	r21
+	POPR	r20
+	POPR	r19
+	POPR	r18
+	POPR	r17
+	POPR	r16
+	POPR	r15
+	POPR	r14
+.endm
+
+#endif

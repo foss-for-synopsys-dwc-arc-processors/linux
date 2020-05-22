@@ -104,13 +104,12 @@ struct callee_regs {
 struct pt_regs {
 
 	unsigned long orig_r0;
-
+	unsigned long r58, r59;
 	ecr_reg ecr;
 	unsigned long bta;
 	unsigned long fp;
-	unsigned long sp;
 	unsigned long gp;	/* r30 */
-	unsigned long r58, r59;
+	unsigned long sp;
 
 	/*------- Below list auto saved by h/w -----------*/
 	unsigned long r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13;

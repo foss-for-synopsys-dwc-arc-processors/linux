@@ -28,7 +28,7 @@ struct bcr_irq_arcv2 {
  */
 void arc_init_IRQ(void)
 {
-	unsigned int tmp, irq_prio, i;
+	unsigned int tmp, irq_prio, i, auto_gprs;
 	struct bcr_irq_arcv2 irq_bcr;
 
 	struct aux_irq_ctrl {
@@ -45,8 +45,13 @@ void arc_init_IRQ(void)
 
 	*(unsigned int *)&ictrl = 0;
 
+	if (IS_ENABLED(CONFIG_ISA_ARCV3))
+		auto_gprs = 14/2;			/* auto: r0 to r13 */
+	else
+		auto_gprs = 12/2;			/* auto: r0 to r11, manual: r12 */
+
 #ifndef CONFIG_ARC_IRQ_NO_AUTOSAVE
-	ictrl.save_nr_gpr_pairs = 6;	/* r0 to r11 (r12 saved manually) */
+	ictrl.save_nr_gpr_pairs = auto_gprs;
 	ictrl.save_blink = 1;
 #ifndef CONFIG_ARC_LACKS_ZOL
 	ictrl.save_lp_regs = 1;		/* LP_COUNT, LP_START, LP_END */

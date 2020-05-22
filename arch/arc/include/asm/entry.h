@@ -17,8 +17,10 @@
 
 #ifdef CONFIG_ISA_ARCOMPACT
 #include <asm/entry-compact.h>	/* ISA specific bits */
-#else
+#elif defined(CONFIG_ISA_ARCV2)
 #include <asm/entry-arcv2.h>
+#else
+#include <asm/entry-arcv3.h>
 #endif
 
 /*

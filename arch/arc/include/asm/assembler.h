@@ -5,12 +5,17 @@
 
 #ifdef __ASSEMBLY__
 
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#include <asm/asm-macro-64-bit.h>
+#else
 #include <asm/asm-macro-32-bit.h>
 
 #ifdef CONFIG_ARC_HAS_LL64
 #include <asm/asm-macro-ll64.h>
 #else
 #include <asm/asm-macro-ll64-emul.h>
+#endif
+
 #endif
 
 #ifdef CONFIG_ARC_LACKS_ZOL
@@ -21,12 +26,17 @@
 
 #else	/* !__ASSEMBLY__ */
 
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+asm(".include \"asm/asm-macro-64-bit.h\"\n");
+#else
 asm(".include \"asm/asm-macro-32-bit.h\"\n");
 
 #ifdef CONFIG_ARC_HAS_LL64
 asm(".include \"asm/asm-macro-ll64.h\"\n");
 #else
 asm(".include \"asm/asm-macro-ll64-emul.h\"\n");
+#endif
+
 #endif
 
 /*
