@@ -94,6 +94,18 @@
 	: "+r" (ret), "=r" (dst)		\
 	: "r" (src), "ir" (-EFAULT))
 
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+
+#define __arc_get_user_one_64(src, dst, ret)	\
+	__arc_get_user_one(src, dst, "ldl", ret)
+
+#elif defined(CONFIG_ARC_HAS_LL64)
+
+#define __arc_get_user_one_64(src, dst, ret)	\
+	__arc_get_user_one(src, dst, "ldd", ret)
+
+#else
+
 #define __arc_get_user_one_64(dst, src, ret)	\
 	__asm__ __volatile__(                   \
 	"1:	ld   %1,[%2]\n"			\
@@ -116,6 +128,8 @@
 						\
 	: "+r" (ret), "=r" (dst)		\
 	: "r" (src), "ir" (-EFAULT))
+
+#endif
 
 #define __put_user_fn(sz, u, k)					\
 ({								\
@@ -146,6 +160,18 @@
 	: "+r" (ret)				\
 	: "r" (src), "r" (dst), "ir" (-EFAULT))
 
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+
+#define __arc_put_user_one_64(src, dst, ret)	\
+	__arc_put_user_one(src, dst, "stl", ret)
+
+#elif defined(CONFIG_ARC_HAS_LL64)
+
+#define __arc_put_user_one_64(src, dst, ret)	\
+	__arc_put_user_one(src, dst, "std", ret)
+
+#else
+
 #define __arc_put_user_one_64(src, dst, ret)	\
 	__asm__ __volatile__(                   \
 	"1:	st   %1,[%2]\n"			\
@@ -164,6 +190,8 @@
 						\
 	: "+r" (ret)				\
 	: "r" (src), "r" (dst), "ir" (-EFAULT))
+
+#endif
 
 #ifndef CONFIG_ARC_LACKS_ZOL
 
