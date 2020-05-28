@@ -14,9 +14,19 @@
 #define ELF_ARCH		EM_ARCOMPACT
 #elif defined(CONFIG_ISA_ARCV2)
 #define ELF_ARCH		EM_ARCV2
+#else
+#ifdef CONFIG_64BIT
+#define ELF_ARCH		EM_ARCV3
+#else
+#define ELF_ARCH		EM_ARCV3_32
+#endif
 #endif
 
+#ifdef CONFIG_64BIT
+#define ELF_CLASS		ELFCLASS64
+#else
 #define ELF_CLASS		ELFCLASS32
+#endif
 
 #ifdef CONFIG_CPU_BIG_ENDIAN
 #define ELF_DATA		ELFDATA2MSB
