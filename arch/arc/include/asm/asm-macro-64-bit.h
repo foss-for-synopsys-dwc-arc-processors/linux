@@ -12,16 +12,28 @@
 .endm
 .endr
 
-.irp    aa,,.ab,.as
+.irp    aa,.ab,.as
 .macro STR\aa d, s, off=0
 	; workaround assembler barfing for ST r, [@symb, 0]
-	.if     \off == 0
-		stl\aa  \d, [\s]
+	.if \off == 0
+		stl\aa \d, [\s]
 	.else
-		stl\aa  \d, [\s, \off]
+		stl\aa \d, [\s, \off]
 	.endif
 .endm
 .endr
+
+.macro STR d, s, off=0
+	.if \off == 0
+		stl \d, [\s]
+	.else
+		.if \off > 256
+			STR.as \d, \s, \off / 8
+		.else
+			stl    \d, [\s, \off]
+		.endif
+	.endif
+.endm
 
 .macro PUSHR r
 	pushl   \r
