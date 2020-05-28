@@ -51,6 +51,8 @@
 #define EM_RISCV	243	/* RISC-V */
 #define EM_BPF		247	/* Linux BPF - in-kernel virtual machine */
 #define EM_CSKY		252	/* C-SKY */
+#define EM_ARCV3	253	/* Synopsys ARCv3 64-bit ISA */
+#define EM_ARCV3_32	255	/* Synopsys ARCv3 32-bit ISA */
 #define EM_FRV		0x5441	/* Fujitsu FR-V */
 
 /*
