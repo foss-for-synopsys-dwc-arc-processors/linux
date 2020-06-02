@@ -17,7 +17,6 @@
 #define _UAPI_ASM_ARC_UNISTD_H
 
 #define __ARCH_WANT_RENAMEAT
-#define __ARCH_WANT_STAT64
 #define __ARCH_WANT_SET_GET_RLIMIT
 #define __ARCH_WANT_SYS_EXECVE
 #define __ARCH_WANT_SYS_CLONE
@@ -25,8 +24,17 @@
 #define __ARCH_WANT_SYS_VFORK
 #define __ARCH_WANT_SYS_FORK
 #define __ARCH_WANT_TIME32_SYSCALLS
+#ifdef __LP64__
+#define __ARCH_WANT_NEW_STAT
+#else
+#define __ARCH_WANT_STAT64
+#endif
 
+#ifdef __LP64__
+#define sys_mmap sys_mmap_pgoff
+#else
 #define sys_mmap2 sys_mmap_pgoff
+#endif
 
 #include <asm-generic/unistd.h>
 
