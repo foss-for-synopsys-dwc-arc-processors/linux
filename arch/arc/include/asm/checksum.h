@@ -31,7 +31,29 @@ static inline __sum16 csum_fold(__wsum s)
 }
 #define csum_fold csum_fold
 
-#ifndef CONFIG_ARC_LACKS_ZOL
+#ifdef CONFIG_64BIT
+static inline __sum16
+ip_fast_csum(const void *iph, unsigned int ihl)
+{
+	u64 tmp;
+	u32 sum;
+
+	tmp = *(const u64 *)iph++;
+	tmp += *(const u64 *)iph++;
+	iph += 8;
+	ihl -= 2;
+	tmp += ((tmp >> 32) | (tmp << 32));
+	sum = tmp >> 32;
+	do {
+		sum += *(const u32 *)iph;
+		iph += 4;
+	} while (--ihl);
+
+	return csum_fold(sum);
+}
+
+#elif !defined(CONFIG_ARC_LACKS_ZOL)
+
 /*
  * This is a version of ip_compute_csum() optimized for IP headers,
  * which always checksum on 4 octet boundaries.
