@@ -19,8 +19,13 @@
 
 .macro CPU_EARLY_SETUP
 
-	; Setting up Vectror Table (in case exception happens in early boot
-	SRR	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
+	; Setting up Vectror Table
+#ifdef CONFIG_64BIT
+	movl	r5, @_int_vec_base_lds
+	srl	r5, [AUX_INTR_VEC_BASE]
+#else
+	sr	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
+#endif
 
 	; Disable I-cache/D-cache if kernel so configured
 	lr	r5, [ARC_REG_IC_BCR]
