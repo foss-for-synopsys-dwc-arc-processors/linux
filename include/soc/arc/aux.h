@@ -8,6 +8,8 @@
 
 #ifdef CONFIG_ARC
 
+#include <linux/bug.h>
+
 #define read_aux_reg(r)		__builtin_arc_lr(r)
 
 /* gcc builtin sr needs reg param to be long immediate */
@@ -34,13 +36,10 @@ static inline void write_aux_reg(u32 r, u32 v)
 #define READ_BCR(reg, into)				\
 {							\
 	unsigned int tmp;				\
+	BUILD_BUG_ON_MSG(sizeof(tmp) != sizeof(into),	\
+		     "invalid usage of read_aux_reg");	\
 	tmp = read_aux_reg(reg);			\
-	if (sizeof(tmp) == sizeof(into)) {		\
-		into = *((typeof(into) *)&tmp);		\
-	} else {					\
-		extern void bogus_undefined(void);	\
-		bogus_undefined();			\
-	}						\
+	into = *((typeof(into) *)&tmp);			\
 }
 
 #define WRITE_AUX(reg, into)				\
