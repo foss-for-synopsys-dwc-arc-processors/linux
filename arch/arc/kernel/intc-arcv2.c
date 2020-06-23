@@ -57,7 +57,9 @@ void arc_init_IRQ(void)
 	ictrl.save_lp_regs = 1;		/* LP_COUNT, LP_START, LP_END */
 #endif
 	ictrl.save_u_to_u = 0;		/* user ctxt saved on kernel stack */
-	ictrl.save_idx_regs = 1;	/* JLI, LDI, EI */
+
+	if (!IS_ENABLED(CONFIG_ISA_ARCV3))
+		ictrl.save_idx_regs = 1;	/* JLI, LDI, EI */
 #endif
 
 	WRITE_AUX(AUX_IRQ_CTRL, ictrl);
