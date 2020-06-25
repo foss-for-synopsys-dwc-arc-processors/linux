@@ -66,7 +66,7 @@ static inline u16 __raw_readw(const volatile void __iomem *addr)
 	u16 s;
 
 	__asm__ __volatile__(
-	"	ldw%U1 %0, %1	\n"
+	"	ldh%U1 %0, %1	\n"
 	: "=r" (s)
 	: "m" (*(volatile u16 __force *)addr)
 	: "memory");

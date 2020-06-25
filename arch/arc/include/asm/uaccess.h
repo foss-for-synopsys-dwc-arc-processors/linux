@@ -61,7 +61,7 @@
 	long __ret = 0;	/* success by default */	\
 	switch (sz) {						\
 	case 1: __arc_get_user_one(*(k), u, "ldb", __ret); break;	\
-	case 2: __arc_get_user_one(*(k), u, "ldw", __ret); break;	\
+	case 2: __arc_get_user_one(*(k), u, "ldh", __ret); break;	\
 	case 4: __arc_get_user_one(*(k), u, "ld", __ret);  break;	\
 	case 8: __arc_get_user_one_64(*(k), u, __ret);     break;	\
 	}							\
@@ -328,7 +328,7 @@ raw_copy_from_user(void *to, const void __user *from, unsigned long n)
 			orig_n = orig_n % 2;
 
 			__asm__ __volatile__(
-			"17:	ldw.ab   %3, [%2,2]		\n"
+			"17:	ldh.ab   %3, [%2,2]		\n"
 			"	stw.ab   %3, [%1,2]		\n"
 			"	sub      %0,%0,2		\n"
 			"33:	;nop				\n"
@@ -390,7 +390,7 @@ raw_copy_from_user(void *to, const void __user *from, unsigned long n)
 		"	st.ab   %5, [%1,4]		\n"
 		"	sub.f   %0,%0,4			\n"
 		"32:	bbit0   %3,1,33f		\n"  /* 2 bytes left */
-		"17:	ldw.ab  %5, [%2,2]		\n"
+		"17:	ldh.ab  %5, [%2,2]		\n"
 		"	stw.ab  %5, [%1,2]		\n"
 		"	sub.f   %0,%0,2			\n"
 		"33:	bbit0   %3,0,34f		\n"
@@ -551,7 +551,7 @@ raw_copy_to_user(void __user *to, const void *from, unsigned long n)
 			orig_n = orig_n % 2;
 
 			__asm__ __volatile__(
-			"	ldw.ab    %3, [%2,2]		\n"
+			"	ldh.ab    %3, [%2,2]		\n"
 			"17:	stw.ab    %3, [%1,2]		\n"
 			"	sub       %0, %0, 2		\n"
 			"33:;nop				\n"
@@ -613,7 +613,7 @@ raw_copy_to_user(void __user *to, const void *from, unsigned long n)
 		"16:	st.ab   %5, [%1,4]		\n"
 		"	sub.f   %0, %0, 4		\n"
 		"32:	bbit0 %3,1,33f			\n"  /* 2 bytes left */
-		"	ldw.ab    %5, [%2,2]		\n"
+		"	ldh.ab    %5, [%2,2]		\n"
 		"17:	stw.ab    %5, [%1,2]		\n"
 		"	sub.f %0, %0, 2			\n"
 		"33:	bbit0 %3,0,34f			\n"
