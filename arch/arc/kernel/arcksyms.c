@@ -26,13 +26,14 @@ extern void __floatunsidf(void);
 extern void __floatunsisf(void);
 extern void __udivdi3(void);
 
+#ifndef CONFIG_64BIT
+/* arc64 libgcc is primitive as of now */
 EXPORT_SYMBOL(__ashldi3);
 EXPORT_SYMBOL(__ashrdi3);
 EXPORT_SYMBOL(__divsi3);
 EXPORT_SYMBOL(__divsf3);
 EXPORT_SYMBOL(__lshrdi3);
 EXPORT_SYMBOL(__modsi3);
-EXPORT_SYMBOL(__muldi3);
 EXPORT_SYMBOL(__ucmpdi2);
 EXPORT_SYMBOL(__udivsi3);
 EXPORT_SYMBOL(__umodsi3);
@@ -43,6 +44,8 @@ EXPORT_SYMBOL(__divdf3);
 EXPORT_SYMBOL(__floatunsidf);
 EXPORT_SYMBOL(__floatunsisf);
 EXPORT_SYMBOL(__udivdi3);
+#endif
+EXPORT_SYMBOL(__muldi3);
 
 /* ARC optimised assembler routines */
 #ifndef CONFIG_ARC_LACKS_ZOL
