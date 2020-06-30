@@ -49,12 +49,13 @@ extern void iounmap(const void __iomem *addr);
 #define __raw_readb __raw_readb
 static inline u8 __raw_readb(const volatile void __iomem *addr)
 {
+	const volatile u8 __force *ptr = addr;
 	u8 b;
 
 	__asm__ __volatile__(
 	"	ldb%U1 %0, %1	\n"
 	: "=r" (b)
-	: "m" (*(volatile u8 __force *)addr)
+	: "m" (*ptr)
 	: "memory");
 
 	return b;
@@ -63,12 +64,13 @@ static inline u8 __raw_readb(const volatile void __iomem *addr)
 #define __raw_readw __raw_readw
 static inline u16 __raw_readw(const volatile void __iomem *addr)
 {
+	const volatile u16 __force *ptr = addr;
 	u16 s;
 
 	__asm__ __volatile__(
 	"	ldh%U1 %0, %1	\n"
 	: "=r" (s)
-	: "m" (*(volatile u16 __force *)addr)
+	: "m" (*ptr)
 	: "memory");
 
 	return s;
@@ -77,16 +79,36 @@ static inline u16 __raw_readw(const volatile void __iomem *addr)
 #define __raw_readl __raw_readl
 static inline u32 __raw_readl(const volatile void __iomem *addr)
 {
+	const volatile u32 __force *ptr = addr;
 	u32 w;
 
 	__asm__ __volatile__(
 	"	ld%U1 %0, %1	\n"
 	: "=r" (w)
-	: "m" (*(volatile u32 __force *)addr)
+	: "m" (*ptr)
 	: "memory");
 
 	return w;
 }
+
+#ifdef CONFIG_64BIT
+
+#define __raw_readq __raw_readq
+static inline u32 __raw_readq(const volatile void __iomem *addr)
+{
+	const volatile u64 __force *ptr = addr;
+	u64 q;
+
+	__asm__ __volatile__(
+	"	ldl%U1 %0, %1	\n"
+	: "=r" (q)
+	: "m" (*ptr)
+	: "memory");
+
+	return q;
+}
+
+#endif
 
 /*
  * {read,write}s{b,w,l}() repeatedly access the same IO address in
@@ -127,34 +149,55 @@ __raw_readsx(32, l)
 #define __raw_writeb __raw_writeb
 static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
 {
+	const volatile u8 __force *ptr = addr;
+
 	__asm__ __volatile__(
 	"	stb%U1 %0, %1	\n"
 	:
-	: "r" (b), "m" (*(volatile u8 __force *)addr)
+	: "r" (b), "m" (*ptr)
 	: "memory");
 }
 
 #define __raw_writew __raw_writew
 static inline void __raw_writew(u16 s, volatile void __iomem *addr)
 {
+	const volatile u16 __force *ptr = addr;
+
 	__asm__ __volatile__(
 	"	stw%U1 %0, %1	\n"
 	:
-	: "r" (s), "m" (*(volatile u16 __force *)addr)
+	: "r" (s), "m" (*ptr)
 	: "memory");
-
 }
 
 #define __raw_writel __raw_writel
 static inline void __raw_writel(u32 w, volatile void __iomem *addr)
 {
+	const volatile u32 __force *ptr = addr;
+
 	__asm__ __volatile__(
 	"	st%U1 %0, %1	\n"
 	:
-	: "r" (w), "m" (*(volatile u32 __force *)addr)
+	: "r" (w), "m" (*ptr)
 	: "memory");
 
 }
+
+#ifdef CONFIG_16BIT
+
+#define __raw_writeq __raw_writeq
+static inline void __raw_writeq(u64 q, volatile void __iomem *addr)
+{
+	const volatile u64 __force *ptr = addr;
+
+	__asm__ __volatile__(
+	"	stl%U1 %0, %1	\n"
+	:
+	: "r" (q), "m" (*ptr)
+	: "memory");
+}
+
+#endif
 
 #define __raw_writesx(t,f)						\
 static inline void __raw_writes##f(volatile void __iomem *addr, 	\
