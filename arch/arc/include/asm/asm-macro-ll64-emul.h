@@ -15,6 +15,9 @@
 	.ifeqs	"\d", "r6"
 		st.ab	r7, [\s, \incr / 2]
 	.endif
+	.ifeqs	"\d", "0"
+		st.ab	\d, [\s, \incr / 2]
+	.endif
 .endm
 
 .macro LD64.ab d, s, incr

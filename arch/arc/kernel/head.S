@@ -121,13 +121,19 @@ ENTRY(stext)
 #endif
 
 	; Clear BSS before updating any globals
-	; XXX: use ZOL here
 	mov	r5, __bss_start
 	sub	r6, __bss_stop, r5
+#ifndef CONFIG_ARC_LACKS_ZOL
 	lsr.f	lp_count, r6, 2
 	lpnz	1f
 	st.ab   0, [r5, 4]
 1:
+#else
+	lsr	r6, r6, 3
+1:
+	ST64.ab	0, r5, 8
+	DBNZR	r6, 1b
+#endif
 
 	; Uboot - kernel ABI
 	;    r0 = [0] No uboot interaction, [1] cmdline in r2, [2] DTB in r2

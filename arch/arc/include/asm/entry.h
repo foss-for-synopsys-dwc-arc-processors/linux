@@ -7,6 +7,8 @@
 #ifndef __ASM_ARC_ENTRY_H
 #define __ASM_ARC_ENTRY_H
 
+#include <asm/asm-offsets.h>
+#include <asm/assembler.h>
 #include <asm/unistd.h>		/* For NR_syscalls defination */
 #include <asm/arcregs.h>
 #include <asm/ptrace.h>
