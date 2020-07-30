@@ -229,6 +229,9 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	}
 
 
+#ifdef CONFIG_ISA_ARCV3
+	c_regs->gp = task_thread_info(p)->thr_ptr;
+#else
 	/*
 	 * setup usermode thread pointer #1:
 	 * when child is picked by scheduler, __switch_to() uses @c_callee to
@@ -237,6 +240,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	 * ensures those regs are not clobbered all the way to RTIE to usermode
 	 */
 	c_callee->r25 = task_thread_info(p)->thr_ptr;
+#endif
 
 	return 0;
 }
