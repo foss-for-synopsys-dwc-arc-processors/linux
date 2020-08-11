@@ -5,9 +5,32 @@
 #include <linux/unistd.h>
 
 #include <asm/syscalls.h>
+#include <asm/syscall.h>
 
 #define sys_clone	sys_clone_wrapper
 #define sys_clone3	sys_clone3_wrapper
+
+#ifdef CONFIG_64BIT
+SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+		unsigned long, prot, unsigned long, flags,
+		unsigned long, fd, off_t, off)
+{
+	if (offset_in_page(off) != 0)
+		return -EINVAL;
+
+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
+}
+#else
+SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+	unsigned long, prot, unsigned long, flags,
+	unsigned long, fd, unsigned long, off)
+{
+	if (offset_in_page(off) != 0)
+		return -EINVAL;
+
+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, off);
+}
+#endif
 
 #undef __SYSCALL
 #define __SYSCALL(nr, call) [nr] = (call),

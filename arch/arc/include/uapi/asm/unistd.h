@@ -30,12 +30,6 @@
 #define __ARCH_WANT_STAT64
 #endif
 
-#ifdef __LP64__
-#define sys_mmap sys_mmap_pgoff
-#else
-#define sys_mmap2 sys_mmap_pgoff
-#endif
-
 #include <asm-generic/unistd.h>
 
 #define NR_syscalls	__NR_syscalls
