@@ -35,21 +35,26 @@ static inline __sum16 csum_fold(__wsum s)
 static inline __sum16
 ip_fast_csum(const void *iph, unsigned int ihl)
 {
-	u64 tmp;
-	u32 sum;
+	u64 w1, w2, sum, tmp1, tmp2;
 
-	tmp = *(const u64 *)iph++;
-	tmp += *(const u64 *)iph++;
-	iph += 8;
-	ihl -= 2;
-	tmp += ((tmp >> 32) | (tmp << 32));
-	sum = tmp >> 32;
-	do {
-		sum += *(const u32 *)iph;
-		iph += 4;
-	} while (--ihl);
+	__asm__(
+	"	ldl.ab  %0, [%5, 8]	# dw1 = *(u64 *)iph		\n"
+	"	ldl.ab  %1, [%5, 8]	# dw2 = *(u64 *)(iph + 8)	\n"
+	"	sub     %6, %6, 4	# ipl -= 4			\n"
+	"	addl.f  %2, %0, %1	# sum = dw1 + dw2 (set C)	\n"
+	"	lsrl    %3, %2, 32	# sum >> 32			\n"
+	"	adc.f   %2, %3, %2	# sum += dw3 + Carry (set C)	\n"
+	"1:	ld.ab   %4, [%5, 4]	\n"
+	"	adc.f   %2, %2, %4	\n"
+	"	DBNZR   %6, 1b		\n"
+	"	add.cs  %2, %2, 1	\n"
 
-	return csum_fold(sum);
+	: "=&r" (w1), "=&r" (w2), "=&r" (sum), "=&r" (tmp1),  "=&r" (tmp2),
+	  "+&r" (iph), "+&r"(ihl)
+	:
+	: "cc", "memory");
+
+	return csum_fold((__force u32)sum);
 }
 
 #elif !defined(CONFIG_ARC_LACKS_ZOL)
