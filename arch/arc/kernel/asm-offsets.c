@@ -59,6 +59,7 @@ int main(void)
 	DEFINE(PT_r7, offsetof(struct pt_regs, r7));
 	DEFINE(PT_r8, offsetof(struct pt_regs, r8));
 	DEFINE(PT_r10, offsetof(struct pt_regs, r10));
+	DEFINE(PT_r12, offsetof(struct pt_regs, r12));
 	DEFINE(PT_gp, offsetof(struct pt_regs, gp));
 	DEFINE(PT_ret, offsetof(struct pt_regs, ret));
 	DEFINE(PT_blink, offsetof(struct pt_regs, blink));

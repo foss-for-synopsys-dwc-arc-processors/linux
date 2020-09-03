@@ -128,6 +128,9 @@
 	STR2	r6,  r7,  sp, PT_r6
 	STR2	r8,  r9,  sp, PT_r8
 	STR2	r10, r11, sp, PT_r10
+#ifdef CONFIG_ISA_ARCV3
+	STR2	r12, r13, sp, PT_r12
+#endif
 
 	STR	blink, sp, PT_blink
 
@@ -237,6 +240,9 @@
 	LDR2	r6,  r7,  sp, PT_r6
 	LDR2	r8,  r9,  sp, PT_r8
 	LDR2	r10, r11, sp, PT_r10
+#ifdef CONFIG_ISA_ARCV3
+	LDR2	r12, r13, sp, PT_r12
+#endif
 .endm
 
 
