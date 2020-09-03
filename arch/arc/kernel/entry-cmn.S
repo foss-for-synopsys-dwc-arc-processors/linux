@@ -28,10 +28,11 @@ ENTRY(handle_interrupt)
 	; icause is banked: one per priority level
 	; so a higher prio interrupt taken here won't clobber prev prio icause
 	lr  r0, [ICAUSE]
-	MOVR   blink, ret_from_exception
 
-	b.d  arch_do_IRQ
+	bl.d arch_do_IRQ
 	MOVR r1, sp
+
+	b    ret_from_exception
 
 END(handle_interrupt)
 
