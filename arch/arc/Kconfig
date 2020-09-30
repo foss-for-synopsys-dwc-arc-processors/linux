@@ -376,6 +376,8 @@ if !ISA_ARCOMPACT
 
 config ARC_LACKS_ZOL
 	bool "Disable Zero Delay hardware loops"
+	default y if ISA_ARCV3
+	default n if ISA_ARCV2
 	help
 	  ARC CPU historically have had ZOL hardware loop mechanism which
 	  the ARCv3 ISA drops. Architecturally ZOL provides
