@@ -3,6 +3,8 @@
 #include "../../../arch/x86/include/uapi/asm/bitsperlong.h"
 #elif defined(__aarch64__)
 #include "../../../arch/arm64/include/uapi/asm/bitsperlong.h"
+#elif defined(__ARC64__)
+#include "../../../arch/arc/include/uapi/asm/bitsperlong.h"
 #elif defined(__powerpc__)
 #include "../../../arch/powerpc/include/uapi/asm/bitsperlong.h"
 #elif defined(__s390__)
