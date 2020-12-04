@@ -8,7 +8,7 @@
 #include <asm/assembler.h>
 
 #ifndef CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS
-#error "Unaligned access not supported"
+#error "Unaligned access support needed"
 #endif
 
 ; Input
@@ -124,6 +124,18 @@ ENTRY_CFI(__clear_user)
 	sub    r0, r8, r0
 
 END_CFI(__clear_user)
+
+; Note that .fixup section is missing and that is not an omission
+;
+; .fixup is a level of indirection for user fault handling to do some extra work
+; before jumping off to a safe instruction (past the faulting LD/ST) in uaccess
+; code. This could be say setting up -EFAULT in return register for caller.
+; But if that is not needed (such as above where number of bytes copied/not-copied
+; is already in return reg r0) and fault handler only needs to resume to a valid PC
+; that label could be placed in __ex_table entry (otherwise be in .fixup)
+; do_page_fault() -> fixup_exception() use that to setup pt_regs->ret, which the
+; CPU exception handler resumes to. This also makes the handling more efficient
+; by removing a level of indirection.
 
 .section __ex_table, "a"
 	.word 30b, .L3done
