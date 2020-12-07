@@ -11,6 +11,8 @@
 #include <linux/futex.h>
 #include <linux/preempt.h>
 #include <linux/uaccess.h>
+
+#include <asm/assembler.h>
 #include <asm/errno.h>
 
 #ifdef CONFIG_ARC_HAS_LLSC
@@ -31,9 +33,9 @@
 	"	j   3b				\n"	\
 	"	.previous			\n"	\
 	"	.section __ex_table,\"a\"	\n"	\
-	"	.align  4			\n"	\
-	"	.word   1b, 4b			\n"	\
-	"	.word   2b, 4b			\n"	\
+	"	.align  " REGSZASM  "		\n"	\
+	" "	ARC_PTR " 1b, 4b		\n"	\
+	" "	ARC_PTR " 2b, 4b		\n"	\
 	"	.previous			\n"	\
 							\
 	: "=&r" (ret), "=&r" (oldval)			\
@@ -58,9 +60,9 @@
 	"	j   3b				\n"	\
 	"	.previous			\n"	\
 	"	.section __ex_table,\"a\"	\n"	\
-	"	.align  4			\n"	\
-	"	.word   1b, 4b			\n"	\
-	"	.word   2b, 4b			\n"	\
+	"	.align  " REGSZASM  "		\n"	\
+	" "	ARC_PTR " 1b, 4b		\n"	\
+	" "	ARC_PTR " 2b, 4b		\n"	\
 	"	.previous			\n"	\
 							\
 	: "=&r" (ret), "=&r" (oldval)			\
@@ -149,9 +151,9 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr, u32 expval,
 	"	j   3b	\n"
 	"	.previous	\n"
 	"	.section __ex_table,\"a\"	\n"
-	"	.align  4	\n"
-	"	.word   1b, 4b	\n"
-	"	.word   2b, 4b	\n"
+	"	.align  " REGSZASM  "		\n"
+	" "	ARC_PTR " 1b, 4b		\n"
+	" "	ARC_PTR " 2b, 4b		\n"
 	"	.previous\n"
 	: "+&r"(ret), "=&r"(existval)
 	: "r"(expval), "r"(newval), "r"(uaddr), "ir"(-EFAULT)

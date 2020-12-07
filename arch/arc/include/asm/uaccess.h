@@ -22,7 +22,7 @@
 #define _ASM_ARC_UACCESS_H
 
 #include <linux/string.h>	/* for generic string functions */
-
+#include <asm/assembler.h>
 
 #define __kernel_ok		(uaccess_kernel())
 
@@ -87,8 +87,8 @@
 	"	j   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
-	"	.align 4\n"			\
-	"	.word 1b,3b\n"			\
+	"	.align  " REGSZASM "	\n"	\
+	" "	ARC_PTR "1b,3b\n"		\
 	"	.previous\n"			\
 						\
 	: "+r" (ret), "=r" (dst)		\
@@ -153,8 +153,8 @@
 	"	j   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
-	"	.align 4\n"			\
-	"	.word 1b,3b\n"			\
+	"	.align  " REGSZASM "	\n"	\
+	" "	ARC_PTR "1b,3b\n"		\
 	"	.previous\n"			\
 						\
 	: "+r" (ret)				\

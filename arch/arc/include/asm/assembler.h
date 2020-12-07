@@ -6,8 +6,12 @@
 #ifdef __ASSEMBLY__
 
 #if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#define ARC_PTR		.xword
+#define REGSZASM	8
 #include <asm/asm-macro-64-bit.h>
 #else
+#define ARC_PTR		.word
+#define REGSZASM	4
 #include <asm/asm-macro-32-bit.h>
 
 #ifdef CONFIG_ARC_HAS_LL64
@@ -27,8 +31,12 @@
 #else	/* !__ASSEMBLY__ */
 
 #if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#define ARC_PTR		" .xword "
+#define REGSZASM	" 8 "
 asm(".include \"asm/asm-macro-64-bit.h\"\n");
 #else
+#define ARC_PTR		" .word "
+#define REGSZASM	" 4 "
 asm(".include \"asm/asm-macro-32-bit.h\"\n");
 
 #ifdef CONFIG_ARC_HAS_LL64

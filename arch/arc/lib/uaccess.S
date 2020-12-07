@@ -48,9 +48,9 @@ ENTRY_CFI(raw_copy_from_user)
 END_CFI(raw_copy_from_user)
 
 .section __ex_table, "a"
-	.word 10b, .L1done
-	.word 11b, .L1done
-	.word 12b, .L1done
+	ARC_PTR 10b, .L1done
+	ARC_PTR 11b, .L1done
+	ARC_PTR 12b, .L1done
 .previous
 
 ; Input
@@ -91,9 +91,9 @@ ENTRY_CFI(raw_copy_to_user)
 END_CFI(raw_copy_to_user)
 
 .section __ex_table, "a"
-	.word 20b, .L2done
-	.word 21b, .L2done
-	.word 22b, .L2done
+	ARC_PTR 20b, .L2done
+	ARC_PTR 21b, .L2done
+	ARC_PTR 22b, .L2done
 .previous
 
 ENTRY_CFI(__clear_user)
@@ -138,7 +138,7 @@ END_CFI(__clear_user)
 ; by removing a level of indirection.
 
 .section __ex_table, "a"
-	.word 30b, .L3done
-	.word 31b, .L3done
-	.word 32b, .L3done
+	ARC_PTR 30b, .L3done
+	ARC_PTR 31b, .L3done
+	ARC_PTR 32b, .L3done
 .previous
