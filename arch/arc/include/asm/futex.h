@@ -30,7 +30,7 @@
 	"	.section .fixup,\"ax\"		\n"	\
 	"	.align  4			\n"	\
 	"4:	mov %0, %4			\n"	\
-	"	j   3b				\n"	\
+	"	b   3b				\n"	\
 	"	.previous			\n"	\
 	"	.section __ex_table,\"a\"	\n"	\
 	"	.align  " REGSZASM  "		\n"	\
@@ -57,7 +57,7 @@
 	"	.section .fixup,\"ax\"		\n"	\
 	"	.align  4			\n"	\
 	"4:	mov %0, %4			\n"	\
-	"	j   3b				\n"	\
+	"	b   3b				\n"	\
 	"	.previous			\n"	\
 	"	.section __ex_table,\"a\"	\n"	\
 	"	.align  " REGSZASM  "		\n"	\
@@ -147,7 +147,7 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr, u32 expval,
 	"3:	\n"
 	"	.section .fixup,\"ax\"	\n"
 	"4:	mov %0, %5	\n"
-	"	j   3b	\n"
+	"	b   3b	\n"
 	"	.previous	\n"
 	"	.section __ex_table,\"a\"	\n"
 	"	.align  " REGSZASM  "		\n"

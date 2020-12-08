@@ -20,7 +20,7 @@
 
 	; Setting up Vectror Table
 #ifdef CONFIG_64BIT
-	movl	r5, @_int_vec_base_lds
+	MOVA	r5, @_int_vec_base_lds
 	srl	r5, [AUX_INTR_VEC_BASE]
 #else
 	sr	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
@@ -80,7 +80,7 @@
 ; - Platforms can override this weak version if needed
 ;----------------------------------------------------------------
 WEAK(res_service)
-	j	stext
+	b	stext
 END(res_service)
 
 ;----------------------------------------------------------------
@@ -98,15 +98,16 @@ ENTRY(stext)
 
 	; Non-Masters wait for Master to boot enough and bring them up
 	; when they resume, tail-call to entry point
-	MOVR	blink, @first_lines_of_secondary
-	j	arc_platform_smp_wait_to_boot
+	MOVA	blink, @first_lines_of_secondary
+	b	arc_platform_smp_wait_to_boot
 
 .Lmaster_proceed:
 #endif
 
 	; Clear BSS before updating any globals
-	MOVR	r5, __bss_start
-	SUBR	r6, __bss_stop, r5
+	MOVA	r5, __bss_start
+	MOVA	r7, __bss_stop
+	SUBR	r6, r7, r5
 #ifndef CONFIG_ARC_LACKS_ZOL
 	lsr.f	lp_count, r6, 2
 	lpnz	1f
@@ -125,12 +126,15 @@ ENTRY(stext)
 	;    r1 = magic number (always zero as of now)
 	;    r2 = pointer to uboot provided cmdline or external DTB in mem
 	; These are handled later in handle_uboot_args()
-	STR	r0, @uboot_tag
-	STR	r1, @uboot_magic
-	STR	r2, @uboot_arg
+	MOVA	r4, @uboot_tag
+	STR	r0, r4
+	MOVA	r4, @uboot_magic
+	STR	r1, r4
+	MOVA	r4, @uboot_arg
+	STR	r2, r4
 
 	; setup "current" tsk and optionally cache it in dedicated r25
-	MOVR	r9, @init_task
+	MOVA	r9, @init_task
 	SET_CURR_TASK_ON_CPU  r9, r0	; r9 = tsk, r0 = scratch
 
 	; setup stack (fp, sp)
@@ -139,7 +143,7 @@ ENTRY(stext)
 	; tsk->thread_info is really a PAGE, whose bottom hoists stack
 	GET_TSK_STACK_BASE r9, sp	; r9 = tsk, sp = stack base(output)
 
-	j	start_kernel	; "C" entry point
+	b	start_kernel	; "C" entry point
 END(stext)
 
 #ifdef CONFIG_SMP
@@ -159,6 +163,6 @@ ENTRY(first_lines_of_secondary)
 	; set it's stack base to tsk->thread_info bottom
 	GET_TSK_STACK_BASE r0, sp
 
-	j	start_kernel_secondary
+	b	start_kernel_secondary
 END(first_lines_of_secondary)
 #endif

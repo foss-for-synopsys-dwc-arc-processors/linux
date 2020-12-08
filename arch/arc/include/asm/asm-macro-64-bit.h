@@ -13,6 +13,11 @@
 .endm
 .endr
 
+.macro MOVA d, sym
+	movhl	\d, \sym
+	orl	\d, \d, \sym@u32
+.endm
+
 .irp    aa,,.as,.aw
 .macro LDR\aa d, s, off=0
 	ldl\aa \d, [\s, \off]
