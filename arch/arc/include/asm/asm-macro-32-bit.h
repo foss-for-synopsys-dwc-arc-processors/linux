@@ -13,6 +13,10 @@
 .endm
 .endr
 
+.macro MOVA d, sym
+	mov	\d, \sym
+.endm
+
 .irp    aa,,.as,.aw
 .macro LDR\aa d, s, off=0
 	ld\aa  \d, [\s, \off]
