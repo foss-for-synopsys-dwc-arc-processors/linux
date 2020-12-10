@@ -41,7 +41,7 @@ cflags-y	+= -fno-common -pipe -fno-builtin -D__linux__
 ifndef CONFIG_ISA_ARCV3
 cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls
 else
-cflags-y	+= -mcmodel=medium
+cflags-y	+= -mcmodel=large
 cflags-$(CONFIG_ARC_HAS_LL128)	+= 	-m128
 endif
 cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
