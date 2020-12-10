@@ -49,10 +49,40 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 
 void arc_mmu_init(void)
 {
+	struct mmu_ttbc {
+		u32 t0sz:5, t0sh:2, t0c:1, res0:7, a1:1,
+		    t1sz:5, t1sh:2, t1c:1, res1:8;
+	} ttbc;
+
+	struct mmu_mem_attr {
+		u8 attr[8];
+	} memattr;
+
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
 
 	arc_paging_init();
+
+	ttbc.t0sz = 16;
+	ttbc.t1sz = 16;	/* Not relevant since kernel linked under 4GB hits T0SZ */
+	ttbc.t0sh = __SHR_INNER;
+	ttbc.t1sh = __SHR_INNER;
+	ttbc.t0c = 1;
+	ttbc.t1c = 1;
+	ttbc.a1 = 0;  /* ASID used is from MMU_RTP0 */
+
+	WRITE_AUX(ARC_REG_MMU_TTBC, ttbc);
+
+	memattr.attr[MEMATTR_IDX_NORMAL] = MEMATTR_NORMAL;
+	memattr.attr[MEMATTR_IDX_UNCACHED] = MEMATTR_UNCACHED;
+	memattr.attr[MEMATTR_IDX_VOLATILE] = MEMATTR_VOLATILE;
+
+	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
+
+	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
+	write_aux_64(ARC_REG_MMU_RTP1, 0);	/* to catch bugs */
+
+	write_aux_reg(ARC_REG_MMU_CTRL, 0x7);
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
