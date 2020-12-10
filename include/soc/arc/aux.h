@@ -15,6 +15,24 @@
 /* gcc builtin sr needs reg param to be long immediate */
 #define write_aux_reg(r, v)	__builtin_arc_sr(v, r)
 
+#ifdef CONFIG_ISA_ARCV3
+
+#define read_aux_64(r)                                  \
+({							\
+	u64 v;						\
+	__asm__ __volatile__("lrl %0, [%1]"		\
+	: "=r"(v) : "r"(r));				\
+	v;						\
+})
+
+#define write_aux_64(r, v)				\
+({							\
+	__asm__ __volatile__("srl %0, [%1]"		\
+	: : "r"(v), "r"(r));				\
+})
+
+#endif
+
 #else	/* !CONFIG_ARC */
 
 static inline int read_aux_reg(u32 r)
@@ -42,11 +60,11 @@ static inline void write_aux_reg(u32 r, u32 v)
 	into = *((typeof(into) *)&tmp);			\
 }
 
-#define WRITE_AUX(reg, into)				\
+#define WRITE_AUX(reg, from)				\
 {							\
 	unsigned int tmp;				\
-	if (sizeof(tmp) == sizeof(into)) {		\
-		tmp = (*(unsigned int *)&(into));	\
+	if (sizeof(tmp) == sizeof(from)) {		\
+		tmp = *(unsigned int *)&(from);	\
 		write_aux_reg(reg, tmp);		\
 	} else  {					\
 		extern void bogus_undefined(void);	\
@@ -54,5 +72,20 @@ static inline void write_aux_reg(u32 r, u32 v)
 	}						\
 }
 
+#ifdef CONFIG_ISA_ARCV3
+
+#define WRITE_AUX64(reg, from)				\
+{							\
+	unsigned long long tmp;				\
+	if (sizeof(tmp) == sizeof(from)) {		\
+		tmp = *(unsigned long long *)&(from);	\
+		write_aux_64(reg, tmp);			\
+	} else  {					\
+		extern void bogus_undefined(void);	\
+		bogus_undefined();			\
+	}						\
+}
+
+#endif
 
 #endif
