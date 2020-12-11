@@ -220,9 +220,9 @@ struct bcr_mmu_4 {
 
 struct bcr_mmu_6 {
 #ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int ver:4, variant:2, res:17, n_tlb:3, u_itlb:3, u_dtlb:3;
+	unsigned int ver:2, variant:2, res:12, tc:1, n_tlb:3, u_itlb:3, u_dtlb:3;
 #else
-	unsigned int u_dtlb:3, u_itlb:3, n_tlb:3, res:17, variant:2, ver:4;
+	unsigned int u_dtlb:3, u_itlb:3, n_tlb:3, tc:1, res:12, variant:2, ver:8;
 #endif
 };
 

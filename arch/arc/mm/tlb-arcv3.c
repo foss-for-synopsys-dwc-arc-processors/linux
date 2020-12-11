@@ -22,20 +22,23 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	int n = 0;
 
 	READ_BCR(ARC_REG_MMU_BCR, mmu6);
-	if (!mmu6.ver)
-		return n;
-
-	if (mmu6.variant == 0) {	/* MMUv32 */
-		lookups = 3;
-		pg_sz_k = 4;
+	if (!mmu6.ver) {
+		panic("MMU not detected\n");
+		return 0;
+	} else if (!mmu6.ver) {
+		panic("Only MMU48 supported currently\n");
+		return 0;
 	}
+
+	lookups = 4;	/* 4 levels */
+	pg_sz_k = 4;	/* 4KB */
 
 	u_dtlb = 2 << mmu6.u_dtlb;  /* 8, 16 */
 	u_itlb = 2 << mmu6.u_itlb;  /* 4, 8, 16 */
 	ntlb = 256 << mmu6.n_tlb;    /* Fixed 4w */
 
 	n += scnprintf(buf + n, len - n,
-		      "MMU [v%x] \t\t: %s hwalk %d levels, %dk PAGE, JTLB %d uD/I %d/%d\n",
+		      "MMU [v%x]\t: %s hwalk %d levels, %dk PAGE, JTLB %d uD/I %d/%d\n",
 		       mmu6.ver, variant_nm[mmu6.variant], lookups,
 		       pg_sz_k, ntlb, u_dtlb, u_itlb);
 
