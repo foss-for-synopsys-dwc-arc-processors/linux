@@ -56,7 +56,7 @@
 #define MEMATTR_IDX_VOLATILE	2
 
 /* Read is always set since AP is specified as RO; !RO == R+W */
-#define _PAGE_BASE	(_PAGE_VALID        | _PAGE_LINK	\
+#define _PAGE_BASE	(_PAGE_VALID        | _PAGE_LINK      |	\
 			 _PAGE_AP_READONLY  | 			\
 			 _PAGE_NOTEXEC_U    | _PAGE_NOTEXEC_K |	\
 			 _PAGE_AP_U_N_K     | _PAGE_NOTGLOBAL |	\
@@ -69,10 +69,19 @@
 #define _PAGE_RX	(_PAGE_BASE & ~_PAGE_NOTEXEC_U)
 #define _PAGE_RWX	(_PAGE_BASE & ~_PAGE_AP_READONLY  & ~_PAGE_NOTEXEC_U)
 
+/* TBD: kernel is RWX by default, split it to code/data */
+#define _PAGE_KERNEL	(_PAGE_VALID        |			\
+			 /* writable */				\
+			 _PAGE_NOTEXEC_U    | 	/* exec k */	\
+			 /* AP kernel only  |      global */	\
+			 _PAGE_ACCESSED     |			\
+			 _PAGE_SHARED_INNER |			\
+			 _PAGE_MEMATTR(MEMATTR_IDX_NORMAL))
+
 #define PAGE_NONE	__pgprot(_PAGE_BASE)	/* TBD */
 #define PAGE_TABLE	__pgprot(_PAGE_TABLE)
 #define PAGE_BLOCK	__pgprot(_PAGE_BLOCK)
-#define PAGE_KERNEL	__pgprot(_PAGE_BASE & ~_PAGE_NOTGLOBAL & ~_PAGE_AP_U_N_K)
+#define PAGE_KERNEL	__pgprot(_PAGE_KERNEL)
 
 #define PAGE_R		__pgprot(_PAGE_BASE)
 #define PAGE_RW		__pgprot(_PAGE_RW)
