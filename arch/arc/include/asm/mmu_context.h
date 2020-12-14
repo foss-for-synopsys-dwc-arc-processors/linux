@@ -147,9 +147,9 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 	 */
 	cpumask_set_cpu(cpu, mm_cpumask(next));
 
-	mmu_setup_pgd(next, next->pgd);
-
 	get_new_mmu_context(next);
+
+	mmu_setup_pgd(next, next->pgd);
 }
 
 /*
