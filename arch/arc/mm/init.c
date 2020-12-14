@@ -211,7 +211,7 @@ void arc_paging_init(void)
 {
 #ifdef CONFIG_ARC_MMU_V6
 	phys_addr_t pa = (unsigned long)PAGE_OFFSET;
-	pgprot_t kperm = __pgprot(_PAGE_KERNEL | _PAGE_BLOCK);
+	pgprot_t kperm = PAGE_KERNEL_BLK;
 
 	unsigned int idx = pgd_index(pa);
 	swapper_pg_dir[idx] = pfn_pgd(PFN_DOWN((phys_addr_t)swapper_pud), PAGE_TABLE);
