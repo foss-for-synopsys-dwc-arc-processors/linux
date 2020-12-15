@@ -218,7 +218,7 @@ static inline pmd_t * pmd_offset(pud_t * pud, unsigned long addr)
 #define pte_clear(mm,addr,ptep)	set_pte_at(mm, addr, ptep, __pte(0))
 #define pte_page(pte)		pfn_to_page(pte_pfn(pte))
 #define set_pte(ptep, pte)	((*(ptep)) = (pte))
-#define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
+#define pte_pfn(pte)		((pte_val(pte) >> PAGE_SHIFT) & ((1UL << (ARC_VADDR_BITS - PAGE_SHIFT)) - 1))
 #define pfn_pte(pfn, prot)	__pte(__pfn_to_phys(pfn) | pgprot_val(prot))
 #define mk_pte(page, prot)	pfn_pte(page_to_pfn(page), prot)
 
