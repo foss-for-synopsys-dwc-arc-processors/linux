@@ -20,12 +20,29 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/sched/mm.h>
+
 static void inline mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 {
+#ifdef CONFIG_64BIT
+	unsigned long rtp0 = (asid << 48) | __pa(mm->pgd);
+
+	BUG_ON(__pa(mm->pgd) >> 48);
+	write_aux_64(ARC_REG_MMU_RTP0, rtp0);
+
+#else
+#error "Need to implement 2 SR ops"
+#endif
 }
 
 static void inline mmu_setup_pgd(struct mm_struct *mm, pgd_t *pgd)
 {
+	/*
+	 * Only called by switch_mm() which apriori calls get_new_mmu_context()
+	 * which unconditionally calls mmu_setup_asid() to set the ASID
+	 * Since on this MMU both ASID and pgd are in same register, we program
+	 * both there and do nothing here.
+	 */
 }
 
 #endif
