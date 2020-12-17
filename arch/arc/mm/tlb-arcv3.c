@@ -153,23 +153,28 @@ void activate_mm(struct mm_struct *prev_mm, struct mm_struct *next_mm)
 
 noinline void local_flush_tlb_all(void)
 {
+	write_aux_reg(ARC_REG_MMU_TLB_CMD, 1);
 }
 
 noinline void local_flush_tlb_mm(struct mm_struct *mm)
 {
+	local_flush_tlb_all();
 }
 
 void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
 			   unsigned long end)
 {
+	local_flush_tlb_all();
 }
 
 void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
 {
+	local_flush_tlb_all();
 }
 
 void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
 {
+	local_flush_tlb_all();
 }
 
 #ifdef CONFIG_SMP
