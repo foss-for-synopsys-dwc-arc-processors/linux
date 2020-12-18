@@ -122,7 +122,8 @@ PTE_BIT_FUNC(wrprotect,	|=  (_PAGE_AP_READONLY));
 PTE_BIT_FUNC(mkwrite,	&= ~(_PAGE_AP_READONLY));
 PTE_BIT_FUNC(mkclean,	&= ~(_PAGE_DIRTY));
 PTE_BIT_FUNC(mkdirty,	|=  (_PAGE_DIRTY));
-PTE_BIT_FUNC(mkold,	&= ~(_PAGE_ACCESSED));
+/* Accessed bit is always set */
+PTE_BIT_FUNC(mkold,	|=  (_PAGE_ACCESSED));
 PTE_BIT_FUNC(mkyoung,	|=  (_PAGE_ACCESSED));
 PTE_BIT_FUNC(mkspecial,	|=  (_PAGE_SPECIAL));
 
