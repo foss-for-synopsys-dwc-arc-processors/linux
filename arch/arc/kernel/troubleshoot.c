@@ -130,11 +130,22 @@ static void show_ecr_verbose(struct pt_regs *regs)
 
 	/* For DTLB Miss or ProtV, display the memory involved too */
 	if (vec == ECR_V_DTLB_MISS) {
+#ifdef CONFIG_ISA_ARCV3
+                if (cause_code & 0x10)
+                        pr_cont("Access Flag Data Access Exception\n");
+
+                cause_code &= 0x3;
+#endif
 		pr_cont("Invalid %s @ 0x%08lx by insn @ %pS\n",
 		       (cause_code == 0x01) ? "Read" :
-		       ((cause_code == 0x02) ? "Write" : "EX"),
+		       (cause_code == 0x02) ? "Write":
+		       (cause_code == 0x03) ? "EX" : "",
 		       address, (void *)regs->ret);
 	} else if (vec == ECR_V_ITLB_MISS) {
+#ifdef CONFIG_ISA_ARCV3
+                if (cause_code & 0x10)
+                        pr_cont("Access Flag Instrn Fetch Exception\n");
+#endif
 		pr_cont("Insn could not be fetched\n");
 	} else if (vec == ECR_V_MACH_CHK) {
 		pr_cont("Machine Check (%s)\n", (cause_code == 0x0) ?
