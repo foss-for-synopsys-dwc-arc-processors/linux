@@ -14,6 +14,8 @@ static struct cpuinfo_arc_mmu {
 	unsigned int pg_sz_k;
 } mmuinfo;
 
+volatile int arc_debug_tlb_flush_mm_nuke = 0;
+
 int arc_mmu_mumbojumbo(int c, char *buf, int len)
 {
 	unsigned int lookups, pg_sz_k, ntlb, u_dtlb, u_itlb;
@@ -41,6 +43,10 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 		      "MMU [v%x]\t: %s hwalk %d levels, %dk PAGE, JTLB %d uD/I %d/%d\n",
 		       mmu6.ver, variant_nm[mmu6.variant], lookups,
 		       pg_sz_k, ntlb, u_dtlb, u_itlb);
+
+	n += scnprintf(buf + n, len - n,
+		       "\t\t tlb_flush_mm %s\n",
+		       arc_debug_tlb_flush_mm_nuke ? "flushes TLB" : "Incr ASID");
 
 	mmuinfo.pg_sz_k = pg_sz_k;
 
@@ -175,7 +181,30 @@ noinline void local_flush_tlb_all(void)
 
 noinline void local_flush_tlb_mm(struct mm_struct *mm)
 {
-	local_flush_tlb_all();
+	if (arc_debug_tlb_flush_mm_nuke) {
+		local_flush_tlb_all();
+		return;
+	}
+
+	/*
+	 * Small optimisation courtesy IA64
+	 * flush_mm called during fork,exit,munmap etc, multiple times as well.
+	 * Only for fork( ) do we need to move parent to a new MMU ctxt,
+	 * all other cases are NOPs, hence this check.
+	 */
+	if (atomic_read(&mm->mm_users) == 0)
+		return;
+
+	/*
+	 * - Move to a new ASID, but only if the mm is still wired in
+	 *   (Android Binder ended up calling this for vma->mm != tsk->mm,
+	 *    causing h/w - s/w ASID to get out of sync)
+	 * - Also get_new_mmu_context() new implementation allocates a new
+	 *   ASID only if it is not allocated already - so unallocate first
+	 */
+	destroy_context(mm);
+	if (current->mm == mm)
+		get_new_mmu_context(mm);
 }
 
 void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
