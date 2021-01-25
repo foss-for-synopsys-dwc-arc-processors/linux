@@ -297,7 +297,7 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 	const char *cpu_nm, *isa_nm;
 	struct bcr_isa_cfg_arcv3 isa;
 	struct bcr_uarch_build uarch;
-	char mpy_nm[32];
+	char mpy_nm[32] = "";
 
 	arc64 = (info->arcver & 0x70) == 0x70;
 
@@ -316,8 +316,8 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 		struct bcr_mpy_arc64 mpy;
 
 		READ_BCR(ARC_REG_MPY_ARC64_BCR, mpy);
-		scnprintf(mpy_nm, 32, "mpy[32x32%s] ",
-			  mpy.is64x64 ? " ,64x64" : "");
+		if (mpy.ver)
+			scnprintf(mpy_nm, 32, "mpy%s ", mpy.is64x64 ? " [64x64]" : "");
 
 	} else {
 		struct bcr_mpy mpy;
