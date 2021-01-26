@@ -51,6 +51,10 @@
 .endm
 .endr
 
+.macro ADD3R d, s, v
+	add3	\d, \s, \v
+.endm
+
 .macro SUBR d, s, v
 	sub     \d, \s, \v
 .endm
