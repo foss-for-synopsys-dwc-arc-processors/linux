@@ -355,49 +355,39 @@ void __cache_line_loop_v4(phys_addr_t paddr, unsigned long vaddr,
  * Machine specific helpers for Entire D-Cache or Per Line ops
  */
 
-#ifndef USE_RGN_FLSH
-/*
- * this version avoids extra read/write of DC_CTRL for flush or invalid ops
- * in the non region flush regime (such as for ARCompact)
- */
-static inline void __before_dc_op(const int op)
-{
-	if (op == OP_FLUSH_N_INV) {
-		/* Dcache provides 2 cmd: FLUSH or INV
-		 * INV inturn has sub-modes: DISCARD or FLUSH-BEFORE
-		 * flush-n-inv is achieved by INV cmd but with IM=1
-		 * So toggle INV sub-mode depending on op request and default
-		 */
-		const unsigned int ctl = ARC_REG_DC_CTRL;
-		write_aux_reg(ctl, read_aux_reg(ctl) | DC_CTRL_INV_MODE_FLUSH);
-	}
-}
-
-#else
-
 static inline void __before_dc_op(const int op)
 {
 	const unsigned int ctl = ARC_REG_DC_CTRL;
 	unsigned int val = read_aux_reg(ctl);
 
+	/*
+	 * Dcache provides 2 cmd: FLUSH or INV
+	 *   - Line ops use aux DC_FLDL or DC_IVDL
+	 *   - Region ops set DC_CTRL.RGN_OP = 0 (flush) or 1 (inv)
+	 * INV has 2 modes:
+	 *    - DISCARD (DC_CTRL.IM = 0) or FLUSH-N-INV (IM = 1)
+	 */
 	if (op == OP_FLUSH_N_INV) {
 		val |= DC_CTRL_INV_MODE_FLUSH;
 	}
 
+#ifdef USE_RGN_FLSH
+
 	if (op != OP_INV_IC) {
 		/*
-		 * Flush / Invalidate is provided by DC_CTRL.RNG_OP 0 or 1
-		 * combined Flush-n-invalidate uses DC_CTRL.IM = 1 set above
-		 */
+		 *  op		DC_CTRL.RGN_OP	DC_CTRL.IM
+                 * Flush              0           n/a
+                 * Inv                1            0
+                 * Flush-n-Inv        1            1
+                 */
 		val &= ~DC_CTRL_RGN_OP_MSK;
 		if (op & OP_INV)
 			val |= DC_CTRL_RGN_OP_INV;
 	}
-	write_aux_reg(ctl, val);
-}
-
 #endif
 
+	write_aux_reg(ctl, val);
+}
 
 static inline void __after_dc_op(const int op)
 {
