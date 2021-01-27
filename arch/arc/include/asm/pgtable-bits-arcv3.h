@@ -114,6 +114,7 @@
 #define pte_dirty(pte)		(pte_val(pte) & _PAGE_DIRTY)
 #define pte_young(pte)		(pte_val(pte) & _PAGE_ACCESSED)
 #define pte_special(pte) 	(pte_val(pte) & _PAGE_SPECIAL)
+#define pte_exec(pte)		(!(pte_val(pte) & _PAGE_NOTEXEC_U))
 
 #define PTE_BIT_FUNC(fn, op) \
 	static inline pte_t pte_##fn(pte_t pte) { pte_val(pte) op; return pte; }
@@ -133,11 +134,8 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
 }
 
-static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
-			      pte_t *ptep, pte_t pteval)
-{
-	set_pte(ptep, pteval);
-}
+extern void set_pte_at(struct mm_struct *mm, unsigned long addr,
+			      pte_t *ptep, pte_t pteval);
 
 /*
  * Encode and decode a swap entry
