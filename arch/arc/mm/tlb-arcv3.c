@@ -78,11 +78,15 @@ int arc_map_kernel_in_mm(struct mm_struct *mm)
 		return 1;
 
 	do {
+		pgprot_t prot = PAGE_KERNEL_BLK;
+		if (addr > PAGE_OFFSET)
+			prot = pgprot_noncached(PAGE_KERNEL_BLK);
+
 		pud = pud_offset(p4d, addr);
 		if (!pud_none(*pud) || pud_present(*pud))
 			return 1;
 
-		set_pud(pud, pfn_pud(PFN_DOWN(addr), PAGE_KERNEL_BLK));
+		set_pud(pud, pfn_pud(PFN_DOWN(addr), prot));
 		addr = pud_addr_end(addr, end);
 	}
 	while (addr != end);
