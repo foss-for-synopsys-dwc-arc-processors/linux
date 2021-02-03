@@ -15,7 +15,7 @@
 #define NR_CPU_IRQS	240
 
 #ifdef CONFIG_64BIT
-#define VECTOR	.word
+#define VECTOR	.xword
 #else
 #define VECTOR	.word
 #endif

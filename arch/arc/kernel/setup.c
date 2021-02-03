@@ -377,7 +377,7 @@ static char *arc_cpu_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int 
 	vec_base = read_aux_reg(AUX_INTR_VEC_BASE);
 
 	n += scnprintf(buf + n, len - n,
-		       "Timers\t\t: %s%s%s%s%s%s\nVector Table\t: %#lx\n",
+		       "Timers\t\t: %s%s%s%s%s%s\nVector Table\t: %#lx [64-bit]\n",
 		       IS_AVAIL1(timer.t0, "Timer0 "),
 		       IS_AVAIL1(timer.t1, "Timer1 "),
 		       IS_AVAIL2(timer.rtc, "RTC [UP 64-bit] ", CONFIG_ARC_TIMERS_64BIT),
