@@ -53,7 +53,7 @@ static inline u8 __raw_readb(const volatile void __iomem *addr)
 	u8 b;
 
 	__asm__ __volatile__(
-	"	ldb%U1 %0, %1	\n"
+	"	ldb%U1.di %0, %1	\n"
 	: "=r" (b)
 	: "m" (*ptr)
 	: "memory");
@@ -68,7 +68,7 @@ static inline u16 __raw_readw(const volatile void __iomem *addr)
 	u16 s;
 
 	__asm__ __volatile__(
-	"	ldh%U1 %0, %1	\n"
+	"	ldh%U1.di %0, %1	\n"
 	: "=r" (s)
 	: "m" (*ptr)
 	: "memory");
@@ -83,7 +83,7 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
 	u32 w;
 
 	__asm__ __volatile__(
-	"	ld%U1 %0, %1	\n"
+	"	ld%U1.di %0, %1	\n"
 	: "=r" (w)
 	: "m" (*ptr)
 	: "memory");
@@ -152,7 +152,7 @@ static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
 	const volatile u8 __force *ptr = addr;
 
 	__asm__ __volatile__(
-	"	stb%U1 %0, %1	\n"
+	"	stb%U1.di %0, %1	\n"
 	:
 	: "r" (b), "m" (*ptr)
 	: "memory");
@@ -164,7 +164,7 @@ static inline void __raw_writew(u16 s, volatile void __iomem *addr)
 	const volatile u16 __force *ptr = addr;
 
 	__asm__ __volatile__(
-	"	stw%U1 %0, %1	\n"
+	"	stw%U1.di %0, %1	\n"
 	:
 	: "r" (s), "m" (*ptr)
 	: "memory");
@@ -176,7 +176,7 @@ static inline void __raw_writel(u32 w, volatile void __iomem *addr)
 	const volatile u32 __force *ptr = addr;
 
 	__asm__ __volatile__(
-	"	st%U1 %0, %1	\n"
+	"	st%U1.di %0, %1	\n"
 	:
 	: "r" (w), "m" (*ptr)
 	: "memory");
