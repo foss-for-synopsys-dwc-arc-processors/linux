@@ -14,8 +14,12 @@
 #include <asm/arcregs.h>
 #include <asm/stacktrace.h>
 
-/* HW holds 8 symbols + one for null terminator */
+/* +1 one for null terminator */
+#ifdef CONFIG_ARCV3
+#define ARCPMU_EVENT_NAME_LEN	17
+#else
 #define ARCPMU_EVENT_NAME_LEN	9
+#endif
 
 enum arc_pmu_attr_groups {
 	ARCPMU_ATTR_GR_EVENTS,
@@ -567,7 +571,11 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 
 	union cc_name {
 		struct {
+#ifdef CONFIG_ISA_ARCV3
+			u64 word0, word1;
+#else
 			u32 word0, word1;
+#endif
 			char sentinel;
 		} indiv;
 		char str[ARCPMU_EVENT_NAME_LEN];
@@ -604,8 +612,8 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 
 	arc_pmu->max_period = (1ULL << counter_size) / 2 - 1ULL;
 
-	pr_info("ARC perf\t: %d counters (%d bits), %d conditions%s\n",
-		arc_pmu->n_counters, counter_size, cc_bcr.c,
+	pr_info("ARC perf [v%d]\t: %d counters (%d bits), %d conditions%s\n",
+		pct_bcr.v, arc_pmu->n_counters, counter_size, cc_bcr.c,
 		has_interrupts ? ", [overflow IRQ support]" : "");
 
 	cc_name.str[ARCPMU_EVENT_NAME_LEN - 1] = 0;
@@ -615,9 +623,13 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 	/* loop thru all available h/w condition indexes */
 	for (i = 0; i < cc_bcr.c; i++) {
 		write_aux_reg(ARC_REG_CC_INDEX, i);
+#ifdef CONFIG_64BIT
+		cc_name.indiv.word0 = read_aux_64(ARC_REG_CC_NAME0);
+		cc_name.indiv.word1 = read_aux_64(ARC_REG_CC_NAME1);
+#else
 		cc_name.indiv.word0 = le32_to_cpu(read_aux_reg(ARC_REG_CC_NAME0));
 		cc_name.indiv.word1 = le32_to_cpu(read_aux_reg(ARC_REG_CC_NAME1));
-
+#endif
 		arc_pmu_map_hw_event(i, cc_name.str);
 		arc_pmu_add_raw_event_attr(i, cc_name.str);
 	}
