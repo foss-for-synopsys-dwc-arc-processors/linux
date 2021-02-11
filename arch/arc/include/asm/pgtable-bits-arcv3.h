@@ -18,8 +18,11 @@
 #define _PAGE_AP_U_N_K		(_UL(1) <<  6)  /* 1: User + Kernel, 0: Kernel only) */
 #define _PAGE_AP_READONLY	(_UL(1) <<  7)  /* 1: Read only, 0: Read + Write) */
 
+#define __SHR_NONE		0
 #define __SHR_OUTER		2
 #define __SHR_INNER		3
+
+#define _PAGE_SHARED_NONE	(_UL(__SHR_NONE)  <<  8)
 #define _PAGE_SHARED_OUTER	(_UL(__SHR_OUTER) <<  8)  /* Outer Shareable */
 #define _PAGE_SHARED_INNER	(_UL(__SHR_INNER) <<  8)  /* Inner Shareable */
 
