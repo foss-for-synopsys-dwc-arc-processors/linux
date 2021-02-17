@@ -400,7 +400,7 @@ static int arc_pmu_add(struct perf_event *event, int flags)
 	return 0;
 }
 
-#ifdef CONFIG_ISA_ARCV2
+#ifndef CONFIG_ISA_ARCOMPACT
 static irqreturn_t arc_pmu_intr(int irq, void *dev)
 {
 	struct perf_sample_data data;
