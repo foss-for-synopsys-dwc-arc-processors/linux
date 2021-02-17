@@ -66,8 +66,10 @@ ENTRY(mem_service)
 
 	EXCEPTION_PROLOGUE
 
-	bl  do_memory_error
-	b   ret_from_exception
+	lr   r5, [efa]
+	cmp  r5, 0xf0100000
+	bllo do_memory_error
+	b    ret_from_exception
 END(mem_service)
 
 ENTRY(EV_Misaligned)
