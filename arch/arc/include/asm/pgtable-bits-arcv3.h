@@ -133,8 +133,11 @@ PTE_BIT_FUNC(mkspecial,	|=  (_PAGE_SPECIAL));
 
 static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 {
-#define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_DIRTY | _PAGE_SPECIAL)
-	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
+	const unsigned long mask = _PAGE_VALID       |
+				   _PAGE_NOTEXEC_K   | _PAGE_NOTEXEC_U |
+				   _PAGE_AP_READONLY | _PAGE_AP_U_N_K;
+
+	return __pte((pte_val(pte) & ~mask) | pgprot_val(newprot));
 }
 
 extern void set_pte_at(struct mm_struct *mm, unsigned long addr,
