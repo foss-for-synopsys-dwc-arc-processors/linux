@@ -57,6 +57,12 @@ endif
 
 cflags-$(CONFIG_ARC_LACKS_ZOL)		+= -fno-branch-count-reg
 
+ifdef CONFIG_ARC_HAS_DIV_REM
+cflags-y				+= -mdiv-rem
+else
+cflags-y				+= -mno-div-rem
+endif
+
 ifdef CONFIG_ISA_ARCV2
 
 ifdef CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS
@@ -67,10 +73,6 @@ endif
 
 ifndef CONFIG_ARC_HAS_LL64
 cflags-y				+= -mno-ll64
-endif
-
-ifndef CONFIG_ARC_HAS_DIV_REM
-cflags-y				+= -mno-div-rem
 endif
 
 endif
