@@ -1,4 +1,11 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+/* SPDX-License-Identifier: GPL-2.0 OR Apache-2.0 */
+/*
+ * Copyright (C) 2021 Synopsys, Inc. (www.synopsys.com)
+ *
+ * Author: Vineet Gupta <vgupta@synopsys.com>
+ *
+ * ALU/Memory instructions pseudo-mnemonics for ARCv2 and ARC32 ISA
+ */
 
 .irp    cc,,.hi,.nz
 .macro MOVR\cc d, s

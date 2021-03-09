@@ -1,10 +1,16 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-
+/* SPDX-License-Identifier: GPL-2.0 OR Apache-2.0 */
 /*
- * Abstraction for 64-bit load/store:
+ * Copyright (C) 2021 Synopsys, Inc. (www.synopsys.com)
+ *
+ * Author: Vineet Gupta <vgupta@synopsys.com>
+ *
+ * pseudo-mnemonics for 64-bit load/store when ISA doesn't support natively
+ *
  *   - Emulate 64-bit access with two 32-bit load/stores.
- *   - In the non-emulated case, output register pair r<N>:r<N+1>
- *     so macro takes only 1 output arg and determines the 2nd.
+ *
+ *   - In the non-emulated case, output is register pair r<N>:r<N+1> where
+ *     2nd register is implicit. Here though, the 2nd register needs to be
+ *     explicitly coded.
  */
 
 .macro ST64.ab d, s, incr

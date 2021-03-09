@@ -1,4 +1,11 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+/* SPDX-License-Identifier: GPL-2.0 OR Apache-2.0 */
+/*
+ * Copyright (C) 2021 Synopsys, Inc. (www.synopsys.com)
+ *
+ * Author: Vineet Gupta <vgupta@synopsys.com>
+ *
+ * pseudo-mnemonics for ALU/Memory instructions for ARC64 ISA
+ */
 
 .irp    cc,,.hi,.nz
 .macro MOVR\cc d, s
@@ -87,7 +94,7 @@
 
 /*
  * Abstraction for 64-bit load/store
- *   - ARC64 Baseline STL/LDL instructions
+ *  - ARC64 Baseline STL/LDL instructions
  */
 
 .irp xx,,.ab
