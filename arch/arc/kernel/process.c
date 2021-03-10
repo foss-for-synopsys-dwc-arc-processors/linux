@@ -294,3 +294,14 @@ int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
 {
 	return 0;
 }
+
+int elf_check_arch(const struct elfhdr *x)
+{
+	if (x->e_machine != ELF_ARCH) {
+		pr_err("ELF is not built for %s ISA\n", ISA_NAME);
+		return 0;
+	}
+
+	return 1;
+}
+EXPORT_SYMBOL(elf_check_arch);

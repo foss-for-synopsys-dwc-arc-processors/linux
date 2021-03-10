@@ -23,10 +23,21 @@
 #endif
 
 #ifdef CONFIG_64BIT
+
 #define ELF_CLASS		ELFCLASS64
+struct elf64_hdr;
+int elf_check_arch(const struct elf64_hdr *x);
+
 #else
+
 #define ELF_CLASS		ELFCLASS32
+struct elf32_hdr;
+int elf_check_arch(const struct elf32_hdr *x);
+
 #endif
+
+/* To print warning about wrong architecture. */
+#define elf_check_arch	elf_check_arch
 
 #ifdef CONFIG_CPU_BIG_ENDIAN
 #define ELF_DATA		ELFDATA2MSB
@@ -38,8 +49,6 @@
 #define  R_ARC_32		0x4
 #define  R_ARC_32_ME		0x1B
 #define  R_ARC_32_PCREL		0x31
-
-#define elf_check_arch(x)	((x)->e_machine == ELF_ARCH)
 
 #define CORE_DUMP_USE_REGSET
 
@@ -72,5 +81,17 @@
  * intent than poking at uname or /proc/cpuinfo.
  */
 #define ELF_PLATFORM	(NULL)
+
+#if defined(CONFIG_ISA_ARCOMPACT)
+#define	ISA_NAME	"ARCompact"
+#elif defined(CONFIG_ISA_ARCV2)
+#define ISA_NAME        "ARCv2"
+#elif defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#define ISA_NAME        "ARCv3 64 bit"
+#elif defined(CONFIG_ISA_ARCV3)
+#define ISA_NAME        "ARCv3 32 bit"
+#else
+#define ISA_NAME        "unknown"
+#endif
 
 #endif
