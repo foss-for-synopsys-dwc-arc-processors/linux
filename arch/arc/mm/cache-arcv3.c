@@ -18,6 +18,10 @@ int arc_cache_mumbojumbo(int c, char *buf, int len)
 {
 	struct cpuinfo_arc_cache *p_ic = &ic, *p_dc = &dc;
 	struct bcr_cache ibcr, dbcr;
+	unsigned int hwpf_build;
+	struct bcr_hw_pf_ctrl {
+		unsigned int en:1, rd_st:2, wr_st:2, outs:2, ag:1, pad:24;
+	} hwpf;
 	int assoc, n = 0;
 
 	READ_BCR(ARC_REG_IC_BCR, ibcr);
@@ -39,7 +43,7 @@ int arc_cache_mumbojumbo(int c, char *buf, int len)
 dc_chk:
 	READ_BCR(ARC_REG_DC_BCR, dbcr);
 	if (!dbcr.ver)
-		goto slc_chk;
+		goto pf_chk;
 
 	BUG_ON(dbcr.ver < 4);
 	assoc = 1 << dbcr.config;	/* 1,2,4,8 */
@@ -50,6 +54,23 @@ dc_chk:
 		       "D-Cache\t\t: %uK, %dway/set, %uB Line, PIPT%s\n",
 		       p_dc->sz_k, assoc, p_dc->line_len,
 		       IS_USED_CFG(CONFIG_ARC_HAS_DCACHE));
+
+pf_chk:
+#if 0
+	hwpf_build = read_aux_reg(ARC_REG_HW_PF_BUILD);
+#else
+	/* remove when [P10019796-50121] ix fixed */
+	hwpf_build = 1;
+#endif
+	if (!hwpf_build)
+		goto slc_chk;
+
+	READ_BCR(ARC_REG_HW_PF_CTRL, hwpf);
+
+	n += scnprintf(buf + n, len - n,
+		       "HW PF\t\t: RD %d WR %d OUTS %d AG %d %s\n",
+		       1 << hwpf.rd_st, 1 << hwpf.wr_st, 1 << hwpf.outs, hwpf.ag,
+		       IS_DISABLED_RUN(hwpf.en));
 
 slc_chk:
 	return n;

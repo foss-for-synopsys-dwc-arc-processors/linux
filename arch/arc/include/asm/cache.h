@@ -92,6 +92,9 @@ extern unsigned long perip_base, perip_end;
 #define ARC_REG_DC_PTAG		0x5C
 #define ARC_REG_DC_PTAG_HI	0x5F
 
+#define ARC_REG_HW_PF_BUILD	0xF70
+#define ARC_REG_HW_PF_CTRL	0x4f
+
 /* Bit val in DC_CTRL */
 #define DC_CTRL_DIS		0x001
 #define DC_CTRL_INV_MODE_FLUSH	0x040
