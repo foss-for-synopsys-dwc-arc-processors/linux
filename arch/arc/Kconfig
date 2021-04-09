@@ -407,6 +407,13 @@ config ARC_HAS_LL64
 	  dest operands with 2 possible source operands.
 	default y
 
+config ARC_HAS_LL128
+	bool "Insn: 128-bit LDDL/STDL"
+	depends on ISA_ARCV3
+	help
+	  Enable gcc to generate 128-bit load/store instructions
+	default y
+
 config ARC_HAS_DIV_REM
 	bool "Insn: div, divu, rem, remu"
 	default y
