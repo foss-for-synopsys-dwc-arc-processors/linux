@@ -330,12 +330,12 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 		scnprintf(mpy_nm, 32, "mpy[opt %d] ", mpy_opt);
 	}
 
-	n += scnprintf(buf + n, len - n, "ISA Extn\t: %s%s%s%s%s%s%s%s\n",
+	n += scnprintf(buf + n, len - n, "ISA Extn\t: %s%s%s%s%s%s%s%s%s\n",
 		       IS_AVAIL2(isa.atomic, "atomic ", CONFIG_ARC_HAS_LLSC),
 		       IS_AVAIL2(isa.ldst128, "ll128 ", CONFIG_ARC_HAS_LL128),
 		       IS_AVAIL2(isa.unalign, "unalign ", CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS),
 		       mpy_nm,
-		       IS_AVAIL1(isa.div64, "div64 "));
+		       IS_AVAIL2(isa.div64, "div64 ", CONFIG_ARC_HAS_DIV_REM));
 #endif
 	return n;
 }
