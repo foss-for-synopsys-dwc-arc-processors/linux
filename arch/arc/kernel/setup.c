@@ -293,7 +293,7 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 {
 	int n = 0;
 #ifdef CONFIG_ISA_ARCV3
-	int arc64, dual_issue = 0, dual_enb = 0;
+	int arc64, dual_enb;
 	const char *cpu_nm, *isa_nm;
 	struct bcr_isa_cfg_arcv3 isa;
 	struct bcr_uarch_build uarch;
@@ -304,13 +304,16 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 	READ_BCR(ARC_REG_ISA_CFG_BCR, isa);
 	READ_BCR(ARC_REG_MICRO_ARCH_BCR, uarch);
 
+	READ_BCR(AUX_EXEC_CTRL, dual_enb);
+	dual_enb = !(dual_enb & 1);
+
 	cpu_nm = arc64 ? "HS68" : "HS58";
 	isa_nm = arc64 ? "ARC64" : "ARC32";
 
 	n += scnprintf(buf + n, len - n, "processor [%d]\t: %s (%s ARCv3 ISA) %s%s%s\n",
 		       c, cpu_nm, isa_nm,
 		       IS_AVAIL1(isa.be, "[Big-Endian]"),
-		       IS_AVAIL3(dual_issue, dual_enb, " Dual-Issue "));
+		       IS_AVAIL3(1, dual_enb, " Dual-Issue "));
 
 	if (arc64) {
 		struct bcr_mpy_arc64 mpy;
