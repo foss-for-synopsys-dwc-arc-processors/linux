@@ -228,9 +228,9 @@ struct bcr_mmu_6 {
 
 struct bcr_cache {
 #ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int pad:12, line_len:4, sz:4, config:4, ver:8;
+	unsigned int pad2:1, hwpf:1, cyc:3, pad:7, line_len:4, sz:4, config:4, ver:8;
 #else
-	unsigned int ver:8, config:4, sz:4, line_len:4, pad:12;
+	unsigned int ver:8, config:4, sz:4, line_len:4, pad:7, cyc:3, hwpf:1, pad2:1;
 #endif
 };
 
