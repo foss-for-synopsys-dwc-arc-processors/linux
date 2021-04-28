@@ -113,8 +113,12 @@ static u64 arc_pmu_read_counter(int idx)
 	write_aux_reg(ARC_REG_PCT_INDEX, idx);
 	tmp = read_aux_reg(ARC_REG_PCT_CONTROL);
 	write_aux_reg(ARC_REG_PCT_CONTROL, tmp | ARC_REG_PCT_CONTROL_SN);
+#ifdef CONFIG_64BIT
+	result = read_aux_64(ARC_REG_PCT_SNAPL);
+#else
 	result = (u64) (read_aux_reg(ARC_REG_PCT_SNAPH)) << 32;
 	result |= read_aux_reg(ARC_REG_PCT_SNAPL);
+#endif
 
 	return result;
 }
@@ -277,8 +281,12 @@ static int arc_pmu_event_set_period(struct perf_event *event)
 	write_aux_reg(ARC_REG_PCT_INDEX, idx);
 
 	/* Write value */
+#ifdef CONFIG_64BIT
+	write_aux_64(ARC_REG_PCT_COUNTL, value);
+#else
 	write_aux_reg(ARC_REG_PCT_COUNTL, lower_32_bits(value));
 	write_aux_reg(ARC_REG_PCT_COUNTH, upper_32_bits(value));
+#endif
 
 	perf_event_update_userpage(event);
 
@@ -380,10 +388,14 @@ static int arc_pmu_add(struct perf_event *event, int flags)
 
 	if (is_sampling_event(event)) {
 		/* Mimic full counter overflow as other arches do */
+#ifdef CONFIG_64BIT
+		write_aux_64(ARC_REG_PCT_INT_CNTL, arc_pmu->max_period);
+#else
 		write_aux_reg(ARC_REG_PCT_INT_CNTL,
 			      lower_32_bits(arc_pmu->max_period));
 		write_aux_reg(ARC_REG_PCT_INT_CNTH,
 			      upper_32_bits(arc_pmu->max_period));
+#endif
 	}
 
 	write_aux_reg(ARC_REG_PCT_CONFIG, 0);
