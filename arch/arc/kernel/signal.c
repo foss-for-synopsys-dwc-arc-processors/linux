@@ -67,7 +67,9 @@ static int save_arcv2_regs(struct sigcontext *mctx, struct pt_regs *regs)
 #ifndef CONFIG_ISA_ARCOMPACT
 	struct user_regs_arcv2 v2abi;
 
+#ifdef CONFIG_ISA_ARCV2
 	v2abi.r30 = regs->r30;
+#endif
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
 	v2abi.r58 = regs->r58;
 	v2abi.r59 = regs->r59;
@@ -87,7 +89,9 @@ static int restore_arcv2_regs(struct sigcontext *mctx, struct pt_regs *regs)
 
 	err = __copy_from_user(&v2abi, &mctx->v2abi, sizeof(v2abi));
 
+#ifdef CONFIG_ISA_ARCV2
 	regs->r30 = v2abi.r30;
+#endif
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
 	regs->r58 = v2abi.r58;
 	regs->r59 = v2abi.r59;
