@@ -18,3 +18,7 @@ obj-$(CONFIG_ZLIB_INFLATE) += zlib_inflate.o
 
 zlib_inflate-objs := inffast.o inflate.o infutil.o \
 		     inftrees.o inflate_syms.o
+
+# workaround for issue #372
+# https://github.com/foss-for-synopsys-dwc-arc-processors/toolchain/issues/372
+CFLAGS_inffast.o += -O2
