@@ -345,7 +345,7 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0x40000000>;  /* 1 GB lowmem */
-		/*     0x1 0x00000000 0x0 0x40000000>;     1 GB highmem */
+		reg = <0x0 0x80000000 0x0 0x40000000    /* 1 GB lowmem */
+		       0x0 0x00000000 0x0 0x40000000>;  /* 1 GB highmem */
 	};
 };
