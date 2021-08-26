@@ -7,9 +7,6 @@
 #include <asm/cacheflush.h>
 #include <asm/setup.h>
 
-unsigned long perip_base = 0xf0000000;
-unsigned long perip_end = 0xffffffff;
-
 int l2_enable = 0;
 
 static struct cpuinfo_arc_cache {

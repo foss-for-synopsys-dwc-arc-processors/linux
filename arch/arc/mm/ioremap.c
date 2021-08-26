@@ -13,7 +13,10 @@
 
 static inline bool arc_uncached_addr_space(phys_addr_t paddr)
 {
-	if (is_isa_arcompact()) {
+	if (is_isa_arcv3()) {
+		/* No such region in ARCv3. */
+		return false;
+	} else if (is_isa_arcompact()) {
 		if (paddr >= ARC_UNCACHED_ADDR_SPACE)
 			return true;
 	} else if (paddr >= perip_base && paddr <= perip_end) {
