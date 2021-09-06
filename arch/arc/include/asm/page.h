@@ -78,13 +78,22 @@ typedef struct page *pgtable_t;
  * As a rule of thumb, only use it in helpers starting with virt_
  * You have been warned !
  */
-#define virt_to_pfn(kaddr)	(__pa(kaddr) >> PAGE_SHIFT)
+#define virt_to_pfn(kaddr)	PFN_DOWN(__pa(kaddr))
 
-#define ARCH_PFN_OFFSET		virt_to_pfn(CONFIG_LINUX_RAM_BASE)
+#define ARCH_PFN_OFFSET		PFN_DOWN(CONFIG_LINUX_RAM_BASE)
 
 #ifdef CONFIG_FLATMEM
 #define pfn_valid(pfn)		(((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
 #endif
+
+#ifdef CONFIG_ISA_ARCV3
+
+#define __pa(vaddr)  		((unsigned long)(vaddr) - \
+				PAGE_OFFSET + CONFIG_LINUX_RAM_BASE)
+#define __va(paddr)  		((void *)((unsigned long)(paddr) - \
+				CONFIG_LINUX_RAM_BASE + PAGE_OFFSET))
+
+#else /* V2 and Compact */
 
 /*
  * __pa, __va, virt_to_page (ALERT: deprecated, don't use them)
@@ -93,8 +102,10 @@ typedef struct page *pgtable_t;
  * virt here means link-address/program-address as embedded in object code.
  * And for ARC, link-addr = physical address
  */
-#define __pa(vaddr)  		((unsigned long)(vaddr))
-#define __va(paddr)  		((void *)((unsigned long)(paddr)))
+#define __pa(vaddr)		((unsigned long)(vaddr))
+#define __va(paddr)		((void *)((unsigned long)(paddr)))
+
+#endif /* CONFIG_ISA_ARCV3 */
 
 #define virt_to_page(kaddr)	pfn_to_page(virt_to_pfn(kaddr))
 #define virt_addr_valid(kaddr)  pfn_valid(virt_to_pfn(kaddr))

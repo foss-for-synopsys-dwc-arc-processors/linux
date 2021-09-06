@@ -43,12 +43,12 @@ pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
 	 *
 	 * The cast itself is needed given simplistic definition of set_pmd()
 	 */
-	set_pmd(pmd, __pmd((unsigned long)pte | _PAGE_TABLE));
+	set_pmd(pmd, __pmd(__pa(pte) | _PAGE_TABLE));
 }
 
 static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t pte_page)
 {
-	set_pmd(pmd, __pmd((unsigned long)page_address(pte_page) | _PAGE_TABLE));
+	set_pmd(pmd, __pmd(__pa(page_address(pte_page)) | _PAGE_TABLE));
 }
 
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)
@@ -83,7 +83,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 
 static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4dp, pud_t *pudp)
 {
-	set_p4d(p4dp, __p4d((unsigned long)pudp | _PAGE_TABLE));
+	set_p4d(p4dp, __p4d(__pa(pudp) | _PAGE_TABLE));
 }
 
 static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
@@ -121,7 +121,7 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pudp)
 
 static inline void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmdp)
 {
-	set_pud(pudp, __pud((unsigned long)pmdp | _PAGE_TABLE));
+	set_pud(pudp, __pud(__pa(pmdp) | _PAGE_TABLE));
 }
 
 static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
