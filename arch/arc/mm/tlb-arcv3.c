@@ -60,52 +60,19 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	return n;
 }
 
-#if defined(CONFIG_ARC_PAGE_SIZE_4K)
 /*
  * Map the kernel code/data into page tables for a given @mm
  *
  * Assumes
- *  - pgd and pud are already allocated
- *  - pud is wired up to pgd
+ *  - pgd, pud and pmd are already allocated
+ *  - pud is wired up to pgd and pmd to pud
  *
- * TBD: assumes 4 levels, implement properly using p*d_addr_end loops
+ * TODO: assumes 4 levels, implement properly using p*d_addr_end loops
  */
 int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 {
-	unsigned long addr = (unsigned long) PAGE_OFFSET, end = 0xFFFFFFFF;
-	pgd_t *pgd;
-	p4d_t *p4d;
-	pud_t *pud;
-
-	pgd = pgd_offset(mm, addr);
-	if (pgd_none(*pgd) || !pgd_present(*pgd))
-		return 1;
-
-	p4d = p4d_offset(pgd, addr);
-	if (p4d_none(*p4d) || !p4d_present(*p4d))
-		return 1;
-
-	do {
-		pgprot_t prot = PAGE_KERNEL_BLK;
-		if (addr > PAGE_OFFSET)
-			prot = pgprot_noncached(PAGE_KERNEL_BLK);
-
-		pud = pud_offset(p4d, addr);
-		if (!pud_none(*pud) || pud_present(*pud))
-			return 1;
-
-		set_pud(pud, pfn_pud(PFN_DOWN(addr), prot));
-		addr = pud_addr_end(addr, end);
-	}
-	while (addr != end);
-
-	return 0;
-}
-
-#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
-int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
-{
-	unsigned long addr = (unsigned long) PAGE_OFFSET, end = 0xFFFFFFFF;
+	unsigned long addr = PAGE_OFFSET;
+	unsigned long end = PAGE_OFFSET + PUD_SIZE;
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
@@ -125,46 +92,39 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 
 	do {
 		pgprot_t prot = PAGE_KERNEL_BLK;
-		if (addr >= 0xf0000000)
-			prot = pgprot_noncached(PAGE_KERNEL_BLK);
 
 		pmd = pmd_offset(pud, addr);
 		if (!pmd_none(*pmd) || pmd_present(*pmd))
 			return 1;
 
-		set_pmd(pmd, pfn_pmd(PFN_DOWN(addr), prot));
+		set_pmd(pmd, pfn_pmd(virt_to_pfn(addr), prot));
 		addr = pmd_addr_end(addr, end);
 	}
 	while (addr != end);
 
 	return 0;
 }
-#endif
 
 void arc_paging_init(void)
 {
-	unsigned int idx = pgd_index(PAGE_OFFSET);
-	swapper_pg_dir[idx] = pfn_pgd(PFN_DOWN((phys_addr_t)swapper_pud), PAGE_TABLE);
+	unsigned int idx;
+
+	idx = pgd_index(PAGE_OFFSET);
+	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(swapper_pud), PAGE_TABLE);
 	ptw_flush(&swapper_pg_dir[idx]);
-#ifdef CONFIG_ARC_PAGE_SIZE_16K
+
 	idx = pud_index(PAGE_OFFSET);
-	swapper_pud[idx] = pfn_pud(PFN_DOWN((phys_addr_t)swapper_pmd), PAGE_TABLE);
+	swapper_pud[idx] = pfn_pud(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pud[idx]);
-#endif
 
 	arc_map_kernel_in_mm(&init_mm);
 
-	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
-	write_aux_64(ARC_REG_MMU_RTP1, 0);	/* to catch bugs */
+	write_aux_64(ARC_REG_MMU_RTP0, 0);
+	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir));
 }
 
 void arc_mmu_init(void)
 {
-	struct mmu_ttbc {
-		u32 t0sz:5, t0sh:2, t0c:1, res0:7, a1:1,
-		    t1sz:5, t1sh:2, t1c:1, res1:8;
-	} ttbc;
-
 	struct mmu_mem_attr {
 		u8 attr[8];
 	} memattr;
@@ -175,15 +135,10 @@ void arc_mmu_init(void)
 	if (CONFIG_PGTABLE_LEVELS != 4)
 		panic("CONFIG_PGTABLE_LEVELS !=4 not supported\n");
 
-	ttbc.t0sz = 16;
-	ttbc.t1sz = 16;	/* Not relevant since kernel linked under 4GB hits T0SZ */
-	ttbc.t0sh = __SHR_INNER;
-	ttbc.t1sh = __SHR_INNER;
-	ttbc.t0c = !IS_ENABLED(CONFIG_ARC_PTW_UNCACHED);
-	ttbc.t1c = !IS_ENABLED(CONFIG_ARC_PTW_UNCACHED);
-	ttbc.a1 = 0;  /* ASID used is from MMU_RTP0 */
+	if ((unsigned long)_end - PAGE_OFFSET > PUD_SIZE)
+		panic("kernel doesn't fit in PUD (%lu Mb)\n", TO_MB(PUD_SIZE));
 
-	WRITE_AUX(ARC_REG_MMU_TTBC, ttbc);
+	write_aux_reg(ARC_REG_MMU_TTBC, MMU_TTBC);
 
 	memattr.attr[MEMATTR_IDX_NORMAL] = MEMATTR_NORMAL;
 	memattr.attr[MEMATTR_IDX_UNCACHED] = MEMATTR_UNCACHED;
@@ -229,7 +184,7 @@ void arch_exit_mmap(struct mm_struct *mm)
 	 * set the kernel page tables to allow kernel to run
 	 * since task paging tree will be nuked right after
 	 */
-	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
+	write_aux_64(ARC_REG_MMU_RTP0, 0);
 }
 
 noinline void local_flush_tlb_all(void)

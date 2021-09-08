@@ -20,9 +20,13 @@
 
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pud_t swapper_pud[PTRS_PER_PUD] __page_aligned_bss;
-#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_ARC_PAGE_SIZE_16K)
-/* MMUv48-16K supports block descriptor only for 3rd level */
 pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
+
+#ifdef CONFIG_ISA_ARCV3
+/* Used for early memory map in head.S for ARCv3 */
+pgd_t early_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
+pud_t early_pud[PTRS_PER_PUD] __initdata __aligned(PAGE_SIZE);
+pmd_t early_pmd[PTRS_PER_PMD] __initdata __aligned(PAGE_SIZE);
 #endif
 
 char empty_zero_page[PAGE_SIZE] __aligned(PAGE_SIZE);
@@ -122,8 +126,8 @@ void __init setup_arch_memory(void)
 	 */
 
 	memblock_add_node(low_mem_start, low_mem_sz, 0);
-	memblock_reserve(__pa(CONFIG_LINUX_LINK_BASE),
-			 __pa(_end) - __pa(CONFIG_LINUX_LINK_BASE));
+	memblock_reserve(CONFIG_LINUX_LINK_BASE,
+			 __pa(_end) - CONFIG_LINUX_LINK_BASE);
 
 #ifdef CONFIG_BLK_DEV_INITRD
 	if (phys_initrd_size) {
@@ -149,7 +153,7 @@ void __init setup_arch_memory(void)
 	 * We can't use the helper free_area_init(zones[]) because it uses
 	 * PAGE_OFFSET to compute the @min_low_pfn which would be wrong
 	 * when our kernel doesn't start at PAGE_OFFSET, i.e.
-	 * PAGE_OFFSET != CONFIG_LINUX_RAM_BASE
+	 * PAGE_OFFSET != CONFIG_LINUX_LINK_BASE
 	 */
 	free_area_init_node(0,			/* node-id */
 			    zones_size,		/* num pages per zone */

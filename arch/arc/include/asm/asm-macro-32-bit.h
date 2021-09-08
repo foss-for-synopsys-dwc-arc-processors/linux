@@ -13,6 +13,14 @@
 .endm
 .endr
 
+.macro MOVA d, sym
+	mov	\d, \sym
+.endm
+
+.macro MOVI d, imm
+	mov	\d, \imm
+.endm
+
 .irp    aa,,.as,.aw
 .macro LDR\aa d, s, off=0
 	ld\aa  \d, [\s, \off]
@@ -74,8 +82,36 @@
 	lsr	\d, \s, \v
 .endm
 
+.macro ASLR d, s, v
+	asl \d, \s, \v
+.endm
+
+.macro ANDR d, s, v
+	and \d, \s, \v
+.endm
+
+.macro ORR, d, s, v
+	or \d, \s, \v
+.endm
+
+.macro XORR d, s, v
+	xor \d, \s, \v
+.endm
+
 .irp    cc,ne,eq
 .macro BRR\cc d, s, lbl
 	br\cc  \d, \s, \lbl
 .endm
 .endr
+
+.macro CMPR op1, op2
+	cmp \op1, \op2
+.endm
+
+.macro BBIT0R d, s, lbl
+	bbit0 \d, \s, \lbl
+.endm
+
+.macro BBIT1R d, s, lbl
+	bbit1 \d, \s, \lbl
+.endm

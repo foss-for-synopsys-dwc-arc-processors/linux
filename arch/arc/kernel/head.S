@@ -14,11 +14,205 @@
 #include <asm/entry.h>
 #include <asm/arcregs.h>
 #include <asm/cache.h>
+#include <asm/page.h>
+#include <asm/pgtable.h>
+#include <asm/pgtable-levels.h>
+#include <asm/mmu.h>
 #include <asm/irqflags.h>
+
+; Build page table entry.
+;
+; In:
+;	tbl - register with pointer to table level
+;	addr - address for which the table entry is building
+;	value - address to be set in entry
+;	entry, tmp - temporal registers
+;	ptrs - constant with number of pointers per table level
+;	shift - constant with table level shift
+;	prot - entry protection bits
+;
+; Out:
+;       entry - address of new entry
+;       tmp - clobbered
+.macro BUILD_PAGE_TABLE_ENTRY, tbl, addr, value, entry, tmp, ptrs, shift, prot
+	; Calculate offset for entry
+	LSRR	\entry, \addr, \shift
+	ANDR	\entry, \entry, (\ptrs - 1)
+	ADD3R	\entry, \tbl, \entry
+
+	; Store allocated PUD to PGD with PAGE_TABLE prot. bits
+	mov 	\tmp, 1
+	ASLR	\tmp, \tmp, ARC_VADDR_BITS
+	SUBR	\tmp, \tmp, 1
+	ANDR	\tmp, \tmp, \value
+	ORR	\tmp, \tmp, \prot
+	STR	\tmp, \entry
+#ifdef CONFIG_ARC_PTW_UNCACHED
+	SRR	\entry, [ARC_REG_DC_IVDL]
+#endif
+.endm
+
+; Build simple page table (PGD + PUD for 4K, + PMD for 16K).
+;
+; In:
+;	link_addr - start link address
+;	phy_addr - start physical address
+;	link_end - end link address
+;	pgd - pointer to pgd array
+;	pud - pointer to pud array
+;	cur, tmp - temporal registers
+;
+; Out:
+;       All registers are clobbered.
+.macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp
+
+.Lbuild_pgd_entry\@:
+	BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+
+.Lbuild_pud_entry\@:
+	BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
+
+.Lbuild_pmd_entry\@:
+	BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+
+	; Increment phy and link addresses
+	ADDR	\phy_addr, \phy_addr, PMD_SIZE
+	ADDR	\link_addr, \link_addr, PMD_SIZE
+
+	; All link addresses are in
+	CMPR	\link_end, \link_addr
+	ble	.Lbuild_end\@
+
+	; Check if we need to allocate new PMD
+	LSRR	\tmp, \link_addr, PMD_SHIFT
+	ANDR	\tmp, \tmp, (PTRS_PER_PMD - 1)
+	CMPR	\tmp, 0
+	bne	.Lbuild_pmd_entry\@
+
+	; Allocate new PMD
+	ADDR	\pmd, \pmd, PAGE_SIZE
+	; Check if we need to allocate new PUD
+	MOVR	\cur, \link_addr
+	SUBR	\tmp, \link_addr, PMD_SIZE
+	XORR	\tmp, \tmp, \cur
+	BBIT1R	\tmp, PUD_SHIFT, .Lbuild_pud_entry\@
+
+	; Allocate new PUD
+	ADDR	\pud, \pud, PAGE_SIZE
+	b	.Lbuild_pgd_entry\@
+.Lbuild_end\@:
+.endm
+
+; Create two MMU maps (link -> phy and phy -> phy)
+; phy -> phy is needed to have correct mapings right after MMU is enabled
+; and we still using phy instruction and data addresses.
+.macro CPU_EARLY_PAGING
+	; r0, r1 and r2 are used as uboot args
+
+	; First initialize 1:1 page table, so we can enable MMU when using
+	; phy addresses. We need to map from start to .Lmmu_enabled (label
+	; where we switch to virtual map).
+
+	MOVI    r10, PAGE_OFFSET
+	MOVI    r11, CONFIG_LINUX_LINK_BASE
+	; link_addr <- __pa(stext)
+	MOVA    r3, stext
+	SUBR	r3, r3, r10
+	ADDR	r3, r3, r11
+	; phy_addr <- __pa(stext)
+	MOVR	r4, r3
+	; link_end <- __pa(.Lmmu_enabled)
+	; link_end <- .Lmmu_enabled - PAGE_OFFSET + CONFIG_LINUX_LINK_BASE
+	MOVA	r5, .Lmmu_enabled
+	SUBR	r5, r5, r10
+	ADDR	r5, r5, r11
+
+	; pgd <- __pa(swapper_pg_dir)
+	MOVA	r6, @swapper_pg_dir
+	SUBR	r6, r6, r10
+	ADDR	r6, r6, r11
+
+	; pud <- __pa(swapper_pud)
+	MOVA	r7, @swapper_pud
+	SUBR	r7, r7, r10
+	ADDR	r7, r7, r11
+
+	; pmd <- __pa(swapper_pmd)
+	MOVA	r8, @swapper_pmd
+	SUBR	r8, r8, r10
+	ADDR	r8, r8, r11
+
+	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10
+
+	; link_addr <- PAGE_OFFSET
+	MOVI    r3, PAGE_OFFSET
+	; phy_addr <- CONFIG_LINUX_LINK_BASE
+	MOVI	r4, CONFIG_LINUX_LINK_BASE
+	; link_end <- _end , see vmlinux.ld.S
+	MOVA	r5, _end
+
+	; pgd <- __pa(early_pg_dir)
+	MOVA	r6, @early_pg_dir
+	SUBR	r6, r6, r3
+	ADDR	r6, r6, r4
+
+	; pud <- __pa(early_pud)
+	MOVA	r7, @early_pud
+	SUBR	r7, r7, r3
+	ADDR	r7, r7, r4
+
+	; pmd <- __pa(early_pmd)
+	MOVA	r8, @early_pmd
+	SUBR	r8, r8, r3
+	ADDR	r8, r8, r4
+
+	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10
+.endm
+
+
+; Enable MMU and jump into virtual address space.
+.macro CPU_ENABLE_MMU
+	MOVI	r10, PAGE_OFFSET
+	MOVI	r11, CONFIG_LINUX_LINK_BASE
+	; RTP0: 1:1 mapping in __pa(swapper_pg_dir)
+	MOVA	r4, @swapper_pg_dir
+	SUBR	r4, r4, r10
+	ADDR	r4, r4, r11
+	SRR	r4, [ARC_REG_MMU_RTP0]
+	; RTP1: real link to phy mapping in __pa(early_pg_dir)
+	MOVA	r4, @early_pg_dir
+	SUBR	r4, r4, r10
+	ADDR	r4, r4, r11
+	SRR	r4, [ARC_REG_MMU_RTP1]
+
+	sr	MMU_TTBC, [ARC_REG_MMU_TTBC]
+	; MEMATTR_NORMAL is used in PAGE_KERNEL_BLK
+	mov 	r4, MEMATTR_NORMAL
+	ASLR	r4, r4, (8 * MEMATTR_IDX_NORMAL)
+	SRR	r4, [ARC_REG_MMU_MEM_ATTR]
+	; MMU_CTRL = (EN | KU | WX)
+	mov	r4, 0x7
+	sr	r4, [ARC_REG_MMU_CTRL]
+
+	; Jump from phy to link address
+	MOVA	r4, @.Lfirst_virt_addr\@
+	j	[r4]
+.Lfirst_virt_addr\@:
+	; flush caches
+	mov	r4, 0x1
+#ifdef CONFIG_ARC_HAS_ICACHE
+	sr	r4, [ARC_REG_DC_IVDC]
+#endif
+#ifdef CONFIG_ARC_HAS_DCACHE
+	sr	r4, [ARC_REG_IC_IVIC]
+#endif
+	mov	r4, 0x0
+	SRR	r4, [ARC_REG_MMU_RTP0]
+.endm
 
 .macro CPU_EARLY_SETUP
 
-	; Setting up Vectror Table
+	; Setting up Vector Table
 #ifdef CONFIG_64BIT
 	MOVA	r5, @_int_vec_base_lds
 	srl	r5, [AUX_INTR_VEC_BASE]
@@ -96,12 +290,23 @@ ENTRY(stext)
 	mov.nz	r0, r5
 	bz	.Lmaster_proceed
 
+	; TODO: Need to wait until paging init
+#ifdef CONFIG_ISA_ARCV3
+	CPU_ENABLE_MMU
+#endif
 	; Non-Masters wait for Master to boot enough and bring them up
 	; when they resume, tail-call to entry point
 	MOVA	blink, @first_lines_of_secondary
 	b	arc_platform_smp_wait_to_boot
 
 .Lmaster_proceed:
+#endif
+
+#ifdef CONFIG_ISA_ARCV3
+	CPU_EARLY_PAGING
+	CPU_ENABLE_MMU
+	; here we can enable mmu for SMP
+.Lmmu_enabled:
 #endif
 
 	; Clear BSS before updating any globals
@@ -154,7 +359,8 @@ END(stext)
 ENTRY(first_lines_of_secondary)
 
 	; setup per-cpu idle task as "current" on this CPU
-	LDR	r0, @secondary_idle_tsk
+	MOVA	r0, @secondary_idle_tsk
+	LDR	r0, r0
 	SET_CURR_TASK_ON_CPU  r0, r1
 
 	; setup stack (fp, sp)

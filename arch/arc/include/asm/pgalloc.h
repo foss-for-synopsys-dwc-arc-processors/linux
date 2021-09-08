@@ -53,6 +53,9 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t pte_
 
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 {
+#if defined(CONFIG_64BIT)
+	pgd_t *ret = (pgd_t *) __get_free_page(GFP_KERNEL | __GFP_ZERO);
+#else
 	int num, num2;
 	pgd_t *ret;
 
@@ -68,9 +71,11 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 		memcpy(ret + num, swapper_pg_dir + num, num2 * sizeof(pgd_t));
 
 		memzero(ret + num + num2,
-			       (PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
+				(PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
 
 	}
+#endif
+
 	return ret;
 }
 
@@ -92,18 +97,7 @@ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
 
 	BUILD_BUG_ON((PTRS_PER_PUD * sizeof(pud_t)) > PAGE_SIZE);
 
-	/*
-	 * For kernel in high address, there will be a dedicated swapper_pud
-	 * and its base pointet needs to be set in user pgd
-	 */
-	BUILD_BUG_ON(PAGE_OFFSET != 0x80000000);
-
 	pud = (pud_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
-
-#if defined(CONFIG_ARC_PAGE_SIZE_4K)
-	pud[2] = swapper_pud[2];
-	pud[3] = swapper_pud[3];
-#endif
 
 	return pud;
 }
@@ -126,15 +120,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmdp)
 
 static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
 {
-	pmd_t *pmd = (pmd_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
-
-#if defined(CONFIG_ARC_PAGE_SIZE_16K)
-	int i;
-	for (i = pmd_index(PAGE_OFFSET); i <= pmd_index(0xFFFFFFFF); i++) {
-		pmd[i] = swapper_pmd[i];
-	}
-#endif
-	return pmd;
+	return (pmd_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
 }
 
 static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)

@@ -102,14 +102,22 @@ extern unsigned long get_wchan(struct task_struct *p);
 
 #define TASK_SIZE	0x60000000
 
+#ifdef CONFIG_64BIT
+#define VMALLOC_START	(PAGE_OFFSET + 0x1000000000000ul - (CONFIG_ARC_KVADDR_SIZE << 20))
+#else
 #define VMALLOC_START	(PAGE_OFFSET - (CONFIG_ARC_KVADDR_SIZE << 20))
+#endif
 
 /* 1 PGDIR_SIZE each for fixmap/pkmap, 2 PGDIR_SIZE gutter (see asm/highmem.h) */
 #define VMALLOC_SIZE	((CONFIG_ARC_KVADDR_SIZE << 20) - PMD_SIZE * 4)
 
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
+#ifdef CONFIG_64BIT
+#define USER_KERNEL_GUTTER    0
+#else
 #define USER_KERNEL_GUTTER    (VMALLOC_START - TASK_SIZE)
+#endif
 
 #ifdef CONFIG_ARC_PLAT_EZNPS
 /* NPS architecture defines special window of 129M in user address space for

@@ -491,6 +491,8 @@ config LINUX_LINK_BASE
 	hex "Kernel link address"
 	default "0x80000000"
 	help
+	  Physical address to link kernel in. Useful when you want to move
+	  kernel to some place in memory, see hsdk_defconfig for example.
 	  ARC700 divides the 32 bit phy address space into two equal halves
 	  -Lower 2G (0 - 0x7FFF_FFFF ) is user virtual, translated by MMU
 	  -Upper 2G (0x8000_0000 onwards) is untranslated, for kernel
@@ -499,7 +501,6 @@ config LINUX_LINK_BASE
 	  However some customers have peripherals mapped at this addr, so
 	  Linux needs to be scooted a bit.
 	  If you don't know what the above means, leave this setting alone.
-	  This needs to match memory start address specified in Device Tree
 
 config LINUX_RAM_BASE
 	hex "RAM base address"
@@ -508,6 +509,7 @@ config LINUX_RAM_BASE
 	  By default Linux is linked at base of RAM. However in some special
 	  cases (such as HSDK), Linux can't be linked at start of DDR, hence
 	  this option.
+	  This needs to match memory start address specified in Device Tree
 
 config HIGHMEM
 	bool "High Memory Support"

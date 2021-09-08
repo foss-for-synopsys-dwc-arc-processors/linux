@@ -108,6 +108,28 @@
 #define __S110		PAGE_RWX
 #define __S111		PAGE_RWX
 
+#define MMU_TTBC_T0SZ	16
+#define MMU_TTBC_T0SH	__SHR_INNER
+#define MMU_TTBC_T1SZ	16
+#define MMU_TTBC_T1SH	__SHR_INNER
+#define MMU_TTBC_A1	0
+
+#if defined(CONFIG_ARC_PTW_UNCACHED)
+#define MMU_TTBC_T0C	0
+#define MMU_TTBC_T1C	0
+#else
+#define MMU_TTBC_T0C	1
+#define MMU_TTBC_T1C	1
+#endif
+
+#define MMU_TTBC	(MMU_TTBC_T0SZ | \
+			(MMU_TTBC_T0SH << 5) | \
+			(MMU_TTBC_T0C << 7) | \
+			(MMU_TTBC_A1 << 15) | \
+			(MMU_TTBC_T1SZ << 16) | \
+			(MMU_TTBC_T1SH << 21) | \
+			(MMU_TTBC_T1C << 23))
+
 #ifndef __ASSEMBLY__
 
 #define pgprot_noncached(prot)	__pgprot((pgprot_val(prot) & ~_PAGE_MEMATTR_MASK) | \

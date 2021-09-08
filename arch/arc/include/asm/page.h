@@ -24,11 +24,18 @@
 #endif
 
 #define PAGE_SIZE	_BITUL(PAGE_SHIFT)	/* Default 8K */
+
+#ifdef CONFIG_64BIT
+#define PAGE_OFFSET	_AC(0xffff000000000000, UL)
+#else
 #define PAGE_OFFSET	_AC(0x80000000, UL)	/* Kernel starts at 2G onwrds */
+#endif
 
 #define PAGE_MASK	(~(PAGE_SIZE-1))
 
-#ifndef __ASSEMBLY__
+#ifdef __ASSEMBLY__
+#define __pgprot(x)	(x)
+#else
 
 #define clear_page(paddr)		memset((paddr), 0, PAGE_SIZE)
 #define copy_page(to, from)		memcpy((to), (from), PAGE_SIZE)
@@ -107,6 +114,17 @@ typedef struct page *pgtable_t;
 #define pfn_valid(pfn)		(((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
 #endif
 
+#ifdef CONFIG_64BIT
+
+#define __pa(vaddr)  		((unsigned long)(vaddr) - \
+				PAGE_OFFSET + \
+				CONFIG_LINUX_LINK_BASE)
+#define __va(paddr)  		((void *)((unsigned long)(paddr) - \
+				CONFIG_LINUX_LINK_BASE + \
+				PAGE_OFFSET))
+
+#else /* V2 and Compact */
+
 /*
  * __pa, __va, virt_to_page (ALERT: deprecated, don't use them)
  *
@@ -116,6 +134,7 @@ typedef struct page *pgtable_t;
  */
 #define __pa(vaddr)		((unsigned long)(vaddr))
 #define __va(paddr)		((void *)((unsigned long)(paddr)))
+#endif /* CONFIG_64BIT */
 
 #define virt_to_page(kaddr)	pfn_to_page(virt_to_pfn(kaddr))
 #define virt_addr_valid(kaddr)  pfn_valid(virt_to_pfn(kaddr))
