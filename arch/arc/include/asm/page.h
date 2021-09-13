@@ -5,7 +5,28 @@
 #ifndef __ASM_ARC_PAGE_H
 #define __ASM_ARC_PAGE_H
 
-#include <uapi/asm/page.h>
+#include <linux/const.h>
+
+/* PAGE_SHIFT determines the page size */
+#if defined(CONFIG_ARC_PAGE_SIZE_16K)
+#define PAGE_SHIFT 14
+#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
+#define PAGE_SHIFT 12
+#else
+/*
+ * Default 8k
+ * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
+ * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
+ * using the correct uClibc header and in their build our autoconf.h is
+ * not available
+ */
+#define PAGE_SHIFT 13
+#endif
+
+#define PAGE_SIZE	_BITUL(PAGE_SHIFT)	/* Default 8K */
+#define PAGE_OFFSET	_AC(0x80000000, UL)	/* Kernel starts at 2G onwrds */
+
+#define PAGE_MASK	(~(PAGE_SIZE-1))
 
 #ifndef __ASSEMBLY__
 
@@ -86,15 +107,6 @@ typedef struct page *pgtable_t;
 #define pfn_valid(pfn)		(((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
 #endif
 
-#ifdef CONFIG_ISA_ARCV3
-
-#define __pa(vaddr)  		((unsigned long)(vaddr) - \
-				PAGE_OFFSET + CONFIG_LINUX_RAM_BASE)
-#define __va(paddr)  		((void *)((unsigned long)(paddr) - \
-				CONFIG_LINUX_RAM_BASE + PAGE_OFFSET))
-
-#else /* V2 and Compact */
-
 /*
  * __pa, __va, virt_to_page (ALERT: deprecated, don't use them)
  *
@@ -104,8 +116,6 @@ typedef struct page *pgtable_t;
  */
 #define __pa(vaddr)		((unsigned long)(vaddr))
 #define __va(paddr)		((void *)((unsigned long)(paddr)))
-
-#endif /* CONFIG_ISA_ARCV3 */
 
 #define virt_to_page(kaddr)	pfn_to_page(virt_to_pfn(kaddr))
 #define virt_addr_valid(kaddr)  pfn_valid(virt_to_pfn(kaddr))

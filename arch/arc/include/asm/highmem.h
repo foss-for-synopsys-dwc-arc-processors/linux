@@ -8,7 +8,7 @@
 
 #ifdef CONFIG_HIGHMEM
 
-#include <uapi/asm/page.h>
+#include <asm/page.h>
 #include <asm/kmap_types.h>
 
 /* start after vmalloc area */
