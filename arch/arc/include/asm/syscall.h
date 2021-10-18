@@ -68,11 +68,29 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
 static inline int
 syscall_get_arch(struct task_struct *task)
 {
-	return IS_ENABLED(CONFIG_ISA_ARCOMPACT)
-		? (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN)
-			? AUDIT_ARCH_ARCOMPACTBE : AUDIT_ARCH_ARCOMPACT)
-		: (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN)
-			? AUDIT_ARCH_ARCV2BE : AUDIT_ARCH_ARCV2);
+	int arch;
+
+#if defined(CONFIG_ISA_ARCOMPACT)
+	arch = EM_ARCOMPACT;
+#elif defined(CONFIG_ISA_ARCV2)
+	arch = EM_ARCV2;
+#elif defined(CONFIG_ISA_ARCV3)
+
+#if defined(CONFIG_64BIT)
+	arch = EM_ARCV3 | __AUDIT_ARCH_64BIT;
+#else
+	arch = EM_ARCV3_32;
+#endif /* CONFIG_64BIT */
+
+#else
+#error "Unknown CONFIG_ISA"
+#endif /* CONFIG_ISA_* */
+
+#if defined(__LITTLE_ENDIAN__)
+	arch |= __AUDIT_ARCH_LE;
+#endif /* __LITTLE_ENDIAN__ */
+
+	return arch;
 }
 
 #endif
