@@ -131,7 +131,7 @@ KBUILD_IMAGE	:= $(boot)/bootpImage
 all:	bootpImage
 bootpImage: vmlinux
 
-boot_targets += uImage uImage.bin uImage.gz
+boot_targets += uImage uImage.bin uImage.gz loader
 
 $(boot_targets): vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
