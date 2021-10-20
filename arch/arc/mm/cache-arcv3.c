@@ -10,9 +10,41 @@
 unsigned long perip_base = 0xf0000000;
 unsigned long perip_end = 0xffffffff;
 
+int l2_enable = 0;
+
 static struct cpuinfo_arc_cache {
 	unsigned int sz_k, line_len, colors;
-} ic, dc;
+} ic, dc, l2_info;
+
+static int read_decode_cache_bcr_arcv3(int c, char *buf, int len)
+{
+	struct cpuinfo_arc_cache *p_l2 = &l2_info;
+	struct bcr_clustv3_cfg cbcr;
+	struct bcr_cln_0_cfg cln0;
+	struct bcr_cln_scm_0_cfg scm0;
+	int n = 0;
+
+	READ_BCR(ARC_REG_CLUSTER_BCR, cbcr);
+	if (cbcr.ver_maj == 0)
+		return n;
+
+	READ_BCR(ARC_REG_CLNR_BCR_0, cln0);
+
+	if (cln0.has_scm) {
+		READ_BCR(ARC_REG_CLNR_SCM_BCR_0, scm0);
+
+		p_l2->sz_k = (1 << scm0.data_bank_sz) * (1 << scm0.data_banks);
+		/* Fixed to 64. */
+		p_l2->line_len = 64;
+
+		n += scnprintf(buf + n, len - n,
+			       "L2\t\t: %uK, %uB Line%s\n",
+			       p_l2->sz_k, p_l2->line_len,
+			       IS_USED_RUN(l2_enable));
+	}
+
+	return n;
+}
 
 int arc_cache_mumbojumbo(int c, char *buf, int len)
 {
@@ -64,6 +96,8 @@ dc_chk:
 	}
 
 slc_chk:
+	n += read_decode_cache_bcr_arcv3(c, buf + n, len - n);
+
 	return n;
 }
 

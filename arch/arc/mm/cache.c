@@ -44,7 +44,7 @@ static int read_decode_cache_bcr_arcv2(int c, char *buf, int len)
 	struct cpuinfo_arc_cache *p_slc = &slc_info;
 	struct bcr_identity ident;
 	struct bcr_generic sbcr;
-	struct bcr_clust_cfg cbcr;
+	struct bcr_clustv2_cfg cbcr;
 	struct bcr_volatile vol;
 	int n = 0;
 
