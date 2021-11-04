@@ -257,7 +257,7 @@ endif #ARC_CACHE
 config ARC_HWPF
 	bool "Hardware Data-cache Stride Prefetcher"
 	depends on ISA_ARCV3
-	default n
+	default y
 	help
 	  Hardware Prefetcher which monitors data accesses. Optimizes reads to
 	  memory by doind readahead and also optimizes writes by switching to
