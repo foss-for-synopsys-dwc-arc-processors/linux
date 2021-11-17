@@ -21,7 +21,7 @@
 #define atomic_read(v)          READ_ONCE((v)->counter)
 #define atomic_set(v, i)        WRITE_ONCE(((v)->counter), (i))
 
-#define ATOMIC_OP(op, c_op, asm_op)					\
+#define ATOMIC_OP(op, asm_op)					\
 static inline void atomic_##op(int i, atomic_t *v)			\
 {									\
 	unsigned int val;						\
@@ -37,7 +37,7 @@ static inline void atomic_##op(int i, atomic_t *v)			\
 	: "cc");							\
 }									\
 
-#define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
+#define ATOMIC_OP_RETURN(op, asm_op)				\
 static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 {									\
 	unsigned int val;						\
@@ -58,7 +58,7 @@ static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 #define atomic_add_return_relaxed	atomic_add_return_relaxed
 #define atomic_sub_return_relaxed	atomic_sub_return_relaxed
 
-#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
+#define ATOMIC_FETCH_OP(op, asm_op)				\
 static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)		\
 {									\
 	unsigned int val, orig;						\
@@ -85,25 +85,25 @@ static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)		\
 #define atomic_fetch_or_relaxed		atomic_fetch_or_relaxed
 #define atomic_fetch_xor_relaxed	atomic_fetch_xor_relaxed
 
-#define ATOMIC_OPS(op, c_op, asm_op)					\
-	ATOMIC_OP(op, c_op, asm_op)					\
-	ATOMIC_OP_RETURN(op, c_op, asm_op)				\
-	ATOMIC_FETCH_OP(op, c_op, asm_op)
+#define ATOMIC_OPS(op, asm_op)					\
+	ATOMIC_OP(op, asm_op)					\
+	ATOMIC_OP_RETURN(op, asm_op)				\
+	ATOMIC_FETCH_OP(op, asm_op)
 
-ATOMIC_OPS(add, +=, add)
-ATOMIC_OPS(sub, -=, sub)
+ATOMIC_OPS(add, add)
+ATOMIC_OPS(sub, sub)
 
 #define atomic_andnot		atomic_andnot
 
 #undef ATOMIC_OPS
-#define ATOMIC_OPS(op, c_op, asm_op)					\
-	ATOMIC_OP(op, c_op, asm_op)					\
-	ATOMIC_FETCH_OP(op, c_op, asm_op)
+#define ATOMIC_OPS(op, asm_op)					\
+	ATOMIC_OP(op, asm_op)					\
+	ATOMIC_FETCH_OP(op, asm_op)
 
-ATOMIC_OPS(and, &=, and)
-ATOMIC_OPS(andnot, &= ~, bic)
-ATOMIC_OPS(or, |=, or)
-ATOMIC_OPS(xor, ^=, xor)
+ATOMIC_OPS(and, and)
+ATOMIC_OPS(andnot, bic)
+ATOMIC_OPS(or, or)
+ATOMIC_OPS(xor, xor)
 
 #elif defined(CONFIG_ARC_PLAT_EZNPS)
 

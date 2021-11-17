@@ -63,7 +63,7 @@ static inline void atomic64_##op(s64 a, atomic64_t *v)			\
 	: "cc");							\
 }									\
 
-#define ATOMIC64_OP_RETURN(op, op1, op2)		        	\
+#define ATOMIC64_OP_RETURN(op, op1, op2)				\
 static inline s64 atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val;							\
@@ -85,7 +85,7 @@ static inline s64 atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 #define atomic64_add_return_relaxed	atomic64_add_return_relaxed
 #define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
 
-#define ATOMIC64_FETCH_OP(op, op1, op2)		        		\
+#define ATOMIC64_FETCH_OP(op, op1, op2)					\
 static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val, orig;							\
