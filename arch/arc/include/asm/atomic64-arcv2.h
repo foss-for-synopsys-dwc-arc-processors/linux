@@ -118,7 +118,6 @@ static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 	ATOMIC64_FETCH_OP(op, op1, op2)
 
 #define atomic64_andnot		atomic64_andnot
-#define atomic64_fetch_andnot	atomic64_fetch_andnot
 
 ATOMIC64_OPS(add, add.f, adc)
 ATOMIC64_OPS(sub, sub.f, sbc)
