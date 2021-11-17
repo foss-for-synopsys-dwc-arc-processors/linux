@@ -67,23 +67,37 @@ static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 	return orig;							\
 }
 
+#ifdef CONFIG_ARC_HAS_ATLD
+#define ATOMIC64_FETCH_ATLD_OP(op, asm_op)				\
+static inline s64							\
+	atomic64_fetch_atldl_##op##_relaxed(s64 i, atomic64_t *v)	\
+{									\
+	s64 orig = i;							\
+									\
+	__asm__ __volatile__(						\
+	"	atldl."#asm_op" %0, %1 \n"				\
+	: "+r"(orig), "+ATOMC" (v->counter)				\
+	: 								\
+	: "memory");							\
+									\
+	return orig;							\
+}
+#endif
+
 #define ATOMIC64_OPS(op, op1)					\
 	ATOMIC64_OP(op, op1)					\
-	ATOMIC64_OP_RETURN(op, op1)				\
-	ATOMIC64_FETCH_OP(op, op1)
+	ATOMIC64_OP_RETURN(op, op1)
 
 ATOMIC64_OPS(add, addl)
 ATOMIC64_OPS(sub, subl)
 
-#define atomic64_fetch_add_relaxed	atomic64_fetch_add_relaxed
 #define atomic64_fetch_sub_relaxed	atomic64_fetch_sub_relaxed
 #define atomic64_add_return_relaxed	atomic64_add_return_relaxed
 #define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
 
 #undef ATOMIC64_OPS
 #define ATOMIC64_OPS(op, op1)					\
-	ATOMIC64_OP(op, op1)					\
-	ATOMIC64_FETCH_OP(op, op1)
+	ATOMIC64_OP(op, op1)
 
 ATOMIC64_OPS(and, andl)
 ATOMIC64_OPS(andnot, bicl)
@@ -91,13 +105,41 @@ ATOMIC64_OPS(or, orl)
 ATOMIC64_OPS(xor, xorl)
 
 #define atomic64_andnot			atomic64_andnot
-#define atomic64_fetch_and_relaxed	atomic64_fetch_and_relaxed
 #define atomic64_fetch_andnot_relaxed	atomic64_fetch_andnot_relaxed
+
+#ifdef CONFIG_ARC_HAS_ATLD
+
+#define atomic64_fetch_add_relaxed	atomic64_fetch_atldl_add_relaxed
+#define atomic64_fetch_and_relaxed	atomic64_fetch_atldl_and_relaxed
+#define atomic64_fetch_or_relaxed	atomic64_fetch_atldl_or_relaxed
+#define atomic64_fetch_xor_relaxed	atomic64_fetch_atldl_xor_relaxed
+
+	ATOMIC64_FETCH_ATLD_OP(add, add)
+	ATOMIC64_FETCH_ATLD_OP(and, and)
+	ATOMIC64_FETCH_ATLD_OP(xor, xor)
+	ATOMIC64_FETCH_ATLD_OP(or, or)
+
+	ATOMIC64_FETCH_OP(sub, subl)
+	ATOMIC64_FETCH_OP(andnot, bicl)
+#else
+
+#define atomic64_fetch_add_relaxed	atomic64_fetch_add_relaxed
+#define atomic64_fetch_and_relaxed	atomic64_fetch_and_relaxed
 #define atomic64_fetch_or_relaxed	atomic64_fetch_or_relaxed
 #define atomic64_fetch_xor_relaxed	atomic64_fetch_xor_relaxed
 
+	ATOMIC64_FETCH_OP(add, addl)
+	ATOMIC64_FETCH_OP(and, andl)
+	ATOMIC64_FETCH_OP(xor, xorl)
+	ATOMIC64_FETCH_OP(or, orl)
+
+	ATOMIC64_FETCH_OP(sub, subl)
+	ATOMIC64_FETCH_OP(andnot, bicl)
+#endif
+
 #undef ATOMIC64_OPS
 #undef ATOMIC64_FETCH_OP
+#undef ATOMIC64_FETCH_ATLD_OP
 #undef ATOMIC64_OP_RETURN
 #undef ATOMIC64_OP
 
