@@ -27,7 +27,7 @@ static inline void atomic64_##op(s64 a, atomic64_t *v)			\
 	"	scondl   %0, [%1]	\n"				\
 	"	bnz      1b		\n"				\
 	: "=&r"(val)							\
-	: "r"(&v->counter), "ir"(a)					\
+	: "r"(&v->counter), "r"(a)					\
 	: "cc");							\
 }									\
 
@@ -43,7 +43,7 @@ static inline s64 atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 	"	scondl   %0, [%1]	\n"				\
 	"	bnz      1b		\n"				\
 	: [val] "=&r"(val)						\
-	: "r"(&v->counter), "ir"(a)					\
+	: "r"(&v->counter), "r"(a)					\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
 	return val;							\
@@ -61,7 +61,7 @@ static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 	"	scondl   %1, [%2]	\n"				\
 	"	bnz      1b		\n"				\
 	: "=&r"(orig), "=&r"(val)					\
-	: "r"(&v->counter), "ir"(a)					\
+	: "r"(&v->counter), "r"(a)					\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
 	return orig;							\
@@ -115,7 +115,7 @@ atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 	"	bnz     1b		\n"
 	"2:				\n"
 	: "=&r"(prev)
-	: "r"(ptr), "ir"(expected), "r"(new)
+	: "r"(ptr), "r"(expected), "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
