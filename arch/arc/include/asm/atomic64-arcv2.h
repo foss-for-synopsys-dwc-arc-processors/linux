@@ -53,14 +53,14 @@ static inline void atomic64_##op(s64 a, atomic64_t *v)			\
 									\
 	__asm__ __volatile__(						\
 	"1:				\n"				\
-	"	llockd  %0, [%1]	\n"				\
+	"	llockd  %0, %1		\n"				\
 	"	" #op1 " %L0, %L0, %L2	\n"				\
 	"	" #op2 " %H0, %H0, %H2	\n"				\
-	"	scondd   %0, [%1]	\n"				\
+	"	scondd   %0, %1		\n"				\
 	"	bnz     1b		\n"				\
-	: "=&r"(val)							\
-	: "r"(&v->counter), "ir"(a)					\
-	: "cc");							\
+	: "=&r"(val), "+ATO"(v->counter)					\
+	: "ir"(a)							\
+	: "cc", "memory");						\
 }									\
 
 #define ATOMIC64_OP_RETURN(op, op1, op2)				\
@@ -70,13 +70,13 @@ static inline s64 atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 									\
 	__asm__ __volatile__(						\
 	"1:				\n"				\
-	"	llockd   %0, [%1]	\n"				\
+	"	llockd   %0, %1		\n"				\
 	"	" #op1 " %L0, %L0, %L2	\n"				\
 	"	" #op2 " %H0, %H0, %H2	\n"				\
-	"	scondd   %0, [%1]	\n"				\
+	"	scondd   %0, %1		\n"				\
 	"	bnz     1b		\n"				\
-	: [val] "=&r"(val)						\
-	: "r"(&v->counter), "ir"(a)					\
+	: "=&r"(val), "+ATO"(v->counter)					\
+	: "ir"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
 	return val;							\
@@ -92,13 +92,13 @@ static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 									\
 	__asm__ __volatile__(						\
 	"1:				\n"				\
-	"	llockd   %0, [%2]	\n"				\
+	"	llockd   %0, %2		\n"				\
 	"	" #op1 " %L1, %L0, %L3	\n"				\
 	"	" #op2 " %H1, %H0, %H3	\n"				\
-	"	scondd   %1, [%2]	\n"				\
+	"	scondd   %1, %2		\n"				\
 	"	bnz     1b		\n"				\
-	: "=&r"(orig), "=&r"(val)					\
-	: "r"(&v->counter), "ir"(a)					\
+	: "=&r"(orig), "=&r"(val), "+ATO"(v->counter)			\
+	: "ir"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
 	return orig;							\
@@ -145,14 +145,14 @@ atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockd  %0, [%1]	\n"
+	"1:	llockd  %0, %1		\n"
 	"	brne    %L0, %L2, 2f	\n"
 	"	brne    %H0, %H2, 2f	\n"
-	"	scondd  %3, [%1]	\n"
+	"	scondd  %3, %1		\n"
 	"	bnz     1b		\n"
 	"2:				\n"
-	: "=&r"(prev)
-	: "r"(ptr), "ir"(expected), "r"(new)
+	: "=&r"(prev), "+ATO"(*ptr)
+	: "ir"(expected), "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
@@ -167,12 +167,12 @@ static inline s64 atomic64_xchg(atomic64_t *ptr, s64 new)
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockd  %0, [%1]	\n"
-	"	scondd  %2, [%1]	\n"
+	"1:	llockd  %0, %1		\n"
+	"	scondd  %2, %1		\n"
 	"	bnz     1b		\n"
 	"2:				\n"
-	: "=&r"(prev)
-	: "r"(ptr), "r"(new)
+	: "=&r"(prev), "+ATO"(*ptr)
+	: "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
@@ -195,15 +195,15 @@ static inline s64 atomic64_dec_if_positive(atomic64_t *v)
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockd  %0, [%1]	\n"
+	"1:	llockd  %0, %1		\n"
 	"	sub.f   %L0, %L0, 1	# w0 - 1, set C on borrow\n"
 	"	sub.c   %H0, %H0, 1	# if C set, w1 - 1\n"
 	"	brlt    %H0, 0, 2f	\n"
-	"	scondd  %0, [%1]	\n"
+	"	scondd  %0, %1		\n"
 	"	bnz     1b		\n"
 	"2:				\n"
-	: "=&r"(val)
-	: "r"(&v->counter)
+	: "=&r"(val), "+ATO"(v->counter)
+	:
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
@@ -228,17 +228,17 @@ static inline s64 atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockd  %0, [%2]	\n"
+	"1:	llockd  %0, %2		\n"
 	"	brne	%L0, %L4, 2f	# continue to add since v != u \n"
 	"	breq.d	%H0, %H4, 3f	# return since v == u \n"
 	"2:				\n"
 	"	add.f   %L1, %L0, %L3	\n"
 	"	adc     %H1, %H0, %H3	\n"
-	"	scondd  %1, [%2]	\n"
+	"	scondd  %1, %2		\n"
 	"	bnz     1b		\n"
 	"3:				\n"
-	: "=&r"(old), "=&r" (temp)
-	: "r"(&v->counter), "r"(a), "r"(u)
+	: "=&r"(old), "=&r" (temp), "+ATO"(v->counter)
+	: "r"(a), "r"(u)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();

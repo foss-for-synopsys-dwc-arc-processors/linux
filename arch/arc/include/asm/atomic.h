@@ -18,6 +18,12 @@
 
 #ifdef CONFIG_ARC_HAS_LLSC
 
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#define ATOMIC_CONSTR	"+ATOMC"
+#else
+#define ATOMIC_CONSTR	"+ATO"
+#endif
+
 #define atomic_read(v)          READ_ONCE((v)->counter)
 #define atomic_set(v, i)        WRITE_ONCE(((v)->counter), (i))
 
@@ -27,14 +33,14 @@ static inline void atomic_##op(int i, atomic_t *v)			\
 	unsigned int val;						\
 									\
 	__asm__ __volatile__(						\
-	"1:	llock   %[val], [%[ctr]]		\n"		\
+	"1:	llock   %[val], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[val], %[i]	\n"		\
-	"	scond   %[val], [%[ctr]]		\n"		\
+	"	scond   %[val], %[ctr]			\n"		\
 	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val) /* Early clobber to prevent reg reuse */	\
-	: [ctr]	"r"	(&v->counter), /* Not "m": llock only supports reg direct addr mode */	\
-	  [i]	"ir"	(i)						\
-	: "cc");							\
+	: [val]	"=&r"	(val), /* Early clobber to prevent reg reuse */	\
+	  [ctr] ATOMIC_CONSTR (v->counter)				\
+	: [i]	"ir"	(i)						\
+	: "cc", "memory");						\
 }									\
 
 #define ATOMIC_OP_RETURN(op, asm_op)				\
@@ -43,14 +49,14 @@ static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 	unsigned int val;						\
 									\
 	__asm__ __volatile__(						\
-	"1:	llock   %[val], [%[ctr]]		\n"		\
+	"1:	llock   %[val], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[val], %[i]	\n"		\
-	"	scond   %[val], [%[ctr]]		\n"		\
+	"	scond   %[val], %[ctr]			\n"		\
 	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val)						\
-	: [ctr]	"r"	(&v->counter),					\
-	  [i]	"ir"	(i)						\
-	: "cc");							\
+	: [val]	"=&r"	(val),						\
+	  [ctr] ATOMIC_CONSTR (v->counter)				\
+	: [i]	"ir"	(i)						\
+	: "cc", "memory");						\
 									\
 	return val;							\
 }
@@ -59,20 +65,20 @@ static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 #define atomic_sub_return_relaxed	atomic_sub_return_relaxed
 
 #define ATOMIC_FETCH_OP(op, asm_op)				\
-static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)		\
+static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
 {									\
 	unsigned int val, orig;						\
 									\
 	__asm__ __volatile__(						\
-	"1:	llock   %[orig], [%[ctr]]		\n"		\
+	"1:	llock   %[orig], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[orig], %[i]	\n"		\
-	"	scond   %[val], [%[ctr]]		\n"		\
+	"	scond   %[val], %[ctr]			\n"		\
 	"	bnz     1b				\n"		\
 	: [val]	"=&r"	(val),						\
-	  [orig] "=&r" (orig)						\
-	: [ctr]	"r"	(&v->counter),					\
-	  [i]	"ir"	(i)						\
-	: "cc");							\
+	  [orig] "=&r" (orig),						\
+	  [ctr] ATOMIC_CONSTR (v->counter)				\
+	: [i]	"ir"	(i)						\
+	: "cc", "memory");						\
 									\
 	return orig;							\
 }
