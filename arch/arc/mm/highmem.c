@@ -84,7 +84,7 @@ void __kunmap_atomic(void *kv)
 {
 	unsigned long kvaddr = (unsigned long)kv;
 
-	if (kvaddr >= FIXMAP_BASE && kvaddr < (FIXMAP_BASE + FIXMAP_SIZE)) {
+	if (kvaddr >= FIXADDR_START && kvaddr < (FIXADDR_START + FIXADDR_SIZE)) {
 
 		/*
 		 * Because preemption is disabled, this vaddr can be associated
@@ -133,11 +133,11 @@ static noinline pte_t * __init alloc_kmap_pgtable(unsigned long kvaddr)
 void __init kmap_init(void)
 {
 	/* Due to recursive include hell, we can't do this in processor.h */
-	BUILD_BUG_ON(PAGE_OFFSET < (VMALLOC_END + FIXMAP_SIZE + PKMAP_SIZE));
+	BUILD_BUG_ON(PAGE_OFFSET < (VMALLOC_END + FIXADDR_SIZE + PKMAP_SIZE));
 
 	BUILD_BUG_ON(KM_TYPE_NR > PTRS_PER_PTE);
 	pkmap_page_table = alloc_kmap_pgtable(PKMAP_BASE);
 
 	BUILD_BUG_ON(LAST_PKMAP > PTRS_PER_PTE);
-	fixmap_page_table = alloc_kmap_pgtable(FIXMAP_BASE);
+	fixmap_page_table = alloc_kmap_pgtable(FIXADDR_START);
 }

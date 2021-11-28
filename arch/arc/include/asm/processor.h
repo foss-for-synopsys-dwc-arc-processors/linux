@@ -86,6 +86,31 @@ extern unsigned long get_wchan(struct task_struct *p);
 
 #endif /* !__ASSEMBLY__ */
 
+
+#ifdef CONFIG_64BIT
+/*
+ * Default System Memory Map on ARC (assuming 4k pages)
+ *
+ * ---------------------------- (Userspace, Translated) -------------------------
+ * 0x0000_0000			0x5FFF_FFFF	(user vaddr: TASK_SIZE)
+ *
+ * PAGE_OFFSET ---------------- (Kernelspace, Translated) -----------------------
+ * 0xffff_0000_0000_0000	0xffff_0000_3fff_ffff (kernel: PUD_SIZE)
+ * 0xffff_0000_4000_0000	0xffff_0000_7fff_ffff (fixed mapping:
+						       max PMD_SIZE)
+ * 0xffff_1000_0000_0000	0xffff_1000_0fff_ffff (vmalloc:
+					CONFIG_ARC_KVADDR_SIZE << 20)
+ * -----------------------------------------------------------------------------
+ */
+#define TASK_SIZE		0x60000000
+#define USER_KERNEL_GUTTER	0
+
+#define VMALLOC_START	(PAGE_OFFSET + 0x100000000000UL)
+#define VMALLOC_SIZE	(CONFIG_ARC_KVADDR_SIZE << 20)
+#define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
+
+#else
+
 /*
  * Default System Memory Map on ARC
  *
@@ -99,25 +124,15 @@ extern unsigned long get_wchan(struct task_struct *p);
  * 0xC000_0000		0xFFFF_FFFF	(peripheral uncached space)
  * -----------------------------------------------------------------------------
  */
+#define TASK_SIZE		0x60000000
+#define USER_KERNEL_GUTTER	(VMALLOC_START - TASK_SIZE)
 
-#define TASK_SIZE	0x60000000
-
-#ifdef CONFIG_64BIT
-#define VMALLOC_START	(PAGE_OFFSET + 0x1000000000000ul - (CONFIG_ARC_KVADDR_SIZE << 20))
-#else
 #define VMALLOC_START	(PAGE_OFFSET - (CONFIG_ARC_KVADDR_SIZE << 20))
-#endif
-
 /* 1 PGDIR_SIZE each for fixmap/pkmap, 2 PGDIR_SIZE gutter (see asm/highmem.h) */
 #define VMALLOC_SIZE	((CONFIG_ARC_KVADDR_SIZE << 20) - PMD_SIZE * 4)
-
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
-#ifdef CONFIG_64BIT
-#define USER_KERNEL_GUTTER    0
-#else
-#define USER_KERNEL_GUTTER    (VMALLOC_START - TASK_SIZE)
-#endif
+#endif /* CONFIG_64BIT */
 
 #ifdef CONFIG_ARC_PLAT_EZNPS
 /* NPS architecture defines special window of 129M in user address space for

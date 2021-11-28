@@ -10,15 +10,12 @@
 
 #include <asm/page.h>
 #include <asm/kmap_types.h>
+#include <asm/fixmap.h>
 
-/* start after vmalloc area */
-#define FIXMAP_BASE		(PAGE_OFFSET - FIXMAP_SIZE - PKMAP_SIZE)
-#define FIXMAP_SIZE		PGDIR_SIZE	/* only 1 PGD worth */
-#define KM_TYPE_NR		((FIXMAP_SIZE >> PAGE_SHIFT)/NR_CPUS)
-#define FIXMAP_ADDR(nr)		(FIXMAP_BASE + ((nr) << PAGE_SHIFT))
+#define KM_TYPE_NR		((FIXADDR_SIZE >> PAGE_SHIFT)/NR_CPUS)
 
 /* start after fixmap area */
-#define PKMAP_BASE		(FIXMAP_BASE + FIXMAP_SIZE)
+#define PKMAP_BASE		(FIXADDR_START + FIXADDR_SIZE)
 #define PKMAP_SIZE		PGDIR_SIZE
 #define LAST_PKMAP		(PKMAP_SIZE >> PAGE_SHIFT)
 #define LAST_PKMAP_MASK		(LAST_PKMAP - 1)

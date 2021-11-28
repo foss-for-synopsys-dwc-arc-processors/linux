@@ -6,6 +6,7 @@
 #include <asm/mmu_context.h>
 #include <asm/mmu.h>
 #include <asm/setup.h>
+#include <asm/fixmap.h>
 
 /* A copy of the ASID from the PID reg is kept in asid_cache */
 DEFINE_PER_CPU(unsigned int, asid_cache) = MM_CTXT_FIRST_CYCLE;
@@ -58,6 +59,91 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	mmuinfo.pg_sz_k = pg_sz_k;
 
 	return n;
+}
+
+/*
+ * At this point we mapped kernel code (PAGE_OFFSET to _end) in head.S.
+ * Assumes we have PGD and PUD
+ * TODO: assumes 4 levels, implement properly using p*d_addr_end loops
+ */
+static pmd_t fixmap_pmd[PTRS_PER_PMD] __page_aligned_bss;
+static pte_t fixmap_pte[PTRS_PER_PTE] __page_aligned_bss;
+void __init early_fixmap_init(void)
+{
+	unsigned long addr;
+	pgd_t *pgd;
+	p4d_t *p4d;
+	pud_t *pud;
+	pmd_t *pmd;
+
+	/* Make sure fixmap fits in one PMD. */
+	BUILD_BUG_ON(pmd_index(FIXADDR_START) != \
+		     pmd_index(FIXADDR_START + FIXADDR_SIZE));
+
+	addr = FIXADDR_START;
+
+	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
+	if (pgd_none(*pgd) || !pgd_present(*pgd))
+		return;
+
+	p4d = p4d_offset(pgd, addr);
+	if (p4d_none(*p4d) || !p4d_present(*p4d))
+		return;
+
+	pud = pud_offset(p4d, addr);
+	if (!pud_none(*pud) || pud_present(*pud))
+		return;
+
+	set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
+
+	pmd = pmd_offset(pud, addr);
+	if (!pmd_none(*pmd) || pmd_present(*pmd))
+		return;
+
+	set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
+}
+
+/*
+ * Just to new pgd.
+ */
+void early_fixmap_shutdown(void)
+{
+	unsigned long addr;
+	pgd_t *pgd;
+	p4d_t *p4d;
+	pud_t *pud;
+
+	addr = FIXADDR_START;
+
+	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
+	if (pgd_none(*pgd) || !pgd_present(*pgd))
+		return;
+
+	p4d = p4d_offset(pgd, addr);
+	if (p4d_none(*p4d) || !p4d_present(*p4d))
+		return;
+
+	pud = pud_offset(p4d, addr);
+	if (!pud_none(*pud) || pud_present(*pud))
+		return;
+
+	set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
+}
+
+void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
+{
+	unsigned long addr;
+	pte_t *pte;
+
+	addr = __fix_to_virt(idx);
+
+	BUG_ON(idx >= __end_of_fixed_addresses);
+
+	pte = pte_offset(fixmap_pmd, addr);
+	if (!pte_none(*pte) || pte_present(*pte))
+		return;
+
+	set_pte(pte, pfn_pte(PFN_DOWN(phys), prot));
 }
 
 /*
@@ -149,6 +235,8 @@ void arc_mmu_init(void)
 	arc_paging_init();
 
 	write_aux_reg(ARC_REG_MMU_CTRL, 0x7);
+
+	early_fixmap_shutdown();
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,

@@ -485,6 +485,10 @@ config ARC_IRQ_NO_AUTOSAVE
 
 endif # ISA_ARCV2
 
+config FIX_EARLYCON_MEM
+	def_bool y
+	depends on ISA_ARCV3
+
 endmenu   # "ARC CPU Configuration"
 
 config LINUX_LINK_BASE

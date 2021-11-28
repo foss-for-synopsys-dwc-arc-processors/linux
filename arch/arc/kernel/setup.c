@@ -26,6 +26,7 @@
 #include <asm/unwind.h>
 #include <asm/mach_desc.h>
 #include <asm/smp.h>
+#include <asm/fixmap.h>
 #include <soc/arc/mcip.h>
 
 #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
@@ -579,6 +580,10 @@ void __init setup_arch(char **cmdline_p)
 
 	/* Save unparsed command line copy for /proc/cmdline */
 	*cmdline_p = boot_command_line;
+
+#ifdef CONFIG_ISA_ARCV3
+	early_fixmap_init();
+#endif
 
 	/* To force early parsing of things like mem=xxx */
 	parse_early_param();
