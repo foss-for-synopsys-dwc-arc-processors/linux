@@ -90,7 +90,13 @@
  */
 .macro  GET_CURR_TASK_ON_CPU   reg
 	GET_CPU_ID  \reg
+#ifdef CONFIG_64BIT
+	ASLR	\reg, \reg, 3
+	addhl	\reg, \reg, @_current_task
+	LDR	\reg, @_current_task, \reg
+#else
 	LDR.as  \reg, @_current_task, \reg
+#endif
 .endm
 
 /*-------------------------------------------------
@@ -106,7 +112,9 @@
 .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
 	GET_CPU_ID  \tmp
 #ifdef CONFIG_64BIT
-	ADD3R \tmp, @_current_task, \tmp
+	ASLR	\tmp, \tmp, 3
+	addhl	\tmp, \tmp, @_current_task
+	addl	\tmp, \tmp, @_current_task@s32
 #else
 	ADD2R \tmp, @_current_task, \tmp
 #endif
