@@ -400,7 +400,9 @@ static int arc_pmu_add(struct perf_event *event, int flags)
 
 	write_aux_reg(ARC_REG_PCT_CONFIG, 0);
 	write_aux_reg(ARC_REG_PCT_COUNTL, 0);
+#ifndef CONFIG_64BIT
 	write_aux_reg(ARC_REG_PCT_COUNTH, 0);
+#endif
 	local64_set(&hwc->prev_count, 0);
 
 	hwc->state = PERF_HES_UPTODATE | PERF_HES_STOPPED;
