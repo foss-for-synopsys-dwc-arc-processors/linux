@@ -493,9 +493,10 @@ void setup_processor(void)
 	arc_chk_core_config(&info);
 
 	arc_init_IRQ();
-	arc_mmu_init();
+	/* No ned to setup MMU for secondary CPU for ARCv3. */
+	if (!IS_ENABLED(CONFIG_ISA_ARCV3) || c == 0)
+		arc_mmu_init();
 	arc_cache_init();
-
 }
 
 static inline bool uboot_arg_invalid(unsigned long addr)

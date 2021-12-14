@@ -115,3 +115,11 @@
 .macro BBIT1R d, s, lbl
 	bbit1 \d, \s, \lbl
 .endm
+
+.macro MAXR d, s, v
+	max \d, \s, \v
+.endm
+
+.macro MINR d, s, v
+	min \d, \s, \v
+.endm

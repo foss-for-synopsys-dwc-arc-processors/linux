@@ -2,7 +2,7 @@
 /*
  * ARC CPU startup Code
  *
- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+ * Copyright (C) 2004, 2007-2010, 2011-2012, 2021 Synopsys, Inc. (www.synopsys.com)
  *
  * Vineetg: Dec 2007
  *  -Check if we are running on Simulator or on real hardware
@@ -103,10 +103,15 @@
 .Lbuild_end\@:
 .endm
 
-; Create two MMU maps (link -> phy and phy -> phy)
-; phy -> phy is needed to have correct mapings right after MMU is enabled
-; and we still using phy instruction and data addresses.
-.macro CPU_EARLY_PAGING
+; Create page table with 1:1 mapping in given table pointers.
+; Addresses are mapped from CONFIG_LINUX_LINK_BASE to .Lmmu_enabled label.
+;
+; In:
+;	tbl_pg_dir - symbol address for pg_dir table
+;	tbl_pud/pmd - same for pud/pmd
+; Out:
+;	Clobbers r3-r11
+.macro CREATE_PAGING_1to1, tbl_pg_dir, tbl_pud, tbl_pmd
 	; r0, r1 and r2 are used as uboot args
 
 	; First initialize 1:1 page table, so we can enable MMU when using
@@ -115,35 +120,50 @@
 
 	MOVI    r10, PAGE_OFFSET
 	MOVI    r11, CONFIG_LINUX_LINK_BASE
-	; link_addr <- __pa(stext)
-	MOVA    r3, stext
-	SUBR	r3, r3, r10
-	ADDR	r3, r3, r11
-	; phy_addr <- __pa(stext)
+	; link_addr <- CONFIG_LINUX_LINK_BASE
+	MOVI    r3, CONFIG_LINUX_LINK_BASE
+	; phy_addr <- CONFIG_LINUX_LINK_BASE
 	MOVR	r4, r3
+
 	; link_end <- __pa(.Lmmu_enabled)
 	; link_end <- .Lmmu_enabled - PAGE_OFFSET + CONFIG_LINUX_LINK_BASE
+#ifdef CONFIG_SMP
 	MOVA	r5, .Lmmu_enabled
+	MOVA	r6, .Lmmu_enabled_secondary
+	MAXR	r5, r5, r6
+#else
+	MOVA	r5, .Lmmu_enabled
+#endif
 	SUBR	r5, r5, r10
 	ADDR	r5, r5, r11
 
-	; pgd <- __pa(swapper_pg_dir)
-	MOVA	r6, @swapper_pg_dir
+	; pgd <- __pa(tbl_pg_dir)
+	MOVA	r6, \tbl_pg_dir
 	SUBR	r6, r6, r10
 	ADDR	r6, r6, r11
 
-	; pud <- __pa(swapper_pud)
-	MOVA	r7, @swapper_pud
+	; pud <- __pa(tbl_pud)
+	MOVA	r7, \tbl_pud
 	SUBR	r7, r7, r10
 	ADDR	r7, r7, r11
 
-	; pmd <- __pa(swapper_pmd)
-	MOVA	r8, @swapper_pmd
+	; pmd <- __pa(tbl_pmd)
+	MOVA	r8, \tbl_pmd
 	SUBR	r8, r8, r10
 	ADDR	r8, r8, r11
 
 	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10
+.endm
 
+; Create page table with virt to phy mapping in given addresses.
+; Addresses are mapped from CONFIG_LINUX_LINK_BASE to _end symbol.
+;
+; In:
+;	tbl_pg_dir - symbol address for pg_dir table
+;	tbl_pud/pmd - same for pud/pmd
+; Out:
+;	Clobbers r3-r10
+.macro CREATE_PAGING_VtoP, tbl_pg_dir, tbl_pud, tbl_pmd
 	; link_addr <- PAGE_OFFSET
 	MOVI    r3, PAGE_OFFSET
 	; phy_addr <- CONFIG_LINUX_LINK_BASE
@@ -151,36 +171,41 @@
 	; link_end <- _end , see vmlinux.ld.S
 	MOVA	r5, _end
 
-	; pgd <- __pa(early_pg_dir)
-	MOVA	r6, @early_pg_dir
+	; pgd <- __pa(tbl_pg_dir)
+	MOVA	r6, \tbl_pg_dir
 	SUBR	r6, r6, r3
 	ADDR	r6, r6, r4
 
-	; pud <- __pa(early_pud)
-	MOVA	r7, @early_pud
+	; pud <- __pa(tbl_pud)
+	MOVA	r7, \tbl_pud
 	SUBR	r7, r7, r3
 	ADDR	r7, r7, r4
 
-	; pmd <- __pa(early_pmd)
-	MOVA	r8, @early_pmd
+	; pmd <- __pa(tbl_pmd)
+	MOVA	r8, \tbl_pmd
 	SUBR	r8, r8, r3
 	ADDR	r8, r8, r4
 
 	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10
 .endm
 
-
 ; Enable MMU and jump into virtual address space.
-.macro CPU_ENABLE_MMU
+;
+; In:
+;	tbl_rtp0 - virtual address of pg_dir of 1:1 mapping
+;	tbl_rtp1 - virtual address of pg_dir of V:P mapping
+; Out:
+;	Clobbers r4, r10, r11
+.macro CPU_ENABLE_MMU, tlb_rtp0, tlb_rtp1
 	MOVI	r10, PAGE_OFFSET
 	MOVI	r11, CONFIG_LINUX_LINK_BASE
-	; RTP0: 1:1 mapping in __pa(swapper_pg_dir)
-	MOVA	r4, @swapper_pg_dir
+	; RTP0: 1:1 mapping in __pa(tlb_rtp0)
+	MOVA	r4, \tlb_rtp0
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
 	SRR	r4, [ARC_REG_MMU_RTP0]
-	; RTP1: real link to phy mapping in __pa(early_pg_dir)
-	MOVA	r4, @early_pg_dir
+	; RTP1: real link to phy mapping in __pa(tlb_rtp1)
+	MOVA	r4, \tlb_rtp1
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
 	SRR	r4, [ARC_REG_MMU_RTP1]
@@ -210,6 +235,15 @@
 	SRR	r4, [ARC_REG_MMU_RTP0]
 .endm
 
+; Early setup:
+;	 - Setup vector table
+;	 - Configure hardware prefetcher
+;	 - Enable/disable L1 caches
+;	 - Set invalidate mode flush bit for DC
+;	 - Enable/disable unaligned access
+;
+; Out:
+;	Clobbers r5
 .macro CPU_EARLY_SETUP
 
 	; Setting up Vector Table
@@ -277,6 +311,57 @@ WEAK(res_service)
 	b	stext
 END(res_service)
 
+
+; Secondary CPU wait for main loop
+;
+; In:
+;	r0 - CPU Id
+;	blink - pointer to first_lines_of_secondary
+; Out:
+;	Clobbers r0, r1, r2, r3 (uBoot args are parsed by main CPU)
+#ifdef CONFIG_SMP
+ENTRY(arc_platform_smp_wait_to_boot)
+#ifdef CONFIG_ARC_SMP_HALT_ON_RESET
+	j	blink
+#endif
+
+	; __pa(arc_platform_wake_flag) since MMU is not enabled
+	MOVA	r1, @arc_platform_wake_flag
+#ifdef CONFIG_ISA_ARCV3
+	MOVI    r2, PAGE_OFFSET
+	MOVI    r3, CONFIG_LINUX_LINK_BASE
+	SUBR	r1, r1, r2
+	ADDR	r1, r1, r3
+#endif
+.Lsmp_wait:
+#ifdef CONFIG_ISA_ARCOMPACT
+	ld	r2, [r1]
+#else
+	ld.di	r2, [r1]
+#endif
+	cmp	r2, r0
+	bne	.Lsmp_wait
+
+#ifdef CONFIG_ISA_ARCV3
+	; At this point swapper_pg_dir already contains proper V:P mapping.
+	; But we still need to have 1:1 mapping to enable MMU.
+	CREATE_PAGING_1to1 @early_pg_dir, @early_pud, @early_pmd
+	CPU_ENABLE_MMU @early_pg_dir, @swapper_pg_dir
+.Lmmu_enabled_secondary:
+
+	MOVA	r1, @arc_platform_wake_flag
+#endif
+
+	mov	r0, 0
+#ifdef CONFIG_ISA_ARCOMPACT
+	st	r0, [r1]
+#else
+	st.di	r0, [r1]
+#endif
+	j	[blink]
+END(arc_platform_smp_wait_to_boot)
+#endif
+
 ;----------------------------------------------------------------
 ; Kernel Entry point
 ;----------------------------------------------------------------
@@ -290,10 +375,6 @@ ENTRY(stext)
 	mov.nz	r0, r5
 	bz	.Lmaster_proceed
 
-	; TODO: Need to wait until paging init
-#ifdef CONFIG_ISA_ARCV3
-	CPU_ENABLE_MMU
-#endif
 	; Non-Masters wait for Master to boot enough and bring them up
 	; when they resume, tail-call to entry point
 	MOVA	blink, @first_lines_of_secondary
@@ -303,9 +384,12 @@ ENTRY(stext)
 #endif
 
 #ifdef CONFIG_ISA_ARCV3
-	CPU_EARLY_PAGING
-	CPU_ENABLE_MMU
-	; here we can enable mmu for SMP
+	; Create 1:1 mapping in swappers, because it is needed up until
+	; .Lfirst_virt_addr. After this CPU uses V:P mapping from early
+	; arrays and we can fill swappers with proper mapping.
+	CREATE_PAGING_1to1 @swapper_pg_dir, @swapper_pud, @swapper_pmd
+	CREATE_PAGING_VtoP @early_pg_dir, @early_pud, @early_pmd
+	CPU_ENABLE_MMU @swapper_pg_dir, @early_pg_dir
 .Lmmu_enabled:
 #endif
 
@@ -357,14 +441,13 @@ END(stext)
 ;----------------------------------------------------------------
 	.section .text, "ax",@progbits
 ENTRY(first_lines_of_secondary)
-
 	; setup per-cpu idle task as "current" on this CPU
 	MOVA	r0, @secondary_idle_tsk
 	LDR	r0, r0
 	SET_CURR_TASK_ON_CPU  r0, r1
 
 	; setup stack (fp, sp)
-	MOVR	fp, 0
+	mov	fp, 0
 
 	; set it's stack base to tsk->thread_info bottom
 	GET_TSK_STACK_BASE r0, sp
