@@ -91,9 +91,11 @@ ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
 
 LIBGCC	= $(shell $(CC) $(cflags-y) --print-libgcc-file-name)
 
-ifndef CONFIG_ISA_ARCV3
 # Modules with short calls might break for calls into builtin-kernel
+ifndef CONFIG_ISA_ARCV3
 KBUILD_CFLAGS_MODULE	+= -mlong-calls -mno-millicode
+else
+KBUILD_CFLAGS_MODULE	+= -mcmodel=large
 endif
 
 # Finally dump eveything into kernel build system
