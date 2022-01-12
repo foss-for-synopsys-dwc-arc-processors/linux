@@ -47,8 +47,11 @@ int elf_check_arch(const struct elf32_hdr *x);
 
 /* ARC Relocations (kernel Modules only) */
 #define  R_ARC_32		0x4
+#define  R_ARC_64		0x5
 #define  R_ARC_32_ME		0x1B
 #define  R_ARC_32_PCREL		0x31
+#define  R_ARC_LO32_ME		0x5c
+#define  R_ARC_HI32_ME		0x5d
 
 #define CORE_DUMP_USE_REGSET
 
