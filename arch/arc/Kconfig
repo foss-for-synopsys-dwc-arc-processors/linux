@@ -356,23 +356,51 @@ config ARC_PTW_UNCACHED
 
 endchoice
 
+choice
+	prompt "MMU address space"
+	depends on ARC_MMU_V6
+	default ARC_MMU_V6_32 if !64BIT
+	default ARC_MMU_V6_48 if 64BIT
+
+config ARC_MMU_V6_32
+	bool "MMUv32"
+	help
+	  32-bit virtual address space
+
+config ARC_MMU_V6_48
+	bool "MMUv48"
+	depends on 64BIT
+	help
+	  48-bit virtual address space
+
+config ARC_MMU_V6_52
+	bool "MMUv52"
+	depends on 64BIT
+	help
+	  52-bit virtual address space
+endchoice
 
 choice
 	prompt "MMU Page Size"
-	default ARC_PAGE_SIZE_8K if !ISA_ARCV3
-	default ARC_PAGE_SIZE_4K if ISA_ARCV3
-
-config ARC_PAGE_SIZE_8K
-	bool "8KB"
-	help
-	  Choose between 8k vs 16k
-
-config ARC_PAGE_SIZE_16K
-	bool "16KB"
+	default ARC_PAGE_SIZE_8K if ARC_MMU_V3 || ARC_MMU_V4
+	default ARC_PAGE_SIZE_4K if ARC_MMU_V6_32 || ARC_MMU_V6_48
+	default ARC_PAGE_SIZE_64K if ARC_MMU_V6_52
 
 config ARC_PAGE_SIZE_4K
 	bool "4KB"
-	depends on ARC_MMU_V3 || ARC_MMU_V4 || ARC_MMU_V6
+	depends on ARC_MMU_V3 || ARC_MMU_V4 || ARC_MMU_V6_32 || ARC_MMU_V6_48
+
+config ARC_PAGE_SIZE_8K
+	bool "8KB"
+	depends on ARC_MMU_V3 || ARC_MMU_V4
+
+config ARC_PAGE_SIZE_16K
+	depends on ARC_MMU_V3 || ARC_MMU_V4 || ARC_MMU_V6_48
+	bool "16KB"
+
+config ARC_PAGE_SIZE_64K
+	depends on ARC_MMU_V6_48 || ARC_MMU_V6_52
+	bool "64KB"
 
 endchoice
 
@@ -391,9 +419,12 @@ endchoice
 
 config PGTABLE_LEVELS
 	int "Number of Page table levels"
-	default 4 if MMU_V6 && ARC_PAGE_SIZE_4K
-	default 3 if 64BIT
-	default 2
+	range 3 3 if ARC_MMU_V6_32
+	range 4 4 if ARC_MMU_V6_48 && ARC_PAGE_SIZE_4K
+	range 4 4 if ARC_MMU_V6_48 && ARC_PAGE_SIZE_16K
+	range 3 3 if ARC_MMU_V6_48 && ARC_PAGE_SIZE_64K
+	range 3 3 if ARC_MMU_V6_52
+	default 2 if ARC_MMU_V3 || ARC_MMU_V4
 
 config NODES_SHIFT
 	int "Maximum NUMA Nodes (as a power of 2)"

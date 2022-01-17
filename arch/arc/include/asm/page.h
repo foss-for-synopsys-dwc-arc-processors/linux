@@ -8,10 +8,12 @@
 #include <linux/const.h>
 
 /* PAGE_SHIFT determines the page size */
-#if defined(CONFIG_ARC_PAGE_SIZE_16K)
-#define PAGE_SHIFT 14
-#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
+#if defined(CONFIG_ARC_PAGE_SIZE_4K)
 #define PAGE_SHIFT 12
+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
+#define PAGE_SHIFT 14
+#elif defined(CONFIG_ARC_PAGE_SIZE_64K)
+#define PAGE_SHIFT 16
 #else
 /*
  * Default 8k
@@ -25,8 +27,13 @@
 
 #define PAGE_SIZE	_BITUL(PAGE_SHIFT)	/* Default 8K */
 
-#ifdef CONFIG_64BIT
+/*
+ * TODO: Only one kernel-user split for each MMU currently supported.
+ */
+#if defined(CONFIG_ARC_MMU_V6_48)
 #define PAGE_OFFSET	_AC(0xffff000000000000, UL)
+#elif defined(CONFIG_ARC_MMU_V6_52)
+#define PAGE_OFFSET	_AC(0xfff0000000000000, UL)
 #else
 #define PAGE_OFFSET	_AC(0x80000000, UL)	/* Kernel starts at 2G onwrds */
 #endif
@@ -50,7 +57,11 @@ void copy_user_highpage(struct page *to, struct page *from,
 void clear_user_page(void *to, unsigned long u_vaddr, struct page *page);
 
 typedef struct {
+#ifndef CONFIG_ARC_MMU_V6
 	unsigned long pgd;
+#else
+	unsigned long long pgd;
+#endif
 } pgd_t;
 
 #define pgd_val(x)	((x).pgd)
@@ -59,7 +70,11 @@ typedef struct {
 #if CONFIG_PGTABLE_LEVELS > 3
 
 typedef struct {
+#ifndef CONFIG_ARC_MMU_V6
 	unsigned long pud;
+#else
+	unsigned long long pud;
+#endif
 } pud_t;
 
 #define pud_val(x)      	((x).pud)
@@ -70,7 +85,11 @@ typedef struct {
 #if CONFIG_PGTABLE_LEVELS > 2
 
 typedef struct {
+#ifndef CONFIG_ARC_MMU_V6
 	unsigned long pmd;
+#else
+	unsigned long long pmd;
+#endif
 } pmd_t;
 
 #define pmd_val(x)	((x).pmd)
@@ -79,10 +98,10 @@ typedef struct {
 #endif
 
 typedef struct {
-#ifdef CONFIG_ARC_HAS_PAE40
-	unsigned long long pte;
-#else
+#if !defined(CONFIG_ARC_MMU_V6) && !defined(CONFIG_ARC_HAS_PAE40)
 	unsigned long pte;
+#else
+	unsigned long long pte;
 #endif
 } pte_t;
 
@@ -90,7 +109,11 @@ typedef struct {
 #define __pte(x)	((pte_t) { (x) })
 
 typedef struct {
+#ifndef CONFIG_ARC_MMU_V6
 	unsigned long pgprot;
+#else
+	unsigned long long pgprot;
+#endif
 } pgprot_t;
 
 #define pgprot_val(x)	((x).pgprot)

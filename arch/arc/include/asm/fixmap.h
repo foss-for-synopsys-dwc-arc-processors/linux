@@ -17,7 +17,6 @@ enum fixed_addresses {
 	__end_of_fixed_addresses
 };
 
-#define FIXADDR_START		(PAGE_OFFSET + PUD_SIZE)
 #define FIXADDR_SIZE		(__end_of_fixed_addresses * PAGE_SIZE)
 #define FIXADDR_TOP		(FIXADDR_START + FIXADDR_SIZE - PAGE_SIZE)
 
@@ -34,7 +33,6 @@ extern void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys,
 
 #else
 
-#define FIXADDR_START           (PAGE_OFFSET - FIXMAP_SIZE - PKMAP_SIZE)
 #define FIXADDR_SIZE		PGDIR_SIZE
 #define FIXMAP_ADDR(nr)		(FIXMAP_BASE + ((nr) << PAGE_SHIFT))
 

@@ -10,7 +10,7 @@
 #ifndef _ASM_ARC_PGTABLE_LEVELS_H
 #define _ASM_ARC_PGTABLE_LEVELS_H
 
-#if !defined(CONFIG_ISA_ARCV3) && CONFIG_PGTABLE_LEVELS == 2
+#if !defined(CONFIG_ISA_ARCV3) && (defined(CONFIG_ARC_MMU_V3) || defined(CONFIG_ARC_MMU_V4))
 
 /*
  * 2 level paging setup for software walked MMUv3 (ARC700) and MMUv4 (HS)
@@ -44,38 +44,69 @@
 
 #endif
 
-#elif defined(CONFIG_ISA_ARCV3) && CONFIG_PGTABLE_LEVELS == 4
+#elif defined(CONFIG_ARC_MMU_V6_32)
 
-/*
- * paging levels for hardware page walked MMUv6
- * Page Descriptors for all variants are 64-bits
- */
+#define ARC_VADDR_BITS		32
 
 #if defined(CONFIG_ARC_PAGE_SIZE_4K)
-/* MMU48 (4K page) : <9> : <9>  : <9>  : <9>  : <12> */
-
-#define PGDIR_SHIFT		39
-#define PUD_SHIFT		30
+/*
+ * MMU32 (4K page) :       <2>  : <9>  : <9>  : <12>
+ */
+#define PGDIR_SHIFT		30
 #define PMD_SHIFT		21
-#define ARC_VADDR_BITS		48
-
-#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
-/* MMU48 (16K page) : <1> : <11> : <11> : <11> : <14> */
-
-#define PGDIR_SHIFT		47
-#define PUD_SHIFT		36
-#define PMD_SHIFT		25
-#define ARC_VADDR_BITS		48
 
 #else
 
 #error "Unsupported PAGE_SIZE"
 
 #endif
+
+#elif defined(CONFIG_ARC_MMU_V6_48)
+
+#define ARC_VADDR_BITS		48
+
 /*
- * TBD:
- * MMU32 (4K page) :       <2>  : <9>  : <9>  : <12>
+ * paging levels for hardware page walked MMUv6
+ * Page Descriptors for all variants are 64-bits
  */
+#if defined(CONFIG_ARC_PAGE_SIZE_4K)
+/* MMU48 (4K page) : <9> : <9>  : <9>  : <9>  : <12> */
+#define PGDIR_SHIFT		39
+#define PUD_SHIFT		30
+#define PMD_SHIFT		21
+
+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
+/* MMU48 (16K page) : <1> : <11> : <11> : <11> : <14> */
+#define PGDIR_SHIFT		47
+#define PUD_SHIFT		36
+#define PMD_SHIFT		25
+
+#elif defined(CONFIG_ARC_PAGE_SIZE_64K)
+/* MMU48 (64K page) : <6> : <13> : <13> : <16> */
+#define PGDIR_SHIFT		42
+#define PMD_SHIFT		29
+
+#else
+
+#error "Unsupported PAGE_SIZE"
+
+#endif /* CONFIG_ARC_PAGE_SIZE_4K */
+
+#elif defined(CONFIG_ARC_MMU_V6_52)
+
+#define ARC_VADDR_BITS          52
+
+#if defined(CONFIG_ARC_PAGE_SIZE_64K)
+/* MMU52 (64K page) : <10> : <13>  : <13> : <16> */
+
+#define PGDIR_SHIFT		42
+#define PMD_SHIFT		29
+
+#else
+
+#error "Unsupported PAGE_SIZE"
+
+#endif /* CONFIG_ARC_PAGE_SIZE_64K */
 
 #else
 /*
@@ -239,7 +270,17 @@ static inline pte_t * pte_offset(pmd_t *pmd, unsigned long addr)
 #define pte_clear(mm,addr,ptep)	set_pte_at(mm, addr, ptep, __pte(0))
 #define pte_page(pte)		pfn_to_page(pte_pfn(pte))
 #define set_pte(ptep, pte)	do { (*(ptep)) = (pte); ptw_flush(ptep); } while (0)
+
+#ifdef CONFIG_ARC_MMU_V6_52
+/*
+ * FIXME: Only 48-bit phy addresses supported for MMUv52 for now.
+ * Bits 51:48 of address are mapped to 15:12 of entry.
+ */
+#define pte_pfn(pte)		((pte_val(pte) >> PAGE_SHIFT) & ((1UL << (48 - PAGE_SHIFT)) - 1))
+#else
 #define pte_pfn(pte)		((pte_val(pte) >> PAGE_SHIFT) & ((1UL << (ARC_VADDR_BITS - PAGE_SHIFT)) - 1))
+#endif
+
 #define pfn_pte(pfn, prot)	__pte(__pfn_to_phys(pfn) | pgprot_val(prot))
 #define mk_pte(page, prot)	pfn_pte(page_to_pfn(page), prot)
 

@@ -20,6 +20,10 @@
 #include <asm/mmu.h>
 #include <asm/irqflags.h>
 
+#ifndef PUD_SHIFT
+#define PUD_SHIFT PGDIR_SHIFT
+#endif
+
 ; Build page table entry.
 ;
 ; In:
@@ -41,12 +45,31 @@
 	ADD3R	\entry, \tbl, \entry
 
 	; Store allocated PUD to PGD with PAGE_TABLE prot. bits
+#ifdef CONFIG_64BIT
+#if ARC_VADDR_BITS == 64
+#error "ARC_VADDR_BITS == 64 is not implemented for 64-bit"
+#endif
 	mov 	\tmp, 1
 	ASLR	\tmp, \tmp, ARC_VADDR_BITS
 	SUBR	\tmp, \tmp, 1
 	ANDR	\tmp, \tmp, \value
 	ORR	\tmp, \tmp, \prot
 	STR	\tmp, \entry
+
+#else
+
+#if ARC_VADDR_BITS != 32
+#error "ARC_VADDR_BITS != 32 is not implemented for 32-bit"
+#endif
+	mov 	\tmp, \value
+	ORR	\tmp, \tmp, (\prot & 0xffffffff)
+	STR	\tmp, \entry
+	ADDR	\entry, \entry, 4
+	mov	\tmp, (\prot >> 32)
+	STR	\tmp, \entry
+
+#endif
+
 #ifdef CONFIG_ARC_PTW_UNCACHED
 	SRR	\entry, [ARC_REG_DC_IVDL]
 #endif
@@ -60,47 +83,67 @@
 ;	link_end - end link address
 ;	pgd - pointer to pgd array
 ;	pud - pointer to pud array
+;	pmd - pointer to pmd array
 ;	cur, tmp - temporal registers
 ;
 ; Out:
 ;       All registers are clobbered.
 .macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp
 
+; FIXME: we need asserts about kernel size <= allocated size
+; FIXME: we need a better way to generalize this
+#if defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_4K)
+
+; Two-level page table, PGD + PUD
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PMD_ENTRY
+#define ENTRY_SIZE	PUD_SIZE
+#define ENTRY_LABEL	.Lbuild_pud_entry\@
+
+#elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_16K)
+
+; Three-level page table, PGD + PUD + PMD
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define ENTRY_SIZE	PMD_SIZE
+#define ENTRY_LABEL	.Lbuild_pmd_entry\@
+
+#elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_64K) || defined(CONFIG_ARC_MMU_V6_52) || defined(CONFIG_ARC_MMU_V6_32)
+
+; Two-level page table, PGD + PMD
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+#define BUILD_PUD_ENTRY
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define ENTRY_SIZE	PMD_SIZE
+#define ENTRY_LABEL	.Lbuild_pmd_entry\@
+
+#endif
+
 .Lbuild_pgd_entry\@:
-	BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+	BUILD_PGD_ENTRY
 
 .Lbuild_pud_entry\@:
-	BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
+	BUILD_PUD_ENTRY
 
 .Lbuild_pmd_entry\@:
-	BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+	BUILD_PMD_ENTRY
 
 	; Increment phy and link addresses
-	ADDR	\phy_addr, \phy_addr, PMD_SIZE
-	ADDR	\link_addr, \link_addr, PMD_SIZE
+	ADDR	\phy_addr, \phy_addr, ENTRY_SIZE
+	ADDR	\link_addr, \link_addr, ENTRY_SIZE
 
 	; All link addresses are in
 	CMPR	\link_end, \link_addr
 	ble	.Lbuild_end\@
-
-	; Check if we need to allocate new PMD
-	LSRR	\tmp, \link_addr, PMD_SHIFT
-	ANDR	\tmp, \tmp, (PTRS_PER_PMD - 1)
-	CMPR	\tmp, 0
-	bne	.Lbuild_pmd_entry\@
-
-	; Allocate new PMD
-	ADDR	\pmd, \pmd, PAGE_SIZE
-	; Check if we need to allocate new PUD
-	MOVR	\cur, \link_addr
-	SUBR	\tmp, \link_addr, PMD_SIZE
-	XORR	\tmp, \tmp, \cur
-	BBIT1R	\tmp, PUD_SHIFT, .Lbuild_pud_entry\@
-
-	; Allocate new PUD
-	ADDR	\pud, \pud, PAGE_SIZE
-	b	.Lbuild_pgd_entry\@
+	b	ENTRY_LABEL
 .Lbuild_end\@:
+#undef BUILD_PGD_ENTRY
+#undef BUILD_PUD_ENTRY
+#undef BUILD_PMD_ENTRY
+#undef ENTRY_SIZE
+#undef ENTRY_LABEL
 .endm
 
 ; Create page table with 1:1 mapping in given table pointers.
@@ -203,11 +246,18 @@
 	MOVA	r4, \tlb_rtp0
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
+#if defined(CONFIG_ARC_MMU_V6_52)
+	LSRR	r4, r4, 4
+#endif
 	SRR	r4, [ARC_REG_MMU_RTP0]
+
 	; RTP1: real link to phy mapping in __pa(tlb_rtp1)
 	MOVA	r4, \tlb_rtp1
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
+#if defined(CONFIG_ARC_MMU_V6_52)
+	LSRR	r4, r4, 4
+#endif
 	SRR	r4, [ARC_REG_MMU_RTP1]
 
 	sr	MMU_TTBC, [ARC_REG_MMU_TTBC]
