@@ -108,9 +108,16 @@
 #define __S110		PAGE_RWX
 #define __S111		PAGE_RWX
 
+#if 0 && defined(CONFIG_ARC64)
 #define MMU_TTBC_T0SZ	16
-#define MMU_TTBC_T0SH	__SHR_INNER
 #define MMU_TTBC_T1SZ	16
+#else
+/* RTP0 - 0x0 -> 0x8; RTP1 0x8 -> end */
+#define MMU_TTBC_T0SZ	1
+#define MMU_TTBC_T1SZ	0
+#endif
+
+#define MMU_TTBC_T0SH	__SHR_INNER
 #define MMU_TTBC_T1SH	__SHR_INNER
 #define MMU_TTBC_A1	0
 

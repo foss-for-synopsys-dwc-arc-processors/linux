@@ -44,6 +44,23 @@
 
 #endif
 
+#elif defined(CONFIG_ISA_ARCV3) && CONFIG_PGTABLE_LEVELS == 3
+
+#if defined(CONFIG_ARC_PAGE_SIZE_4K)
+/*
+ * MMU32 (4K page) :       <2>  : <9>  : <9>  : <12>
+ */
+
+#define PGDIR_SHIFT		30
+#define PMD_SHIFT		21
+#define ARC_VADDR_BITS		32
+
+#else
+
+#error "Unsupported PAGE_SIZE"
+
+#endif
+
 #elif defined(CONFIG_ISA_ARCV3) && CONFIG_PGTABLE_LEVELS == 4
 
 /*
@@ -71,11 +88,7 @@
 
 #error "Unsupported PAGE_SIZE"
 
-#endif
-/*
- * TBD:
- * MMU32 (4K page) :       <2>  : <9>  : <9>  : <12>
- */
+#endif /* CONFIG_ARC_PAGE_SIZE_4K */
 
 #else
 /*
@@ -134,7 +147,7 @@ extern void ptw_flush(void *pxx);
 /*
  * 1st level paging: pgd
  */
-#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
+#define pgd_index(addr)		((((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1)) + 2 * (addr >> 31))
 #define pgd_offset(mm, addr)	(((mm)->pgd) + pgd_index(addr))
 #define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
 #define pgd_ERROR(e) \

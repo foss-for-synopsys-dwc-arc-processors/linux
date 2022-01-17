@@ -17,7 +17,7 @@ enum fixed_addresses {
 	__end_of_fixed_addresses
 };
 
-#define FIXADDR_START		(PAGE_OFFSET + PUD_SIZE)
+#define FIXADDR_START		0xf0000000 //(PAGE_OFFSET + PUD_SIZE)
 #define FIXADDR_SIZE		(__end_of_fixed_addresses * PAGE_SIZE)
 #define FIXADDR_TOP		(FIXADDR_START + FIXADDR_SIZE - PAGE_SIZE)
 

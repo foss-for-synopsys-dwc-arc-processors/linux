@@ -33,13 +33,17 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 		return 0;
 	}
 
-	lookups = 4;	/* 4 levels */
-	if (mmu6.variant == 1) {
+	if (mmu6.variant == 0) {
+		lookups = 3;	/* 3 levels */
+		pg_sz_k = 4;	/* 4KB */
+	} else if (mmu6.variant == 1) {
+		lookups = 4;	/* 4 levels */
 		pg_sz_k = 4;	/* 4KB */
 	} else if (mmu6.variant == 2) {
+		lookups = 4;	/* 4 levels */
 		pg_sz_k = 16;	/* 16KB */
 	} else {
-		panic("Only MMU48 4K/16K supported currently\n");
+		panic("Only MMU32 4K and MMU48 4K/16K supported currently\n");
 		return 0;
 	}
 
@@ -61,6 +65,7 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	return n;
 }
 
+#if 0 && defined(CONFIG_64BIT)
 /*
  * At this point we mapped kernel code (PAGE_OFFSET to _end) in head.S.
  * Assumes we have PGD and PUD
@@ -91,15 +96,14 @@ void __init early_fixmap_init(void)
 		return;
 
 	pud = pud_offset(p4d, addr);
-	if (!pud_none(*pud) || pud_present(*pud))
-		return;
-
-	set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
+	if (pud_none(*pud) || !pud_present(*pud))
+		set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
 
 	pmd = pmd_offset(pud, addr);
 	if (!pmd_none(*pmd) || pmd_present(*pmd))
 		return;
 
+	printk("%s end\n", __func__);
 	set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
 }
 
@@ -112,6 +116,7 @@ void early_fixmap_shutdown(void)
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
+	pmd_t *pmd;
 
 	addr = FIXADDR_START;
 
@@ -124,10 +129,15 @@ void early_fixmap_shutdown(void)
 		return;
 
 	pud = pud_offset(p4d, addr);
-	if (!pud_none(*pud) || pud_present(*pud))
+	if (pud_none(*pud) || !pud_present(*pud))
+		set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
+
+	pmd = pmd_offset(pud, addr);
+	if (!pmd_none(*pmd) || pmd_present(*pmd))
 		return;
 
-	set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
+	printk("%s end\n", __func__);
+	set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
 }
 
 void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
@@ -145,7 +155,9 @@ void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
 
 	set_pte(pte, pfn_pte(PFN_DOWN(phys), prot));
 }
+#endif
 
+#if CONFIG_PGTABLE_LEVELS == 4
 /*
  * Map the kernel code/data into page tables for a given @mm
  *
@@ -191,8 +203,36 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 	return 0;
 }
 
+#elif CONFIG_PGTABLE_LEVELS == 3
+int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
+{
+	pgd_t *pgd;
+	unsigned long addr = PAGE_OFFSET;
+	unsigned long end = 0xf1000000; 
+
+	do {
+		pgprot_t prot = PAGE_KERNEL_BLK;
+		if (addr > PAGE_OFFSET)
+			prot = pgprot_noncached(PAGE_KERNEL_BLK);
+
+		pgd = pgd_offset(mm, addr);
+		printk("%#lx %#lx %#lx %#lx %d %d\n", pgd, pgd_index(addr), addr, end, PTRS_PER_PGD,  PGDIR_SHIFT);
+	//	if (!pgd_none(*pgd) || pgd_present(*pgd))
+	//		return 1;
+
+		set_pgd(pgd, pfn_pgd(virt_to_pfn(addr), prot));
+		addr = pgd_addr_end(addr, end);
+	}
+	while (addr != end);
+
+	return 0;
+}
+
+#endif
+
 void arc_paging_init(void)
 {
+#if CONFIG_PGTABLE_LEVELS > 3
 	unsigned int idx;
 
 	idx = pgd_index(PAGE_OFFSET);
@@ -202,11 +242,14 @@ void arc_paging_init(void)
 	idx = pud_index(PAGE_OFFSET);
 	swapper_pud[idx] = pfn_pud(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pud[idx]);
+#endif
 
 	arc_map_kernel_in_mm(&init_mm);
 
-	write_aux_64(ARC_REG_MMU_RTP0, 0);
-	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir));
+	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(swapper_pg_dir));
+	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
+	write_aux_reg(ARC_REG_MMU_RTP1_LO, __pa(swapper_pg_dir + PTRS_PER_PGD));
+	write_aux_reg(ARC_REG_MMU_RTP1_HI, 0);
 }
 
 void arc_mmu_init(void)
@@ -218,7 +261,7 @@ void arc_mmu_init(void)
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
 
-	if (CONFIG_PGTABLE_LEVELS != 4)
+	if (CONFIG_PGTABLE_LEVELS < 3)
 		panic("CONFIG_PGTABLE_LEVELS !=4 not supported\n");
 
 	if ((unsigned long)_end - PAGE_OFFSET > PUD_SIZE)
@@ -236,7 +279,9 @@ void arc_mmu_init(void)
 
 	write_aux_reg(ARC_REG_MMU_CTRL, 0x7);
 
+#if 0
 	early_fixmap_shutdown();
+#endif
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
@@ -248,10 +293,9 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 noinline void mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 {
 #ifdef CONFIG_64BIT
-	unsigned long rtp0 = (asid << 48) | __pa(mm->pgd);
-
-	BUG_ON(__pa(mm->pgd) >> 48);
-	write_aux_64(ARC_REG_MMU_RTP0, rtp0);
+	//BUG_ON(__pa(mm->pgd) >> 48);
+	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(mm->pgd));
+	write_aux_reg(ARC_REG_MMU_RTP0_HI, (asid << 8));
 
 #else
 #error "Need to implement 2 SR ops"
@@ -272,7 +316,8 @@ void arch_exit_mmap(struct mm_struct *mm)
 	 * set the kernel page tables to allow kernel to run
 	 * since task paging tree will be nuked right after
 	 */
-	write_aux_64(ARC_REG_MMU_RTP0, 0);
+	write_aux_reg(ARC_REG_MMU_RTP0_LO, 0);
+	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
 }
 
 noinline void local_flush_tlb_all(void)

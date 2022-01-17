@@ -18,7 +18,7 @@
 #include <asm/sections.h>
 #include <asm/arcregs.h>
 
-pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
+pgd_t swapper_pg_dir[PTRS_PER_PGD * 2] __page_aligned_bss;
 pud_t swapper_pud[PTRS_PER_PUD] __page_aligned_bss;
 pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
 
