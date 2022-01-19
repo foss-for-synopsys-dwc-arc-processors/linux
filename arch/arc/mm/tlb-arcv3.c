@@ -207,7 +207,6 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 			prot = pgprot_noncached(PAGE_KERNEL_BLK);
 
 		pgd = pgd_offset(mm, addr);
-		printk("%#lx %#lx %#lx %#lx %ld %d\n", pgd, pgd_index(addr), addr, end, PTRS_PER_PGD,  PGDIR_SHIFT);
 	//	if (!pgd_none(*pgd) || pgd_present(*pgd))
 	//		return 1;
 
