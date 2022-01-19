@@ -74,7 +74,6 @@ static pmd_t fixmap_pmd[PTRS_PER_PMD] __page_aligned_bss;
 static pte_t fixmap_pte[PTRS_PER_PTE] __page_aligned_bss;
 void __init early_fixmap_init(void)
 {
-#if 0
 	unsigned long addr;
 	pgd_t *pgd;
 	p4d_t *p4d;
@@ -105,7 +104,6 @@ void __init early_fixmap_init(void)
 		return;
 
 	set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
-#endif
 }
 
 /*
@@ -113,7 +111,6 @@ void __init early_fixmap_init(void)
  */
 void early_fixmap_shutdown(void)
 {
-#if 0
 	unsigned long addr;
 	pgd_t *pgd;
 	p4d_t *p4d;
@@ -133,7 +130,6 @@ void early_fixmap_shutdown(void)
 	pud = pud_offset(p4d, addr);
 	if (pud_none(*pud) || !pud_present(*pud))
 		set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
-#endif
 }
 
 void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
@@ -203,7 +199,7 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 {
 	pgd_t *pgd;
 	unsigned long addr = PAGE_OFFSET;
-	unsigned long end = 0xf1000000;
+	unsigned long end = PAGE_OFFSET + PUD_SIZE;
 
 	do {
 		pgprot_t prot = PAGE_KERNEL_BLK;

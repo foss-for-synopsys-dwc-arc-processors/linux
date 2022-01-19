@@ -351,7 +351,7 @@ ENTRY(arc_platform_smp_wait_to_boot)
 	cmp	r2, r0
 	bne	.Lsmp_wait
 
-#if 0	// CONFIG_ISA_ARCV3
+#ifdef CONFIG_ISA_ARCV3
 	; At this point swapper_pg_dir already contains proper V:P mapping.
 	; But we still need to have 1:1 mapping to enable MMU.
 	CREATE_PAGING_1to1 @early_pg_dir, @early_pud, @early_pmd
@@ -392,7 +392,7 @@ ENTRY(stext)
 .Lmaster_proceed:
 #endif
 
-#if 0	// CONFIG_ISA_ARCV3
+#ifdef CONFIG_ISA_ARCV3
 	; Create 1:1 mapping in swappers, because it is needed up until
 	; .Lfirst_virt_addr. After this CPU uses V:P mapping from early
 	; arrays and we can fill swappers with proper mapping.

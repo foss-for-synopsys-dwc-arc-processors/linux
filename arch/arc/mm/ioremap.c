@@ -11,14 +11,9 @@
 #include <linux/slab.h>
 #include <linux/cache.h>
 
-unsigned long perip_base = 0xf0000000;
-unsigned long perip_end = 0xffffffff;
-
 static inline bool arc_uncached_addr_space(phys_addr_t paddr)
 {
-	if (paddr >= perip_base && paddr <= perip_end) {
-		return true;
-	} else if (is_isa_arcv3()) {
+	if (is_isa_arcv3()) {
 		/* No such region in ARCv3. */
 		return false;
 	} else if (is_isa_arcompact()) {
