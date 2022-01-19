@@ -18,7 +18,7 @@
 
 #ifdef CONFIG_ARC_HAS_LLSC
 
-#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#if defined(CONFIG_ISA_ARCV3)
 #define ATOMIC_CONSTR	"+ATOMC"
 #else
 #define ATOMIC_CONSTR	"+ATO"
