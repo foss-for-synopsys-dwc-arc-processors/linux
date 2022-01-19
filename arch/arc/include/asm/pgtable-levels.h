@@ -147,7 +147,7 @@ extern void ptw_flush(void *pxx);
 /*
  * 1st level paging: pgd
  */
-#define pgd_index(addr)		((((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1)) + 2 * (addr >> 31))
+#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
 #define pgd_offset(mm, addr)	(((mm)->pgd) + pgd_index(addr))
 #define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
 #define pgd_ERROR(e) \

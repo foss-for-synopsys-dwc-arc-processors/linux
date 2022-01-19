@@ -65,7 +65,6 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	return n;
 }
 
-#if 0 && defined(CONFIG_64BIT)
 /*
  * At this point we mapped kernel code (PAGE_OFFSET to _end) in head.S.
  * Assumes we have PGD and PUD
@@ -87,7 +86,8 @@ void __init early_fixmap_init(void)
 
 	addr = FIXADDR_START;
 
-	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
+	pgd = (pgd_t *) __va(read_aux_reg(ARC_REG_MMU_RTP1));
+	pgd += pgd_index(addr);
 	if (pgd_none(*pgd) || !pgd_present(*pgd))
 		return;
 
@@ -103,7 +103,6 @@ void __init early_fixmap_init(void)
 	if (!pmd_none(*pmd) || pmd_present(*pmd))
 		return;
 
-	printk("%s end\n", __func__);
 	set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
 }
 
@@ -116,11 +115,11 @@ void early_fixmap_shutdown(void)
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
-	pmd_t *pmd;
 
 	addr = FIXADDR_START;
 
-	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
+	pgd = (pgd_t *) __va(read_aux_reg(ARC_REG_MMU_RTP1));
+	pgd += pgd_index(addr);
 	if (pgd_none(*pgd) || !pgd_present(*pgd))
 		return;
 
@@ -131,13 +130,6 @@ void early_fixmap_shutdown(void)
 	pud = pud_offset(p4d, addr);
 	if (pud_none(*pud) || !pud_present(*pud))
 		set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
-
-	pmd = pmd_offset(pud, addr);
-	if (!pmd_none(*pmd) || pmd_present(*pmd))
-		return;
-
-	printk("%s end\n", __func__);
-	set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
 }
 
 void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
@@ -149,13 +141,12 @@ void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
 
 	BUG_ON(idx >= __end_of_fixed_addresses);
 
-	pte = pte_offset(fixmap_pmd, addr);
+	pte = fixmap_pte + pte_index(addr);
 	if (!pte_none(*pte) || pte_present(*pte))
 		return;
 
 	set_pte(pte, pfn_pte(PFN_DOWN(phys), prot));
 }
-#endif
 
 #if CONFIG_PGTABLE_LEVELS == 4
 /*
@@ -208,7 +199,7 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 {
 	pgd_t *pgd;
 	unsigned long addr = PAGE_OFFSET;
-	unsigned long end = 0xf1000000; 
+	unsigned long end = PAGE_OFFSET + PUD_SIZE;
 
 	do {
 		pgprot_t prot = PAGE_KERNEL_BLK;
@@ -246,10 +237,11 @@ void arc_paging_init(void)
 
 	arc_map_kernel_in_mm(&init_mm);
 
-	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(swapper_pg_dir));
+	write_aux_reg(ARC_REG_MMU_RTP0_LO, 0);
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
-	write_aux_reg(ARC_REG_MMU_RTP1_LO, __pa(swapper_pg_dir + PTRS_PER_PGD));
+	write_aux_reg(ARC_REG_MMU_RTP1_LO, __pa(swapper_pg_dir));
 	write_aux_reg(ARC_REG_MMU_RTP1_HI, 0);
+	write_aux_reg(ARC_REG_MMU_TLB_CMD, 1);
 }
 
 void arc_mmu_init(void)
@@ -279,9 +271,7 @@ void arc_mmu_init(void)
 
 	write_aux_reg(ARC_REG_MMU_CTRL, 0x7);
 
-#if 0
 	early_fixmap_shutdown();
-#endif
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,

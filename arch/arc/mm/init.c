@@ -24,7 +24,7 @@ pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
 
 #ifdef CONFIG_ISA_ARCV3
 /* Used for early memory map in head.S for ARCv3 */
-pgd_t early_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
+pgd_t early_pg_dir[PTRS_PER_PGD * 2] __initdata __aligned(PAGE_SIZE);
 pud_t early_pud[PTRS_PER_PUD] __initdata __aligned(PAGE_SIZE);
 pmd_t early_pmd[PTRS_PER_PMD] __initdata __aligned(PAGE_SIZE);
 #endif

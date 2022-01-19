@@ -124,7 +124,7 @@ extern unsigned long get_wchan(struct task_struct *p);
  * 0xC000_0000		0xFFFF_FFFF	(peripheral uncached space)
  * -----------------------------------------------------------------------------
  */
-#define TASK_SIZE		0x40000000
+#define TASK_SIZE		0x60000000
 #define USER_KERNEL_GUTTER	(0)
 
 #define VMALLOC_START	(0xc0000000)

@@ -582,7 +582,7 @@ void __init setup_arch(char **cmdline_p)
 	/* Save unparsed command line copy for /proc/cmdline */
 	*cmdline_p = boot_command_line;
 
-#if 0 && defined(CONFIG_ISA_ARCV3)
+#if defined(CONFIG_ISA_ARCV3)
 	early_fixmap_init();
 #endif
 

@@ -20,6 +20,11 @@
 #include <asm/mmu.h>
 #include <asm/irqflags.h>
 
+#ifndef PUD_SHIFT
+#define PUD_SHIFT PGDIR_SHIFT
+#endif
+
+
 ; Build page table entry.
 ;
 ; In:
@@ -67,10 +72,12 @@
 .macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp
 
 .Lbuild_pgd_entry\@:
-	BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+	BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
 
+#if 0
 .Lbuild_pud_entry\@:
 	BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
+#endif
 
 .Lbuild_pmd_entry\@:
 	BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
@@ -91,6 +98,7 @@
 
 	; Allocate new PMD
 	ADDR	\pmd, \pmd, PAGE_SIZE
+#if 0
 	; Check if we need to allocate new PUD
 	MOVR	\cur, \link_addr
 	SUBR	\tmp, \link_addr, PMD_SIZE
@@ -99,6 +107,7 @@
 
 	; Allocate new PUD
 	ADDR	\pud, \pud, PAGE_SIZE
+#endif
 	b	.Lbuild_pgd_entry\@
 .Lbuild_end\@:
 .endm
@@ -247,7 +256,7 @@
 .macro CPU_EARLY_SETUP
 
 	; Setting up Vector Table
-#if 0 //CONFIG_64BIT
+#if CONFIG_64BIT
 	MOVA	r5, @_int_vec_base_lds
 	srl	r5, [AUX_INTR_VEC_BASE]
 #else
@@ -327,7 +336,7 @@ ENTRY(arc_platform_smp_wait_to_boot)
 
 	; __pa(arc_platform_wake_flag) since MMU is not enabled
 	MOVA	r1, @arc_platform_wake_flag
-#if 0 //CONFIG_64BIT
+#if CONFIG_ISA_ARCV3
 	MOVI    r2, PAGE_OFFSET
 	MOVI    r3, CONFIG_LINUX_LINK_BASE
 	SUBR	r1, r1, r2
@@ -342,7 +351,7 @@ ENTRY(arc_platform_smp_wait_to_boot)
 	cmp	r2, r0
 	bne	.Lsmp_wait
 
-#if 0 //CONFIG_64BIT
+#if CONFIG_ISA_ARCV3
 	; At this point swapper_pg_dir already contains proper V:P mapping.
 	; But we still need to have 1:1 mapping to enable MMU.
 	CREATE_PAGING_1to1 @early_pg_dir, @early_pud, @early_pmd
@@ -383,7 +392,7 @@ ENTRY(stext)
 .Lmaster_proceed:
 #endif
 
-#if 0 //CONFIG_64BIT
+#if CONFIG_ISA_ARCV3
 	; Create 1:1 mapping in swappers, because it is needed up until
 	; .Lfirst_virt_addr. After this CPU uses V:P mapping from early
 	; arrays and we can fill swappers with proper mapping.

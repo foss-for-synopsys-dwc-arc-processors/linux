@@ -8,6 +8,7 @@
 #define _ASM_ARC_MMUV6_H
 
 #define ARC_REG_MMU_CTRL	0x468
+#define ARC_REG_MMU_RTP0	0x460
 #define ARC_REG_MMU_RTP0_LO	0x460
 #define ARC_REG_MMU_RTP0_HI	0x461
 #define ARC_REG_MMU_RTP1	0x462
