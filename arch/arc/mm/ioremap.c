@@ -26,41 +26,14 @@ static inline bool arc_uncached_addr_space(phys_addr_t paddr)
 	return false;
 }
 
-void __iomem *ioremap(phys_addr_t paddr, unsigned long size)
-{
-	phys_addr_t end;
-
-	/* Don't allow wraparound or zero size */
-	end = paddr + size - 1;
-	if (!size || (end < paddr))
-		return NULL;
-
-	/*
-	 * If the region is h/w uncached, MMU mapping can be elided as optim
-	 * The cast to u32 is fine as this region can only be inside 4GB
-	 */
-	if (arc_uncached_addr_space(paddr))
-		return (void __iomem *)paddr;
-
-	return ioremap_prot(paddr, size,
-			    pgprot_val(pgprot_noncached(PAGE_KERNEL)));
-}
-EXPORT_SYMBOL(ioremap);
-
-/*
- * ioremap with access flags
- * Cache semantics wise it is same as ioremap - "forced" uncached.
- * However unlike vanilla ioremap which bypasses ARC MMU for addresses in
- * ARC hardware uncached region, this one still goes thru the MMU as caller
- * might need finer access control (R/W/X)
- */
-void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
-			   unsigned long flags)
+/* internal version of ioremap_prot with wider flags */
+static void __iomem *ioremap_prot_internal(phys_addr_t paddr,
+					   unsigned long size,
+					   pgprot_t prot)
 {
 	unsigned long vaddr;
 	struct vm_struct *area;
 	phys_addr_t off, end;
-	pgprot_t prot = __pgprot(flags);
 
 	/* Don't allow wraparound, zero size */
 	end = paddr + size - 1;
@@ -93,7 +66,45 @@ void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
 	}
 	return (void __iomem *)(off + (char __iomem *)vaddr);
 }
+
+void __iomem *ioremap(phys_addr_t paddr, unsigned long size)
+{
+	phys_addr_t end;
+
+	/* Don't allow wraparound or zero size */
+	end = paddr + size - 1;
+	if (!size || (end < paddr))
+		return NULL;
+
+	/*
+	 * If the region is h/w uncached, MMU mapping can be elided as optim
+	 * The cast to u32 is fine as this region can only be inside 4GB
+	 */
+	if (arc_uncached_addr_space(paddr))
+		return (void __iomem *)paddr;
+
+	return ioremap_prot_internal(paddr, size,
+				     pgprot_noncached(PAGE_KERNEL));
+}
+EXPORT_SYMBOL(ioremap);
+
+#ifdef CONFIG_HAVE_IOREMAP_PROT
+/*
+ * ioremap with access flags
+ * Cache semantics wise it is same as ioremap - "forced" uncached.
+ * However unlike vanilla ioremap which bypasses ARC MMU for addresses in
+ * ARC hardware uncached region, this one still goes thru the MMU as caller
+ * might need finer access control (R/W/X)
+ */
+void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
+			   unsigned long flags)
+{
+	pgprot_t prot = __pgprot(flags);
+
+	return ioremap_prot_internal(paddr, size, prot);
+}
 EXPORT_SYMBOL(ioremap_prot);
+#endif /* CONFIG_HAVE_IOREMAP_PROT */
 
 
 void iounmap(const void __iomem *addr)

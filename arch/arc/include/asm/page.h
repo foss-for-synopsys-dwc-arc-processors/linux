@@ -110,7 +110,7 @@ typedef struct {
 
 typedef struct {
 #ifndef CONFIG_ARC_MMU_V6
-	unsigned long pgprot;
+	unsigned long long pgprot;
 #else
 	unsigned long long pgprot;
 #endif
