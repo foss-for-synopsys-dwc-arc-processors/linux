@@ -26,8 +26,8 @@ extern void __floatunsidf(void);
 extern void __floatunsisf(void);
 extern void __udivdi3(void);
 
-#ifndef CONFIG_64BIT
-/* arc64 libgcc is primitive as of now */
+#ifndef CONFIG_ISA_ARCV3
+/* ARCv3 libgcc is primitive as of now */
 EXPORT_SYMBOL(__ashldi3);
 EXPORT_SYMBOL(__ashrdi3);
 EXPORT_SYMBOL(__divsi3);
