@@ -154,8 +154,13 @@ noinline void __flush_dcache_range(phys_addr_t paddr, unsigned long vaddr, int l
 
         __dc_op_before(op);
 
+#if defined(CONFIG_64BIT)
         write_aux_64(ARC_REG_DC_ENDR, end);
         write_aux_64(ARC_REG_DC_STARTR, paddr);
+#else
+        write_aux_reg(ARC_REG_DC_ENDR, end);
+        write_aux_reg(ARC_REG_DC_STARTR, paddr);
+#endif
 
         __dc_op_after(op);
 #endif
@@ -175,7 +180,11 @@ noinline void __inv_icache_range(phys_addr_t paddr, unsigned long vaddr, int len
          * for non-aliasing paddr suffices for both
          */
         if (likely(ic.colors > 1)) {
+#if defined(CONFIG_64BIT)
                 write_aux_64(ARC_REG_IC_PTAG, paddr);
+#else
+                write_aux_reg(ARC_REG_IC_PTAG, paddr);
+#endif
                 start = vaddr;
         } else {
                 start = paddr;
@@ -188,10 +197,18 @@ noinline void __inv_icache_range(phys_addr_t paddr, unsigned long vaddr, int len
 	end = start + len + L1_CACHE_BYTES - 1;
 
 	/* ENDR needs to be set ahead of START */
+#if defined(CONFIG_64BIT)
         write_aux_64(ARC_REG_IC_ENDR, end);
+#else
+        write_aux_reg(ARC_REG_IC_ENDR, end);
+#endif
 
         start &= ~0x3;
+#if defined(CONFIG_64BIT)
         write_aux_64(ARC_REG_IC_IVIR, start);
+#else
+        write_aux_reg(ARC_REG_IC_IVIR, start);
+#endif
 }
 
 void __sync_icache_dcache(phys_addr_t paddr, unsigned long vaddr, int len)

@@ -207,7 +207,7 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 			prot = pgprot_noncached(PAGE_KERNEL_BLK);
 
 		pgd = pgd_offset(mm, addr);
-		printk("%#lx %#lx %#lx %#lx %d %d\n", pgd, pgd_index(addr), addr, end, PTRS_PER_PGD,  PGDIR_SHIFT);
+		printk("%#lx %#lx %#lx %#lx %ld %d\n", pgd, pgd_index(addr), addr, end, PTRS_PER_PGD,  PGDIR_SHIFT);
 	//	if (!pgd_none(*pgd) || pgd_present(*pgd))
 	//		return 1;
 
@@ -254,7 +254,7 @@ void arc_mmu_init(void)
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
 
 	if (CONFIG_PGTABLE_LEVELS < 3)
-		panic("CONFIG_PGTABLE_LEVELS !=4 not supported\n");
+		panic("CONFIG_PGTABLE_LEVELS < 3 not supported\n");
 
 	if ((unsigned long)_end - PAGE_OFFSET > PUD_SIZE)
 		panic("kernel doesn't fit in PUD (%lu Mb)\n", TO_MB(PUD_SIZE));
@@ -265,8 +265,14 @@ void arc_mmu_init(void)
 	memattr.attr[MEMATTR_IDX_UNCACHED] = MEMATTR_UNCACHED;
 	memattr.attr[MEMATTR_IDX_VOLATILE] = MEMATTR_VOLATILE;
 
+#if defined(CONFIG_64BIT)
 	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
+#else
+	unsigned long long tmp = *(unsigned long long *)&memattr;
 
+	write_aux_reg(ARC_REG_MMU_MEM_ATTR_LO, tmp & ~0UL);
+	write_aux_reg(ARC_REG_MMU_MEM_ATTR_HI, tmp >> 32 & ~0UL);
+#endif
 	arc_paging_init();
 
 	write_aux_reg(ARC_REG_MMU_CTRL, 0x7);
@@ -282,14 +288,12 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 
 noinline void mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 {
-#ifdef CONFIG_64BIT
-	//BUG_ON(__pa(mm->pgd) >> 48);
+
+#if defined(CONFIG_64BIT)
+	BUG_ON(__pa(mm->pgd) >> 48);
+#endif
 	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(mm->pgd));
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, (asid << 8));
-
-#else
-#error "Need to implement 2 SR ops"
-#endif
 }
 
 void arch_exit_mmap(struct mm_struct *mm)

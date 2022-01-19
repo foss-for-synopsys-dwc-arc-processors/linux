@@ -9,31 +9,31 @@
 
 #include <linux/sizes.h>
 
-#define _PAGE_VALID		(_UL(1) <<  0)
-#define _PAGE_LINK		(_UL(1) <<  1)
-#define _PAGE_MEMATTR_MASK	(_UL(7) <<  2)
+#define _PAGE_VALID		(_ULL(1) <<  0)
+#define _PAGE_LINK		(_ULL(1) <<  1)
+#define _PAGE_MEMATTR_MASK	(_ULL(7) <<  2)
 #define _PAGE_MEMATTR(idx)	((idx) << 2)
 
 /* PAGE_USER is only relevant for data r/w accesses  */
-#define _PAGE_AP_U_N_K		(_UL(1) <<  6)  /* 1: User + Kernel, 0: Kernel only) */
-#define _PAGE_AP_READONLY	(_UL(1) <<  7)  /* 1: Read only, 0: Read + Write) */
+#define _PAGE_AP_U_N_K		(_ULL(1) <<  6)  /* 1: User + Kernel, 0: Kernel only) */
+#define _PAGE_AP_READONLY	(_ULL(1) <<  7)  /* 1: Read only, 0: Read + Write) */
 
 #define __SHR_NONE		0
 #define __SHR_OUTER		2
 #define __SHR_INNER		3
 
-#define _PAGE_SHARED_NONE	(_UL(__SHR_NONE)  <<  8)
-#define _PAGE_SHARED_OUTER	(_UL(__SHR_OUTER) <<  8)  /* Outer Shareable */
-#define _PAGE_SHARED_INNER	(_UL(__SHR_INNER) <<  8)  /* Inner Shareable */
+#define _PAGE_SHARED_NONE	(_ULL(__SHR_NONE)  <<  8)
+#define _PAGE_SHARED_OUTER	(_ULL(__SHR_OUTER) <<  8)  /* Outer Shareable */
+#define _PAGE_SHARED_INNER	(_ULL(__SHR_INNER) <<  8)  /* Inner Shareable */
 
-#define _PAGE_ACCESSED		(_UL(1) << 10)  /* software managed, exception if clear */
-#define _PAGE_NOTGLOBAL		(_UL(1) << 11)  /* ASID */
+#define _PAGE_ACCESSED		(_ULL(1) << 10)  /* software managed, exception if clear */
+#define _PAGE_NOTGLOBAL		(_ULL(1) << 11)  /* ASID */
 
-#define _PAGE_DIRTY		(_UL(1) << 51)  /* software managed */
-#define _PAGE_NOTEXEC_K		(_UL(1) << 53)  /* Execute User */
-#define _PAGE_NOTEXEC_U		(_UL(1) << 54)  /* Execute Kernel */
+#define _PAGE_DIRTY		(_ULL(1) << 51)  /* software managed */
+#define _PAGE_NOTEXEC_K		(_ULL(1) << 53)  /* Execute User */
+#define _PAGE_NOTEXEC_U		(_ULL(1) << 54)  /* Execute Kernel */
 
-#define _PAGE_SPECIAL		(_UL(1) << 55)
+#define _PAGE_SPECIAL		(_ULL(1) << 55)
 
 /* TBD: revisit if this needs to be standalone for PROT_NONE */
 #define _PAGE_PRESENT		_PAGE_VALID
@@ -162,7 +162,7 @@ PTE_BIT_FUNC(mkspecial,	|=  (_PAGE_SPECIAL));
 
 static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 {
-	const unsigned long mask = _PAGE_VALID       |
+	const unsigned long long mask = _PAGE_VALID       |
 				   _PAGE_NOTEXEC_K   | _PAGE_NOTEXEC_U |
 				   _PAGE_AP_READONLY | _PAGE_AP_U_N_K;
 
@@ -186,9 +186,9 @@ extern void set_pte_at(struct mm_struct *mm, unsigned long addr,
 #define __SWP_TYPE_SHIFT	2
 #define __SWP_TYPE_BITS		6
 #define __SWP_OFFSET_BITS	50
-#define __SWP_TYPE_MASK		((1UL << __SWP_TYPE_BITS) - 1)
+#define __SWP_TYPE_MASK		((1ULL << __SWP_TYPE_BITS) - 1)
 #define __SWP_OFFSET_SHIFT	(__SWP_TYPE_BITS + __SWP_TYPE_SHIFT)
-#define __SWP_OFFSET_MASK	((1UL << __SWP_OFFSET_BITS) - 1)
+#define __SWP_OFFSET_MASK	((1ULL << __SWP_OFFSET_BITS) - 1)
 
 #define __swp_type(x)		(((x).val >> __SWP_TYPE_SHIFT) & __SWP_TYPE_MASK)
 #define __swp_offset(x)		(((x).val >> __SWP_OFFSET_SHIFT) & __SWP_OFFSET_MASK)
