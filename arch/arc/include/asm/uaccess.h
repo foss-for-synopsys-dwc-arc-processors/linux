@@ -175,7 +175,7 @@
 #define __arc_put_user_one_64(src, dst, ret)	\
 	__asm__ __volatile__(                   \
 	"1:	st   %1,[%2]\n"			\
-	"4:	st  %R1,[%2, 4]\n"		\
+	"4:	st  %H1,[%2, 4]\n"		\
 	"2:	;nop\n"				\
 	"	.section .fixup, \"ax\"\n"	\
 	"	.align 4\n"			\
