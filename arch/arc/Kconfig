@@ -125,8 +125,6 @@ config ISA_ARCV2
 
 config ISA_ARCV3
 	bool "ARC ISA v3"
-	select 64BIT
-	select ARC_HAS_LL64
 	select ARC_LACKS_ZOL
 	select ARC_TIMERS_64BIT
 	help
@@ -182,11 +180,23 @@ config ARC_CPU_HS
 		* pop count: FFS, FLS
 		* SETcc, BMSKN, XBFU...
 
-config ARC_CPU_HS6X
-	bool "ARC-HS58x/HS68x"
+if ISA_ARCV3
+
+config ARC_CPU_HS5X
+	bool "ARC-HS58x"
 	depends on ISA_ARCV3
 	help
+	  Support for ARC HS58x Cores based on ARCv3 ISA
+
+config ARC_CPU_HS6X
+	bool "ARC-HS68x"
+	depends on ISA_ARCV3
+	select ARC_HAS_LL64
+	select 64BIT
+	help
 	  Support for ARC HS68x Cores based on ARCv3 ISA
+
+endif #ISA_ARCV3
 
 endchoice
 
@@ -317,7 +327,7 @@ choice
 	prompt "MMU Version"
 	default ARC_MMU_V3 if ARC_CPU_770
 	default ARC_MMU_V4 if ARC_CPU_HS
-	default ARC_MMU_V6 if ARC_CPU_HS6X
+	default ARC_MMU_V6 if ARC_CPU_HS5X || ARC_CPU_HS6X
 
 config ARC_MMU_V3
 	bool "MMU v3"
@@ -459,6 +469,7 @@ config ARC_HAS_LL64
 config ARC_HAS_LL128
 	bool "Insn: 128-bit LDDL/STDL"
 	depends on ISA_ARCV3
+	depends on 64BIT
 	help
 	  Enable gcc to generate 128-bit load/store instructions
 	default y
