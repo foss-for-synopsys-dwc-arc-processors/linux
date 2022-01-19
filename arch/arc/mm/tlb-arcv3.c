@@ -148,7 +148,6 @@ void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
 	set_pte(pte, pfn_pte(PFN_DOWN(phys), prot));
 }
 
-#if CONFIG_PGTABLE_LEVELS == 4
 /*
  * Map the kernel code/data into page tables for a given @mm
  *
@@ -194,35 +193,9 @@ int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
 	return 0;
 }
 
-#elif CONFIG_PGTABLE_LEVELS == 3
-int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
-{
-	pgd_t *pgd;
-	unsigned long addr = PAGE_OFFSET;
-	unsigned long end = PAGE_OFFSET + PUD_SIZE;
-
-	do {
-		pgprot_t prot = PAGE_KERNEL_BLK;
-		if (addr > PAGE_OFFSET)
-			prot = pgprot_noncached(PAGE_KERNEL_BLK);
-
-		pgd = pgd_offset(mm, addr);
-	//	if (!pgd_none(*pgd) || pgd_present(*pgd))
-	//		return 1;
-
-		set_pgd(pgd, pfn_pgd(virt_to_pfn(addr), prot));
-		addr = pgd_addr_end(addr, end);
-	}
-	while (addr != end);
-
-	return 0;
-}
-
-#endif
-
 void arc_paging_init(void)
 {
-#if CONFIG_PGTABLE_LEVELS > 3
+#if CONFIG_PGTABLE_LEVELS == 4
 	unsigned int idx;
 
 	idx = pgd_index(PAGE_OFFSET);
@@ -232,6 +205,12 @@ void arc_paging_init(void)
 	idx = pud_index(PAGE_OFFSET);
 	swapper_pud[idx] = pfn_pud(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pud[idx]);
+#elif CONFIG_PGTABLE_LEVELS == 3
+	unsigned int idx;
+
+	idx = pgd_index(PAGE_OFFSET);
+	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(swapper_pmd), PAGE_TABLE);
+	ptw_flush(&swapper_pg_dir[idx]);
 #endif
 
 	arc_map_kernel_in_mm(&init_mm);
@@ -240,7 +219,7 @@ void arc_paging_init(void)
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
 	write_aux_reg(ARC_REG_MMU_RTP1_LO, __pa(swapper_pg_dir));
 	write_aux_reg(ARC_REG_MMU_RTP1_HI, 0);
-	write_aux_reg(ARC_REG_MMU_TLB_CMD, 1);
+	//write_aux_reg(ARC_REG_MMU_TLB_CMD, 1);
 }
 
 void arc_mmu_init(void)
