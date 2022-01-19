@@ -46,12 +46,24 @@
 	ADD3R	\entry, \tbl, \entry
 
 	; Store allocated PUD to PGD with PAGE_TABLE prot. bits
+#ifdef CONFIG_64BIT
 	mov 	\tmp, 1
 	ASLR	\tmp, \tmp, ARC_VADDR_BITS
 	SUBR	\tmp, \tmp, 1
 	ANDR	\tmp, \tmp, \value
 	ORR	\tmp, \tmp, \prot
 	STR	\tmp, \entry
+#else
+#if ARC_VADDR_BITS != 32
+#error "ARC_VADDR_BITS != 32"
+#endif
+	mov 	\tmp, \value
+	ORR	\tmp, \tmp, (\prot & 0xffffffff)
+	STR	\tmp, \entry
+	ADDR	\entry, \entry, 4
+	mov	\tmp, (\prot >> 32)
+	STR	\tmp, \entry
+#endif
 #ifdef CONFIG_ARC_PTW_UNCACHED
 	SRR	\entry, [ARC_REG_DC_IVDL]
 #endif
