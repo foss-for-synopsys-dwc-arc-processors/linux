@@ -92,24 +92,7 @@
 
 ; FIXME: we need asserts about kernel size <= allocated size
 ; FIXME: we need a better way to generalize this
-#if defined(CONFIG_ARC_MMU_V6_32)
-
-; One-level page table, only PGD used
- ;#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_BLK
- ;#define BUILD_PUD_ENTRY
- ;#define BUILD_PMD_ENTRY
- ;#define ENTRY_SIZE	PGDIR_SIZE
- ;#define ENTRY_LABEL	.Lbuild_pgd_entry\@
-
-; FIXME: WAR for RTL: two-level page table
-; Two-level page table, PGD + PMD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
-#define BUILD_PUD_ENTRY
-#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
-#define ENTRY_SIZE	PMD_SIZE
-#define ENTRY_LABEL	.Lbuild_pmd_entry\@
-
-#elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_4K)
+#if defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_4K)
 
 ; Two-level page table, PGD + PUD
 #define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
@@ -127,7 +110,7 @@
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
 
-#elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_64K) || defined(CONFIG_ARC_MMU_V6_52)
+#elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_64K) || defined(CONFIG_ARC_MMU_V6_52) || defined(CONFIG_ARC_MMU_V6_32)
 
 ; Two-level page table, PGD + PMD
 #define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
