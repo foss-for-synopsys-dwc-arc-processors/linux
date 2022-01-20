@@ -92,7 +92,14 @@ void __init early_fixmap_init(void)
 
 	addr = FIXADDR_START;
 
+#if defined(CONFIG_ARC_MMU_V6_32)
 	pgd = (pgd_t *) __va(read_aux_reg(ARC_REG_MMU_RTP1));
+#elif defined(CONFIG_ARC_MMU_V6_52)
+	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1) << 4);
+#else
+	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
+#endif
+
 	pgd += pgd_index(addr);
 	if (pgd_none(*pgd) || !pgd_present(*pgd))
 		return;
@@ -124,7 +131,14 @@ void early_fixmap_shutdown(void)
 
 	addr = FIXADDR_START;
 
+#if defined(CONFIG_ARC_MMU_V6_32)
 	pgd = (pgd_t *) __va(read_aux_reg(ARC_REG_MMU_RTP1));
+#elif defined(CONFIG_ARC_MMU_V6_52)
+	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1) << 4);
+#else
+	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
+#endif
+
 	pgd += pgd_index(addr);
 	if (pgd_none(*pgd) || !pgd_present(*pgd))
 		return;
@@ -228,8 +242,12 @@ void arc_paging_init(void)
 	write_aux_reg(ARC_REG_MMU_RTP1_HI, 0);
 #else
 	write_aux_64(ARC_REG_MMU_RTP0, 0);
+#if defined(CONFIG_ARC_MMU_V6_52)
+	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir) >> 4);
+#else
 	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir));
-#endif
+#endif /* CONFIG_ARC_MMU_V6_52 */
+#endif /* CONFIG_ARC_MMU_V6_32 */
 }
 
 void arc_mmu_init(void)
@@ -281,9 +299,16 @@ noinline void mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(mm->pgd));
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, (asid << 8));
 #else
-	unsigned long rtp0 = (asid << 48) | __pa(mm->pgd);
+	unsigned long rtp0;
 
+#if defined(CONFIG_ARC_MMU_V6_52)
+	BUG_ON(__pa(mm->pgd) >> 52);
+	rtp0 = (asid << 48) | (__pa(mm->pgd) >> 4);
+#else
 	BUG_ON(__pa(mm->pgd) >> 48);
+	rtp0 = (asid << 48) | __pa(mm->pgd);
+#endif /* CONFIG_ARC_MMU_V6_52 */
+
 	write_aux_64(ARC_REG_MMU_RTP0, rtp0);
 #endif
 }

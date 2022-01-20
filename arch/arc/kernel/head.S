@@ -255,11 +255,18 @@
 	MOVA	r4, \tlb_rtp0
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
+#if defined(CONFIG_ARC_MMU_V6_52)
+	LSRR	r4, r4, 4
+#endif
 	SRR	r4, [ARC_REG_MMU_RTP0]
+
 	; RTP1: real link to phy mapping in __pa(tlb_rtp1)
 	MOVA	r4, \tlb_rtp1
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
+#if defined(CONFIG_ARC_MMU_V6_52)
+	LSRR	r4, r4, 4
+#endif
 	SRR	r4, [ARC_REG_MMU_RTP1]
 
 	sr	MMU_TTBC, [ARC_REG_MMU_TTBC]
