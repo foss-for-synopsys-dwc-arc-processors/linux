@@ -101,7 +101,7 @@ void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
 {
 	pgprot_t prot = __pgprot(flags);
 
-	return ioremap_prot_internal(paddr, size, flags);
+	return ioremap_prot_internal(paddr, size, prot);
 }
 EXPORT_SYMBOL(ioremap_prot);
 #endif /* CONFIG_HAVE_IOREMAP_PROT */
