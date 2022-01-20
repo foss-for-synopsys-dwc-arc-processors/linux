@@ -108,13 +108,20 @@
 #define __S110		PAGE_RWX
 #define __S111		PAGE_RWX
 
-#if 0 && defined(CONFIG_ARC64)
+#if defined(CONFIG_ARC_MMU_V6_64)
+/* RTP0 - 0x0 -> 0xf_ffff_ffff_ffff; RTP1 0xfff0_0000_0000_0000 -> end */
+#define MMU_TTBC_T0SZ	12
+#define MMU_TTBC_T1SZ	12
+#elif defined(CONFIG_ARC_MMU_V6_48)
+/* RTP0 - 0x0 -> 0xffff_ffff_ffff; RTP1 0xffff_0000_0000_0000 -> end */
 #define MMU_TTBC_T0SZ	16
 #define MMU_TTBC_T1SZ	16
-#else
+#elif defined(CONFIG_ARC_MMU_V6_32)
 /* RTP0 - 0x0 -> 0x8; RTP1 0x8 -> end */
 #define MMU_TTBC_T0SZ	1
 #define MMU_TTBC_T1SZ	0
+#else
+#error "Unsupported MMU address space"
 #endif
 
 #define MMU_TTBC_T0SH	__SHR_INNER

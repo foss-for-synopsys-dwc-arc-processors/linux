@@ -42,6 +42,12 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	} else if (mmu6.variant == 2) {
 		lookups = 4;	/* 4 levels */
 		pg_sz_k = 16;	/* 16KB */
+	} else if (mmu6.variant == 3) {
+		lookups = 3;	/* 3 levels */
+		pg_sz_k = 64;	/* 64KB */
+	} else if (mmu6.variant == 4) {
+		lookups = 3;	/* 3 levels */
+		pg_sz_k = 64;	/* 64KB */
 	} else {
 		panic("Only MMU32 4K and MMU48 4K/16K supported currently\n");
 		return 0;
@@ -215,11 +221,15 @@ void arc_paging_init(void)
 
 	arc_map_kernel_in_mm(&init_mm);
 
+#if defined(CONFIG_ARC_MMU_V6_32)
 	write_aux_reg(ARC_REG_MMU_RTP0_LO, 0);
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
 	write_aux_reg(ARC_REG_MMU_RTP1_LO, __pa(swapper_pg_dir));
 	write_aux_reg(ARC_REG_MMU_RTP1_HI, 0);
-	//write_aux_reg(ARC_REG_MMU_TLB_CMD, 1);
+#else
+	write_aux_64(ARC_REG_MMU_RTP0, 0);
+	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir));
+#endif
 }
 
 void arc_mmu_init(void)
@@ -243,13 +253,13 @@ void arc_mmu_init(void)
 	memattr.attr[MEMATTR_IDX_UNCACHED] = MEMATTR_UNCACHED;
 	memattr.attr[MEMATTR_IDX_VOLATILE] = MEMATTR_VOLATILE;
 
-#if defined(CONFIG_64BIT)
-	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
-#else
+#if defined(CONFIG_ARC_MMU_V6_32)
 	unsigned long long tmp = *(unsigned long long *)&memattr;
 
 	write_aux_reg(ARC_REG_MMU_MEM_ATTR_LO, tmp & ~0UL);
 	write_aux_reg(ARC_REG_MMU_MEM_ATTR_HI, tmp >> 32 & ~0UL);
+#else
+	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
 #endif
 	arc_paging_init();
 
@@ -267,11 +277,15 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 noinline void mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 {
 
-#if defined(CONFIG_64BIT)
-	BUG_ON(__pa(mm->pgd) >> 48);
-#endif
+#if defined(CONFIG_ARC_MMU_V6_32)
 	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(mm->pgd));
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, (asid << 8));
+#else
+	unsigned long rtp0 = (asid << 48) | __pa(mm->pgd);
+
+	BUG_ON(__pa(mm->pgd) >> 48);
+	write_aux_64(ARC_REG_MMU_RTP0, rtp0);
+#endif
 }
 
 void arch_exit_mmap(struct mm_struct *mm)
@@ -288,8 +302,12 @@ void arch_exit_mmap(struct mm_struct *mm)
 	 * set the kernel page tables to allow kernel to run
 	 * since task paging tree will be nuked right after
 	 */
+#if defined(CONFIG_ARC_MMU_V6_32)
 	write_aux_reg(ARC_REG_MMU_RTP0_LO, 0);
 	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
+#else
+	write_aux_64(ARC_REG_MMU_RTP0, 0);
+#endif
 }
 
 noinline void local_flush_tlb_all(void)
