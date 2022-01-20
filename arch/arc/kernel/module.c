@@ -63,8 +63,8 @@ int apply_relocate_add(Elf_Shdr *sechdrs,
 	sym_sec = (Elf_Sym *) sechdrs[symindex].sh_addr;
 	n = sechdrs[relsec].sh_size / sizeof(*rel_entry);
 
-	pr_debug("\nSection to fixup %s @%llx\n",
-		 module->arch.secstr + sechdrs[tgtsec].sh_name, tgt_addr);
+	pr_debug("\nSection to fixup %s @%lx\n",
+		 module->arch.secstr + sechdrs[tgtsec].sh_name, (long)tgt_addr);
 	pr_debug("=========================================================\n");
 	pr_debug("r_off\tr_add\tst_value ADDRESS  VALUE\n");
 	pr_debug("=========================================================\n");
@@ -88,9 +88,9 @@ int apply_relocate_add(Elf_Shdr *sechdrs,
 			s = strtab + sym_entry->st_name;
 		}
 
-		pr_debug("   %llx\t%llx\t%llx %llx %llx [%s]\n",
-			 rel_entry[i].r_offset, rel_entry[i].r_addend,
-			 sym_entry->st_value, location, relocation, s);
+		pr_debug("   %lx\t%lx\t%lx %lx %lx [%s]\n",
+			 (long)rel_entry[i].r_offset, (long)rel_entry[i].r_addend,
+			 (long)sym_entry->st_value, (long)location, (long)relocation, s);
 
 		/* This assumes modules are built with -mlong-calls
 		 * so any branches/jumps are absolute 32 bit jmps
@@ -101,16 +101,18 @@ int apply_relocate_add(Elf_Shdr *sechdrs,
 
 		if (likely(R_ARC_32_ME == relo_type))	/* ME ( S + A ) */
 			arc_write_me((unsigned short *)location, relocation);
-		else if (R_ARC_LO32_ME == relo_type)	/* ME ( ( S + A ) & 0xffffffff ) */
-			arc_write_me((unsigned short *)location, relocation & 0xffffffff);
-		else if (R_ARC_HI32_ME == relo_type)	/* ME ( ( S + A ) >> 32 ) */
-			arc_write_me((unsigned short *)location, relocation >> 32);
 		else if (R_ARC_32 == relo_type)		/* ( S + A ) */
 			*((Elf_Addr *) location) = relocation;
 		else if (R_ARC_32_PCREL == relo_type)	/* ( S + A ) - PDATA ) */
 			*((Elf_Addr *) location) = relocation - location;
+#ifdef CONFIG_64BIT
 		else if (R_ARC_64 == relo_type)		/* ( S + A ) */
 			*((Elf_Addr *) location) = relocation;
+		else if (R_ARC_LO32_ME == relo_type)	/* ME ( ( S + A ) & 0xffffffff ) */
+			arc_write_me((unsigned short *)location, relocation & 0xffffffff);
+		else if (R_ARC_HI32_ME == relo_type)	/* ME ( ( S + A ) >> 32 ) */
+			arc_write_me((unsigned short *)location, relocation >> 32);
+#endif
 		else
 			goto relo_err;
 
@@ -124,8 +126,8 @@ int apply_relocate_add(Elf_Shdr *sechdrs,
 	return 0;
 
 relo_err:
-	pr_err("%s: unknown relocation: %llu\n",
-		module->name, ELF_R_TYPE(rel_entry[i].r_info));
+	pr_err("%s: unknown relocation: %lu\n",
+		module->name, (long)ELF_R_TYPE(rel_entry[i].r_info));
 	return -ENOEXEC;
 
 }
