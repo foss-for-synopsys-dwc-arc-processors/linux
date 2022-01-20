@@ -20,6 +20,10 @@
 #include <asm/mmu.h>
 #include <asm/irqflags.h>
 
+#ifndef PUD_SHIFT
+#define PUD_SHIFT PGDIR_SHIFT
+#endif
+
 ; Build page table entry.
 ;
 ; In:

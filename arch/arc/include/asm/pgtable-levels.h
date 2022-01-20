@@ -100,7 +100,7 @@
 /* MMU52 (64K page) : <10> : <13>  : <13> : <16> */
 
 #define PGDIR_SHIFT		42
-#define PUD_SHIFT		29
+#define PMD_SHIFT		29
 
 #else
 
