@@ -271,13 +271,13 @@ void arc_mmu_init(void)
 	memattr.attr[MEMATTR_IDX_UNCACHED] = MEMATTR_UNCACHED;
 	memattr.attr[MEMATTR_IDX_VOLATILE] = MEMATTR_VOLATILE;
 
-#if defined(CONFIG_ARC_MMU_V6_32)
+#if defined(CONFIG_64BIT)
+	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
+#else
 	unsigned long long tmp = *(unsigned long long *)&memattr;
 
 	write_aux_reg(ARC_REG_MMU_MEM_ATTR_LO, tmp & ~0UL);
 	write_aux_reg(ARC_REG_MMU_MEM_ATTR_HI, tmp >> 32 & ~0UL);
-#else
-	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
 #endif
 	arc_paging_init();
 
