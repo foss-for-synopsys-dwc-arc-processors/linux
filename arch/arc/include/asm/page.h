@@ -6,6 +6,7 @@
 #define __ASM_ARC_PAGE_H
 
 #include <linux/const.h>
+#include <linux/types.h>
 
 /* PAGE_SHIFT determines the page size */
 #if defined(CONFIG_ARC_PAGE_SIZE_4K)
@@ -57,10 +58,10 @@ void copy_user_highpage(struct page *to, struct page *from,
 void clear_user_page(void *to, unsigned long u_vaddr, struct page *page);
 
 typedef struct {
-#ifndef CONFIG_ARC_MMU_V6
-	unsigned long pgd;
+#ifdef CONFIG_ARC_MMU_V6
+	u64 pgd;
 #else
-	unsigned long long pgd;
+	u32 pgd;
 #endif
 } pgd_t;
 
@@ -70,10 +71,10 @@ typedef struct {
 #if CONFIG_PGTABLE_LEVELS > 3
 
 typedef struct {
-#ifndef CONFIG_ARC_MMU_V6
-	unsigned long pud;
+#ifdef CONFIG_ARC_MMU_V6
+	u64 pud;
 #else
-	unsigned long long pud;
+	u32 pud;
 #endif
 } pud_t;
 
@@ -85,10 +86,10 @@ typedef struct {
 #if CONFIG_PGTABLE_LEVELS > 2
 
 typedef struct {
-#ifndef CONFIG_ARC_MMU_V6
-	unsigned long pmd;
+#ifdef CONFIG_ARC_MMU_V6
+	u64 pmd;
 #else
-	unsigned long long pmd;
+	u32 pmd;
 #endif
 } pmd_t;
 
@@ -98,10 +99,10 @@ typedef struct {
 #endif
 
 typedef struct {
-#if !defined(CONFIG_ARC_MMU_V6) && !defined(CONFIG_ARC_HAS_PAE40)
-	unsigned long pte;
+#if defined(CONFIG_ARC_MMU_V6) || defined(CONFIG_ARC_HAS_PAE40)
+	u64 pte;
 #else
-	unsigned long long pte;
+	u32 pte;
 #endif
 } pte_t;
 
@@ -109,11 +110,7 @@ typedef struct {
 #define __pte(x)	((pte_t) { (x) })
 
 typedef struct {
-#ifndef CONFIG_ARC_MMU_V6
-	unsigned long long pgprot;
-#else
-	unsigned long long pgprot;
-#endif
+	u64 pgprot;
 } pgprot_t;
 
 #define pgprot_val(x)	((x).pgprot)
