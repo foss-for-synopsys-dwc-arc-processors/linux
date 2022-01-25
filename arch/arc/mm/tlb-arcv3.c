@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <linux/mm.h>
+#include <linux/types.h>
 
 #include <asm/arcregs.h>
 #include <asm/mmu_context.h>
@@ -75,6 +76,69 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	return n;
 }
 
+static inline void arc_mmu_rtp_set(unsigned int rtp_num, phys_addr_t addr,
+				   unsigned long asid)
+{
+#if defined(CONFIG_ARC_MMU_V6_32)
+	unsigned int aux_lo, aux_hi;
+	u32 val_lo, val_hi;
+
+	aux_lo = rtp_num ? ARC_REG_MMU_RTP1_LO : ARC_REG_MMU_RTP0_LO;
+	aux_hi = rtp_num ? ARC_REG_MMU_RTP1_HI : ARC_REG_MMU_RTP0_HI;
+
+	/* TODO: read hi addr only for PAE case */
+	val_lo = addr & 0xffffffff;
+	val_hi = (asid << 8) | (((u64) addr >> 32) & 0xf);
+
+	write_aux_reg(aux_lo, val_lo);
+	write_aux_reg(aux_hi, val_hi);
+#else /* CONFIG_ARC_MMU_V6_32 */
+	unsigned int aux;
+	u64 val;
+/*
+ * FIXME: Only 48-bit phy addresses supported for MMUv52 for now.
+ * See arch/arc/include/asm/pgtable-levels.h:276
+ */
+	BUG_ON(addr >> 48);
+
+	aux = rtp_num ? ARC_REG_MMU_RTP1 : ARC_REG_MMU_RTP0;
+
+	val = addr;
+#if defined(CONFIG_ARC_MMU_V6_52)
+	val >>= 4;
+#endif
+	val |= (u64) asid << 48;
+
+	write_aux_64(aux, val);
+#endif /* CONFIG_ARC_MMU_V6_32 */
+}
+
+static inline phys_addr_t arc_mmu_rtp_get_addr(unsigned int rtp_num)
+{
+	phys_addr_t addr;
+
+#if defined(CONFIG_ARC_MMU_V6_32)
+	unsigned int aux_lo, aux_hi;
+
+	aux_lo = rtp_num ? ARC_REG_MMU_RTP1_LO : ARC_REG_MMU_RTP0_LO;
+	aux_hi = rtp_num ? ARC_REG_MMU_RTP1_HI : ARC_REG_MMU_RTP0_HI;
+
+	addr = read_aux_reg(aux_lo);
+	addr |= ((u64) read_aux_reg(aux_hi) & 0xf) << 32;
+#else
+	unsigned int aux;
+
+	aux = rtp_num ? ARC_REG_MMU_RTP1 : ARC_REG_MMU_RTP0;
+
+	addr = read_aux_64(aux);
+#if defined(CONFIG_ARC_MMU_V6_52)
+	addr <<= 4;
+#endif
+#endif /* CONFIG_ARC_MMU_V6_32 */
+
+	return addr;
+}
+
 /*
  * At this point we mapped kernel code (PAGE_OFFSET to _end) in head.S.
  * Assumes we have PGD and PUD
@@ -96,14 +160,7 @@ void __init early_fixmap_init(void)
 
 	addr = FIXADDR_START;
 
-#if defined(CONFIG_ARC_MMU_V6_32)
-	pgd = (pgd_t *) __va(read_aux_reg(ARC_REG_MMU_RTP1));
-#elif defined(CONFIG_ARC_MMU_V6_52)
-	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1) << 4);
-#else
-	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
-#endif
-
+	pgd = (pgd_t *) __va(arc_mmu_rtp_get_addr(1));
 	pgd += pgd_index(addr);
 	if (pgd_none(*pgd) || !pgd_present(*pgd))
 		return;
@@ -135,14 +192,7 @@ void early_fixmap_shutdown(void)
 
 	addr = FIXADDR_START;
 
-#if defined(CONFIG_ARC_MMU_V6_32)
-	pgd = (pgd_t *) __va(read_aux_reg(ARC_REG_MMU_RTP1));
-#elif defined(CONFIG_ARC_MMU_V6_52)
-	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1) << 4);
-#else
-	pgd = (pgd_t *) __va(read_aux_64(ARC_REG_MMU_RTP1));
-#endif
-
+	pgd = (pgd_t *) __va(arc_mmu_rtp_get_addr(1));
 	pgd += pgd_index(addr);
 	if (pgd_none(*pgd) || !pgd_present(*pgd))
 		return;
@@ -239,26 +289,13 @@ void arc_paging_init(void)
 
 	arc_map_kernel_in_mm(&init_mm);
 
-#if defined(CONFIG_ARC_MMU_V6_32)
-	write_aux_reg(ARC_REG_MMU_RTP0_LO, 0);
-	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
-	write_aux_reg(ARC_REG_MMU_RTP1_LO, __pa(swapper_pg_dir));
-	write_aux_reg(ARC_REG_MMU_RTP1_HI, 0);
-#else
-	write_aux_64(ARC_REG_MMU_RTP0, 0);
-#if defined(CONFIG_ARC_MMU_V6_52)
-	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir) >> 4);
-#else
-	write_aux_64(ARC_REG_MMU_RTP1, __pa(swapper_pg_dir));
-#endif /* CONFIG_ARC_MMU_V6_52 */
-#endif /* CONFIG_ARC_MMU_V6_32 */
+	arc_mmu_rtp_set(0, 0, 0);
+	arc_mmu_rtp_set(1, __pa(swapper_pg_dir), 0);
 }
 
 void arc_mmu_init(void)
 {
-	struct mmu_mem_attr {
-		u8 attr[8];
-	} memattr;
+	u64 memattr;
 
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
@@ -268,17 +305,15 @@ void arc_mmu_init(void)
 
 	write_aux_reg(ARC_REG_MMU_TTBC, MMU_TTBC);
 
-	memattr.attr[MEMATTR_IDX_NORMAL] = MEMATTR_NORMAL;
-	memattr.attr[MEMATTR_IDX_UNCACHED] = MEMATTR_UNCACHED;
-	memattr.attr[MEMATTR_IDX_VOLATILE] = MEMATTR_VOLATILE;
+	memattr = MEMATTR_NORMAL << (MEMATTR_IDX_NORMAL * 8);
+	memattr |= MEMATTR_UNCACHED << (MEMATTR_IDX_UNCACHED * 8);
+	memattr |= MEMATTR_VOLATILE << (MEMATTR_IDX_VOLATILE * 8);
 
 #if defined(CONFIG_64BIT)
-	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
+	write_aux_64(ARC_REG_MMU_MEM_ATTR, memattr);
 #else
-	unsigned long long tmp = *(unsigned long long *)&memattr;
-
-	write_aux_reg(ARC_REG_MMU_MEM_ATTR_LO, tmp & ~0UL);
-	write_aux_reg(ARC_REG_MMU_MEM_ATTR_HI, tmp >> 32 & ~0UL);
+	write_aux_reg(ARC_REG_MMU_MEM_ATTR_LO, memattr & 0xffffffff);
+	write_aux_reg(ARC_REG_MMU_MEM_ATTR_HI, memattr >> 32);
 #endif
 	arc_paging_init();
 
@@ -295,27 +330,7 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 
 noinline void mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 {
-
-#if defined(CONFIG_ARC_MMU_V6_32)
-	write_aux_reg(ARC_REG_MMU_RTP0_LO, __pa(mm->pgd));
-	write_aux_reg(ARC_REG_MMU_RTP0_HI, (asid << 8));
-#else
-	unsigned long rtp0;
-
-#if defined(CONFIG_ARC_MMU_V6_52)
-/*
- * FIXME: Only 48-bit phy addresses supported for MMUv52 for now.
- * See arch/arc/include/asm/pgtable-levels.h:276
- */
-	BUG_ON(__pa(mm->pgd) >> 48);
-	rtp0 = (asid << 48) | (__pa(mm->pgd) >> 4);
-#else
-	BUG_ON(__pa(mm->pgd) >> 48);
-	rtp0 = (asid << 48) | __pa(mm->pgd);
-#endif /* CONFIG_ARC_MMU_V6_52 */
-
-	write_aux_64(ARC_REG_MMU_RTP0, rtp0);
-#endif
+	arc_mmu_rtp_set(0, __pa(mm->pgd), asid);
 }
 
 void arch_exit_mmap(struct mm_struct *mm)
@@ -328,16 +343,7 @@ void arch_exit_mmap(struct mm_struct *mm)
 	if (current->mm != NULL)
 		return;
 
-	/*
-	 * set the kernel page tables to allow kernel to run
-	 * since task paging tree will be nuked right after
-	 */
-#if defined(CONFIG_ARC_MMU_V6_32)
-	write_aux_reg(ARC_REG_MMU_RTP0_LO, 0);
-	write_aux_reg(ARC_REG_MMU_RTP0_HI, 0);
-#else
-	write_aux_64(ARC_REG_MMU_RTP0, 0);
-#endif
+	arc_mmu_rtp_set(0, 0, 0);
 }
 
 noinline void local_flush_tlb_all(void)
