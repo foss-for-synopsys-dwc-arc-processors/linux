@@ -38,6 +38,54 @@
 			reg = <3>;
 			clocks = <&core_clk>;
 		};
+		cpu@4 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <4>;
+			clocks = <&core_clk>;
+		};
+		cpu@5 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <5>;
+			clocks = <&core_clk>;
+		};
+		cpu@6 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <6>;
+			clocks = <&core_clk>;
+		};
+		cpu@7 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <7>;
+			clocks = <&core_clk>;
+		};
+		cpu@8 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <8>;
+			clocks = <&core_clk>;
+		};
+		cpu@9 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <9>;
+			clocks = <&core_clk>;
+		};
+		cpu@10 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <10>;
+			clocks = <&core_clk>;
+		};
+		cpu@11 {
+			device_type = "cpu";
+			compatible = "snps,archs38";
+			reg = <11>;
+			clocks = <&core_clk>;
+		};
 	};
 
 	/* TIMER0 with interrupt for clockevent */

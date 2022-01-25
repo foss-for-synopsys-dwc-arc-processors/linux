@@ -225,7 +225,8 @@ if SMP
 config NR_CPUS
 	int "Maximum number of CPUs (2-4096)"
 	range 2 4096
-	default "4"
+	default "4" if !ISA_ARCV3
+	default "12" if ISA_ARCV3
 
 config ARC_SMP_HALT_ON_RESET
 	bool "Enable Halt-on-reset boot mode"
