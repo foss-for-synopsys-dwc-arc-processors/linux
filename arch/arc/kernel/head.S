@@ -239,11 +239,11 @@
 ;	tbl_rtp1 - virtual address of pg_dir of V:P mapping
 ; Out:
 ;	Clobbers r4, r10, r11
-.macro CPU_ENABLE_MMU, tlb_rtp0, tlb_rtp1
+.macro CPU_ENABLE_MMU, tbl_rtp0, tbl_rtp1
 	MOVI	r10, PAGE_OFFSET
 	MOVI	r11, CONFIG_LINUX_LINK_BASE
-	; RTP0: 1:1 mapping in __pa(tlb_rtp0)
-	MOVA	r4, \tlb_rtp0
+	; RTP0: 1:1 mapping in __pa(tbl_rtp0)
+	MOVA	r4, \tbl_rtp0
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
 #if defined(CONFIG_ARC_MMU_V6_52)
@@ -251,8 +251,8 @@
 #endif
 	SRR	r4, [ARC_REG_MMU_RTP0]
 
-	; RTP1: real link to phy mapping in __pa(tlb_rtp1)
-	MOVA	r4, \tlb_rtp1
+	; RTP1: real link to phy mapping in __pa(tbl_rtp1)
+	MOVA	r4, \tbl_rtp1
 	SUBR	r4, r4, r10
 	ADDR	r4, r4, r11
 #if defined(CONFIG_ARC_MMU_V6_52)
