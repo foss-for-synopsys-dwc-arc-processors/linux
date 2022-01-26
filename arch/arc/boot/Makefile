@@ -9,7 +9,7 @@ OBJCOPYFLAGS= -O binary -R .note -R .note.gnu.build-id -R .comment -S
 
 LINUX_ENTRY_VIRT = 0x$(shell $(NM) vmlinux | awk '$$NF == "res_service" {print $$1}')
 
-ifeq ($(CONFIG_64BIT),y)
+ifeq ($(CONFIG_ISA_ARCV3),y)
 $(obj)/uImage*: $(obj)/loader
 LINUX_ENTRY_PHY = 0x$(shell $(NM) $(obj)/loader | awk '$$NF == "_entry_point" {print $$1}')
 else
