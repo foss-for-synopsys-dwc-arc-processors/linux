@@ -4,10 +4,11 @@
 #include <linux/highmem.h>
 #include <linux/syscalls.h>
 
+#include <asm/cluster.h>
 #include <asm/cacheflush.h>
 #include <asm/setup.h>
 
-int l2_enable = 0;
+int l2_enable = 1;
 
 static struct cpuinfo_arc_cache {
 	unsigned int sz_k, line_len, colors;
@@ -100,7 +101,10 @@ slc_chk:
 
 void __ref arc_cache_init(void)
 {
+	unsigned int __maybe_unused cpu = smp_processor_id();
 
+	if (cpu == 0 && l2_info.sz_k && l2_enable)
+		arc_cluster_scm_enable();
 }
 
 #define OP_INV		0x1
