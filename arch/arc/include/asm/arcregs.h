@@ -42,14 +42,6 @@
 #define ARC_REG_LPB_CTRL	0x488	/* ARCv2 Loop Buffer control */
 #define ARC_REG_FPU_CTRL	0x300
 #define ARC_REG_FPU_STATUS	0x301
-#define ARC_REG_CLNR_ADDR	0x640	/* CLN address for CLNR_DATA */
-#define ARC_REG_CLNR_DATA	0x641	/* CLN data indicated by CLNR_ADDR */
-#define ARC_REG_CLNR_DATA_NXT	0x642	/* CLNR_DATA and then CLNR_ADDR++ */
-#define ARC_REG_CLNR_BCR_0	0xF61
-#define ARC_REG_CLNR_BCR_1	0xF62
-#define ARC_REG_CLNR_BCR_2	0xF63
-#define ARC_REG_CLNR_SCM_BCR_0	0xF64
-#define ARC_REG_CLNR_SCM_BCR_1	0xF65
 
 /* Common for ARCompact and ARCv2 status register */
 #define ARC_REG_STATUS32	0x0A
@@ -255,64 +247,6 @@ struct bcr_clustv2_cfg {
 	unsigned int pad:7, c:1, num_entries:8, num_cores:8, ver:8;
 #else
 	unsigned int ver:8, num_cores:8, num_entries:8, c:1, pad:7;
-#endif
-};
-
-struct bcr_clustv3_cfg {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int pad:16, ver_min:8, ver_maj:8;
-#else
-	unsigned int ver_maj:8, ver_min:8, pad:16;
-#endif
-};
-
-struct bcr_cln_0_cfg {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int res:1, clk_gate:1, has_scm:1, acr:1, mst_per:2, has_scu:1,
-		     qos:4, slv_dev:6, slv_arc:5, mst_ccm:6, mst_noc:4;
-#else
-	unsigned int mst_noc:4, mst_ccm:6, slv_arc:5, slv_dev:6, qos:4,
-		     has_scu:1, mst_per:2, acr:1, has_scm:1, clk_gate:1, res:1;
-#endif
-};
-
-struct bcr_cln_1_cfg {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int res:11, txc:7, txb:7, addr_size:6, aux_slv_port:1;
-#else
-	unsigned int aux_slv_port:1, addr_size:6, txb:7, txc:7, res:11;
-#endif
-};
-
-struct bcr_cln_2_cfg {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int res:8, wpath_wide_ch:6,
-		     wpath_nr_ch:6, rpath_wide_ch:6, rpath_nr_ch:6;
-#else
-	unsigned int rpath_nr_ch:6, rpath_wide_ch:6, wpath_nr_ch:6,
-		     wpath_wide_ch:6, res:8;
-#endif
-};
-
-struct bcr_cln_scm_0_cfg {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int res1:2, superblocks:3,
-		     data_bank_wid:2, data_sub_banks:2, cache_sets:5,
-		     data_bank_sz:5, data_banks:3, cache_tag_banks:3,
-		     cache_blk_sz:1 cache_assoc:4, scm_cache:1, res:1;
-#else
-	unsigned int res:1, scm_cache:1, cache_assoc:4, cache_blk_sz:1,
-		     cache_tag_banks:3, data_banks:3, data_bank_sz:5,
-		     cache_sets:5, data_sub_banks:2, data_bank_wid:2,
-		     superblocks:3, res1:2;
-#endif
-};
-
-struct bcr_cln_scm_1_cfg {
-#ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int res:24, tbank_wait:4, dbank_wait:4;
-#else
-	unsigned int dbank_wait:4, tbank_wait:4, res:24;
 #endif
 };
 
