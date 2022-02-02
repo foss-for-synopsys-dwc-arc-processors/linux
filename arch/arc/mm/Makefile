@@ -11,4 +11,5 @@ else
 obj-y	+= tlb.o tlbex.o cache.o
 endif
 
+obj-$(CONFIG_ISA_ARCV3)	+= cluster.o
 obj-$(CONFIG_HIGHMEM)	+= highmem.o
