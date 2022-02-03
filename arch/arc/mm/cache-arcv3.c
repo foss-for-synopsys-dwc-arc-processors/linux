@@ -8,7 +8,7 @@
 #include <asm/cacheflush.h>
 #include <asm/setup.h>
 
-int l2_enable = 1;
+int l2_enable = IS_ENABLED(CONFIG_ARC_HAS_SCM);
 
 static struct cpuinfo_arc_cache {
 	unsigned int sz_k, line_len, colors;

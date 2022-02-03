@@ -259,6 +259,11 @@ config ARC_CACHE_PAGES
 	  Note that Global I/D ENABLE + Per Page DISABLE works but corollary
 	  Global DISABLE + Per Page ENABLE won't work
 
+config ARC_HAS_SCM
+	bool "Use Shared Cache Memory"
+	depends on ISA_ARCV3
+	default y
+
 config ARC_CACHE_VIPT_ALIASING
 	bool "Support VIPT Aliasing D$"
 	depends on ARC_HAS_DCACHE && ISA_ARCOMPACT
