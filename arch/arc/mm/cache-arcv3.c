@@ -275,7 +275,11 @@ void flush_dcache_page(struct page *page)
 void ptw_flush(void *xp)
 {
 #ifdef CONFIG_ARC_PTW_UNCACHED
+#if defined(CONFIG_64BIT)
         write_aux_64(ARC_REG_DC_IVDL, __pa(xp));
+#else
+        write_aux_reg(ARC_REG_DC_IVDL, __pa(xp));
+#endif
 #endif
 }
 
