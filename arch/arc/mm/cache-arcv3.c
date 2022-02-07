@@ -14,6 +14,8 @@ static struct cpuinfo_arc_cache {
 	unsigned int sz_k, line_len, colors;
 } ic, dc, l2_info;
 
+#define ARC_L2_CONFIGURED	(l2_info.sz_k && l2_enable)
+
 static int read_decode_cache_bcr_arcv3(int c, char *buf, int len)
 {
 	struct cpuinfo_arc_cache *p_l2 = &l2_info;
@@ -103,7 +105,7 @@ void __ref arc_cache_init(void)
 {
 	unsigned int __maybe_unused cpu = smp_processor_id();
 
-	if (cpu == 0 && l2_info.sz_k && l2_enable)
+	if (cpu == 0 && ARC_L2_CONFIGURED)
 		arc_cluster_scm_enable();
 }
 
@@ -284,6 +286,8 @@ void ptw_flush(void *xp)
 #else
         write_aux_reg(ARC_REG_DC_IVDL, __pa(xp));
 #endif
+	if (ARC_L2_CONFIGURED)
+		arc_cluster_scm_flush_range(__pa(xp), __pa(xp));
 #endif
 }
 
