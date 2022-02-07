@@ -40,3 +40,18 @@ void arc_cluster_scm_enable()
 
 	arc_cln_write_reg(ARC_CLN_CACHE_STATUS, ARC_CLN_CACHE_STATUS_EN);
 }
+
+void arc_cluster_scm_flush_range(phys_addr_t low, phys_addr_t high)
+{
+	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_LO0, (u32) low);
+	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_LO1, (u64) low >> 32);
+
+	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_HI0, (u32) high);
+	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_HI1, (u64) high >> 32);
+
+	arc_cln_write_reg(ARC_CLN_CACHE_CMD, ARC_CLN_CACHE_CMD_OP_ADDR_CLN);
+
+	while (arc_cln_read_reg(ARC_CLN_CACHE_STATUS) &
+	       ARC_CLN_CACHE_STATUS_BUSY)
+		;
+}

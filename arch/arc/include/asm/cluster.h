@@ -156,5 +156,6 @@ static inline void arc_cln_write_reg(unsigned int reg, unsigned int data)
 
 void arc_cluster_mumbojumbo(void);
 void arc_cluster_scm_enable(void);
+void arc_cluster_scm_flush_range(phys_addr_t low, phys_addr_t high);
 
 #endif /* _ASM_ARC_CLUSTER_H */
