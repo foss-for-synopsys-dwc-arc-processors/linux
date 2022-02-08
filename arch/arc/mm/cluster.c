@@ -33,7 +33,8 @@ void arc_cluster_scm_enable()
 	arc_cln_write_reg(ARC_CLN_CACHE_STATUS, 0);
 
 	/* Invalidate SCM before enabling. */
-	arc_cln_write_reg(ARC_CLN_CACHE_CMD, ARC_CLN_CACHE_CMD_OP_REG_INV);
+	arc_cln_write_reg(ARC_CLN_CACHE_CMD, ARC_CLN_CACHE_CMD_OP_REG_INV |
+			  ARC_CLN_CACHE_CMD_INCR);
 	while (arc_cln_read_reg(ARC_CLN_CACHE_STATUS) &
 	       ARC_CLN_CACHE_STATUS_BUSY)
 		;
