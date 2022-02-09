@@ -13,7 +13,7 @@ tune-mcpu-def-$(CONFIG_ISA_ARCOMPACT)	:= -mcpu=arc700
 tune-mcpu-def-$(CONFIG_ISA_ARCV2)	:= -mcpu=hs38
 
 cflags-y	+= -fno-common -pipe -fno-builtin -D__linux__
-cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls -fcall-used-gp
+cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls
 cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
 
 ifeq ($(CONFIG_ARC_TUNE_MCPU),"")
@@ -34,10 +34,11 @@ endif
 ifdef CONFIG_ARC_CURR_IN_REG
 # For a global register definition, make sure it gets passed to every file
 # We had a customer reported bug where some code built in kernel was NOT using
-# any kernel headers, and missing the r25 global register
+# any kernel headers, and missing the global register
 # Can't do unconditionally because of recursive include issues
 # due to <linux/thread_info.h>
 LINUXINCLUDE	+=  -include $(srctree)/arch/arc/include/asm/current.h
+cflags-y	+= -ffixed-gp
 endif
 
 cflags-$(CONFIG_ARC_HAS_LLSC)		+= -mlock

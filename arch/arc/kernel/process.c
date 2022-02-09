@@ -159,7 +159,6 @@ asmlinkage void ret_from_fork(void);
  * |      SP        |
  * |    orig_r0     |
  * |    event/ECR   |
- * |    user_r25    |
  * ------------------  <===== END of PAGE
  */
 int copy_thread(unsigned long clone_flags, unsigned long usp,
@@ -238,16 +237,6 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	 * ensures those regs are not clobbered all the way to RTIE to usermode
 	 */
 	c_callee->r25 = task_thread_info(p)->thr_ptr;
-
-#ifdef CONFIG_ARC_CURR_IN_REG
-	/*
-	 * setup usermode thread pointer #2:
-	 * however for this special use of r25 in kernel, __switch_to() sets
-	 * r25 for kernel needs and only in the final return path is usermode
-	 * r25 setup, from pt_regs->user_r25. So set that up as well
-	 */
-	c_regs->user_r25 = c_callee->r25;
-#endif
 
 	return 0;
 }
