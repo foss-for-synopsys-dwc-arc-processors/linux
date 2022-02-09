@@ -6,7 +6,7 @@
 #ifndef __ASM_BARRIER_H
 #define __ASM_BARRIER_H
 
-#ifdef CONFIG_ISA_ARCV2
+#if defined(CONFIG_ISA_ARCV2) || defined(CONFIG_ISA_ARCV3)
 
 /*
  * ARCv2 based HS38 cores are in-order issue, but still weakly ordered
