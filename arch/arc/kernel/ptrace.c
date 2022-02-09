@@ -26,9 +26,15 @@ static int genregs_get(struct task_struct *target,
 
 	membuf_zero(&to, 4);	// pad
 	membuf_store(&to, ptregs->bta);
+#ifndef CONFIG_ARC_LACKS_ZOL
 	membuf_store(&to, ptregs->lp_start);
 	membuf_store(&to, ptregs->lp_end);
 	membuf_store(&to, ptregs->lp_count);
+#else
+	membuf_zero(&to, 4);	// ptregs->lp_start
+	membuf_zero(&to, 4);	// ptregs->lp_end
+	membuf_zero(&to, 4);	// ptregs->lp_count
+#endif
 	membuf_store(&to, ptregs->status32);
 	membuf_store(&to, ptregs->ret);
 	membuf_store(&to, ptregs->blink);
@@ -107,9 +113,15 @@ static int genregs_set(struct task_struct *target,
 	REG_IGNORE_ONE(pad);
 
 	REG_IN_ONE(scratch.bta, &ptregs->bta);
+#ifndef CONFIG_ARC_LACKS_ZOL
 	REG_IN_ONE(scratch.lp_start, &ptregs->lp_start);
 	REG_IN_ONE(scratch.lp_end, &ptregs->lp_end);
 	REG_IN_ONE(scratch.lp_count, &ptregs->lp_count);
+#else
+	REG_IGNORE_ONE(scratch.lp_start);
+	REG_IGNORE_ONE(scratch.lp_end);
+	REG_IGNORE_ONE(scratch.lp_count);
+#endif
 
 	REG_IGNORE_ONE(scratch.status32);
 

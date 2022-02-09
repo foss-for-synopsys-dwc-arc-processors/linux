@@ -269,9 +269,11 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 
 	fpu_init_task(regs);
 
+#ifndef CONFIG_ARC_LACKS_ZOL
 	/* bogus seed values for debugging */
 	regs->lp_start = 0x10;
 	regs->lp_end = 0x80;
+#endif
 }
 
 /*

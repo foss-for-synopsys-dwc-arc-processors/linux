@@ -244,11 +244,13 @@ int misaligned_fixup(unsigned long address, struct pt_regs *regs,
 	} else {
 		regs->ret += state.instr_len;
 
+#ifndef CONFIG_ARC_LACKS_ZOL
 		/* handle zero-overhead-loop */
 		if ((regs->ret == regs->lp_end) && (regs->lp_count)) {
 			regs->ret = regs->lp_start;
 			regs->lp_count--;
 		}
+#endif
 	}
 
 	perf_sw_event(PERF_COUNT_SW_ALIGNMENT_FAULTS, 1, regs, address);

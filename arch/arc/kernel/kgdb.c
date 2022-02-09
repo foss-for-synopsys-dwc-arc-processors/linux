@@ -27,9 +27,11 @@ static void to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
 	gdb_regs[_BLINK]	= kernel_regs->blink;
 	gdb_regs[_RET]		= kernel_regs->ret;
 	gdb_regs[_STATUS32]	= kernel_regs->status32;
+#ifndef CONFIG_ARC_LACKS_ZOL
 	gdb_regs[_LP_COUNT]	= kernel_regs->lp_count;
 	gdb_regs[_LP_END]	= kernel_regs->lp_end;
 	gdb_regs[_LP_START]	= kernel_regs->lp_start;
+#endif
 	gdb_regs[_BTA]		= kernel_regs->bta;
 	gdb_regs[_STOP_PC]	= kernel_regs->ret;
 }
@@ -47,9 +49,11 @@ static void from_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
 	kernel_regs->blink	= gdb_regs[_BLINK];
 	kernel_regs->ret	= gdb_regs[_RET];
 	kernel_regs->status32	= gdb_regs[_STATUS32];
+#ifndef CONFIG_ARC_LACKS_ZOL
 	kernel_regs->lp_count	= gdb_regs[_LP_COUNT];
 	kernel_regs->lp_end	= gdb_regs[_LP_END];
 	kernel_regs->lp_start	= gdb_regs[_LP_START];
+#endif
 	kernel_regs->bta	= gdb_regs[_BTA];
 }
 

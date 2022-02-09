@@ -61,8 +61,10 @@ int main(void)
 	DEFINE(PT_r26, offsetof(struct pt_regs, r26));
 	DEFINE(PT_ret, offsetof(struct pt_regs, ret));
 	DEFINE(PT_blink, offsetof(struct pt_regs, blink));
+#ifndef CONFIG_ARC_LACKS_ZOL
 	DEFINE(PT_lpe, offsetof(struct pt_regs, lp_end));
 	DEFINE(PT_lpc, offsetof(struct pt_regs, lp_count));
+#endif
 	DEFINE(PT_user_r25, offsetof(struct pt_regs, user_r25));
 
 	DEFINE(SZ_CALLEE_REGS, sizeof(struct callee_regs));

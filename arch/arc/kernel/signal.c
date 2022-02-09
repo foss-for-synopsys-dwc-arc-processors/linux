@@ -104,9 +104,15 @@ stash_usr_regs(struct rt_sigframe __user *sf, struct pt_regs *regs,
 	struct user_regs_struct uregs;
 
 	uregs.scratch.bta	= regs->bta;
+#ifndef CONFIG_ARC_LACKS_ZOL
 	uregs.scratch.lp_start	= regs->lp_start;
 	uregs.scratch.lp_end	= regs->lp_end;
 	uregs.scratch.lp_count	= regs->lp_count;
+#else
+	uregs.scratch.lp_start	= 0;
+	uregs.scratch.lp_end	= 0;
+	uregs.scratch.lp_count	= 0;
+#endif
 	uregs.scratch.status32	= regs->status32;
 	uregs.scratch.ret	= regs->ret;
 	uregs.scratch.blink	= regs->blink;
@@ -157,9 +163,11 @@ static int restore_usr_regs(struct pt_regs *regs, struct rt_sigframe __user *sf)
 
 	set_current_blocked(&set);
 	regs->bta	= uregs.scratch.bta;
+#ifndef CONFIG_ARC_LACKS_ZOL
 	regs->lp_start	= uregs.scratch.lp_start;
 	regs->lp_end	= uregs.scratch.lp_end;
 	regs->lp_count	= uregs.scratch.lp_count;
+#endif
 	regs->status32	= uregs.scratch.status32;
 	regs->ret	= uregs.scratch.ret;
 	regs->blink	= uregs.scratch.blink;

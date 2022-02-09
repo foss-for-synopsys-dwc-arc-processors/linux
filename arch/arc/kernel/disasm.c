@@ -523,11 +523,13 @@ int __kprobes disasm_next_pc(unsigned long pc, struct pt_regs *regs,
 		*next_pc += instr_d.instr_len;
 	 }
 
+#ifndef CONFIG_ARC_LACKS_ZOL
 	 /* Zero Overhead Loop - end of the loop */
 	if (!(regs->status32 & STATUS32_L) && (*next_pc == regs->lp_end)
 		&& (regs->lp_count > 1)) {
 		*next_pc = regs->lp_start;
 	}
+#endif
 
 	return instr.is_branch;
 }

@@ -117,11 +117,13 @@
 
 	st	blink, [sp, PT_blink]
 
+#ifndef CONFIG_ARC_LACKS_ZOL
 	lr	r10, [lp_end]
 	lr	r11, [lp_start]
 	ST2	r10, r11, PT_lpe
 
 	st	lp_count, [sp, PT_lpc]
+#endif
 
 	; skip JLI, LDI, EI for now
 .endm
@@ -205,12 +207,14 @@
 
 	ld	blink, [sp, PT_blink]
 
+#ifndef CONFIG_ARC_LACKS_ZOL
 	LD2	r10, r11, PT_lpe
 	sr	r10, [lp_end]
 	sr	r11, [lp_start]
 
 	ld	r10, [sp, PT_lpc]	; lp_count can't be target of LD
 	mov	lp_count, r10
+#endif
 
 	LD2	r0,  r1,  PT_r0
 	LD2	r2,  r3,  PT_r2

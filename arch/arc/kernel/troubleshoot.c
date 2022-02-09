@@ -22,8 +22,11 @@ static noinline void print_regs_scratch(struct pt_regs *regs)
 {
 	pr_cont("BTA: 0x%08lx\n SP: 0x%08lx  FP: 0x%08lx BLK: %pS\n",
 		regs->bta, regs->sp, regs->fp, (void *)regs->blink);
+
+#ifndef CONFIG_ARC_LACKS_ZOL
 	pr_cont("LPS: 0x%08lx\tLPE: 0x%08lx\tLPC: 0x%08lx\n",
 		regs->lp_start, regs->lp_end, regs->lp_count);
+#endif
 
 	pr_info("r00: 0x%08lx\tr01: 0x%08lx\tr02: 0x%08lx\n"	\
 		"r03: 0x%08lx\tr04: 0x%08lx\tr05: 0x%08lx\n"	\
