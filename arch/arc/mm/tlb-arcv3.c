@@ -20,14 +20,16 @@ volatile int arc_debug_tlb_flush_mm_nuke = 0;
 
 int arc_mmu_mumbojumbo(int c, char *buf, int len)
 {
+	const unsigned int mmu_version = 0x10;
 	unsigned int lookups, pg_sz_k, ntlb, u_dtlb, u_itlb;
 	char *variant_nm[] = { "MMU32", "MMU48", "MMU48", "MMU48", "MMU52" };
 	struct bcr_mmu_6 mmu6;
 	int n = 0;
 
 	READ_BCR(ARC_REG_MMU_BCR, mmu6);
-	if (!mmu6.ver) {
-		panic("Bad version of MMUv6 %#x\n", mmu6.ver);
+	if (mmu6.ver != mmu_version) {
+		panic("Bad version of MMUv6 %#x (expected %#x)\n",
+		      mmu6.ver, mmu_version);
 		return 0;
 	}
 
