@@ -11,7 +11,7 @@
 #include <asm/page.h>
 #include <asm/unaligned.h>
 
-#ifdef CONFIG_ISA_ARCV2
+#ifndef CONFIG_ISA_ARCOMPACT
 #include <asm/barrier.h>
 #define __iormb()		rmb()
 #define __iowmb()		wmb()

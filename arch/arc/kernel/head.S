@@ -47,7 +47,7 @@
 
 1:
 
-#ifdef CONFIG_ISA_ARCV2
+#ifndef CONFIG_ISA_ARCOMPACT
 	; Unaligned access is disabled at reset, so re-enable early as
 	; gcc 7.3.1 (ARC GNU 2018.03) onwards generates unaligned access
 	; by default

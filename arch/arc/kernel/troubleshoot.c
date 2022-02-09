@@ -152,7 +152,7 @@ static void show_ecr_verbose(struct pt_regs *regs)
 				((cause_code == 0x02) ? "Write" : "EX"));
 	} else if (vec == ECR_V_INSN_ERR) {
 		pr_cont("Illegal Insn\n");
-#ifdef CONFIG_ISA_ARCV2
+#ifndef CONFIG_ISA_ARCOMPACT
 	} else if (vec == ECR_V_MEM_ERR) {
 		if (cause_code == 0x00)
 			pr_cont("Bus Error from Insn Mem\n");

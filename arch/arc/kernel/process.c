@@ -103,7 +103,7 @@ fail:
 	return ret;
 }
 
-#ifdef CONFIG_ISA_ARCV2
+#ifndef CONFIG_ISA_ARCOMPACT
 
 void arch_cpu_idle(void)
 {

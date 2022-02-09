@@ -177,7 +177,7 @@ static int arc_pmu_event_init(struct perf_event *event)
 
 	hwc->config = 0;
 
-	if (is_isa_arcv2()) {
+	if (!is_isa_arcompact()) {
 		/* "exclude user" means "count only kernel" */
 		if (event->attr.exclude_user)
 			hwc->config |= ARC_REG_PCT_CONFIG_KERN;
@@ -562,7 +562,7 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 {
 	struct arc_reg_pct_build pct_bcr;
 	struct arc_reg_cc_build cc_bcr;
-	int i, has_interrupts, irq = -1;
+	int i, has_interrupts = 0, irq = -1;
 	int counter_size;	/* in bits */
 
 	union cc_name {
@@ -596,7 +596,8 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 	if (arc_pmu_raw_alloc(&pdev->dev))
 		return -ENOMEM;
 
-	has_interrupts = is_isa_arcv2() ? pct_bcr.i : 0;
+	if (!is_isa_arcompact())
+		has_interrupts = pct_bcr.i;
 
 	arc_pmu->n_counters = pct_bcr.c;
 	counter_size = 32 + (pct_bcr.s << 4);
