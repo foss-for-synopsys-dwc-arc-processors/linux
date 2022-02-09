@@ -56,8 +56,8 @@ ENTRY(ret_from_fork)
 	ld   r9, [sp, PT_status32]
 	brne r9, 0, 1f
 
-	jl.d [r14]		; kernel thread entry point
-	mov  r0, r13		; (see PF_KTHREAD block in copy_thread)
+	jl.d [r15]		; kernel thread entry point
+	mov  r0, r14		; (see PF_KTHREAD block in copy_thread)
 
 1:
 	; Return to user space
