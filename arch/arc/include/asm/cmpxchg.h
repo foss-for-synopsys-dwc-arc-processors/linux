@@ -38,6 +38,37 @@
 	_prev;								\
 })
 
+#ifdef CONFIG_64BIT
+
+#define __cmpxchg64_relaxed(ptr, old, new)				\
+({									\
+	__typeof__(*(ptr)) __prev;					\
+									\
+	__asm__ __volatile__(						\
+	"1:	llockl  %0, [%1]	\n"				\
+	"	brnel   %0, %2, 2f	\n"				\
+	"	scondl  %3, [%1]	\n"				\
+	"	bnz     1b		\n"				\
+	"2:				\n"				\
+	: "=&r"(__prev)							\
+	: "r"(ptr),							\
+	  "ir"(old),						\
+	  "r"(new)							\
+	: "cc",								\
+	  "memory");							\
+									\
+	__prev;								\
+})
+
+#else
+
+#define __cmpxchg64_relaxed(ptr, old, new)				\
+({									\
+	BUILD_BUG();							\
+	(__typeof__(*(ptr))) -1UL;					\
+})
+#endif
+
 #define arch_cmpxchg_relaxed(ptr, old, new)				\
 ({									\
 	__typeof__(ptr) _p_ = (ptr);					\
@@ -48,6 +79,9 @@
 	switch(sizeof((_p_))) {						\
 	case 4:								\
 		_prev_ = __cmpxchg(_p_, _o_, _n_);			\
+		break;							\
+	case 8:								\
+		_prev_ = __cmpxchg64_relaxed(_p_, _o_, _n_);		\
 		break;							\
 	default:							\
 		BUILD_BUG();						\
@@ -95,6 +129,27 @@
 	_val_;		/* get old value */				\
 })
 
+#ifdef CONFIG_64BIT
+
+#define __xchg64_relaxed(ptr, val)					\
+({									\
+	__asm__ __volatile__(						\
+	"	exl  %0, [%1]	\n"					\
+	: "+r"(val)							\
+	: "r"(ptr)							\
+	: "memory");							\
+	_val_;								\
+})
+
+#else
+
+#define __xchg64_relaxed(ptr, val)					\
+({									\
+	BUILD_BUG();							\
+	(__typeof__(*(ptr))) -1UL;					\
+})
+#endif
+
 #define arch_xchg_relaxed(ptr, val)					\
 ({									\
 	__typeof__(ptr) _p_ = (ptr);					\
@@ -103,6 +158,9 @@
 	switch(sizeof(*(_p_))) {					\
 	case 4:								\
 		_val_ = __xchg(_p_, _val_);				\
+		break;							\
+	case 8:								\
+		_val_ = __xchg64_relaxed(_p_, _val_);			\
 		break;							\
 	default:							\
 		BUILD_BUG();						\
