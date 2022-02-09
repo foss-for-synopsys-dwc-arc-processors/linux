@@ -15,7 +15,7 @@
 
 #include <asm/page.h>
 
-#ifdef CONFIG_16KSTACKS
+#ifdef CONFIG_ISA_ARCV3
 #define THREAD_SIZE_ORDER 1
 #else
 #define THREAD_SIZE_ORDER 0
@@ -81,8 +81,6 @@ static inline __attribute_const__ struct thread_info *current_thread_info(void)
 #define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
 #define TIF_NOTIFY_SIGNAL	5	/* signal notifications exist */
 #define TIF_SYSCALL_TRACE	15	/* syscall trace active */
-
-/* true if poll_idle() is polling TIF_NEED_RESCHED */
 #define TIF_MEMDIE		16
 
 #define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
@@ -91,6 +89,7 @@ static inline __attribute_const__ struct thread_info *current_thread_info(void)
 #define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
 #define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
 #define _TIF_NOTIFY_SIGNAL	(1<<TIF_NOTIFY_SIGNAL)
+#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
 #define _TIF_MEMDIE		(1<<TIF_MEMDIE)
 
 /* work to do on interrupt/exception return */
