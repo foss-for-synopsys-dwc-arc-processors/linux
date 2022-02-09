@@ -51,6 +51,8 @@
  */
 #ifdef CONFIG_GENERIC_ATOMIC64
 #include <asm-generic/atomic64.h>
+#elif defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#include <asm/atomic64-arcv3.h>
 #else
 #include <asm/atomic64-arcv2.h>
 #endif
