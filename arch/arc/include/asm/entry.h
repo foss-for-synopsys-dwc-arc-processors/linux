@@ -52,7 +52,7 @@
  * Super FAST Restore callee saved regs by simply re-adjusting SP
  *-------------------------------------------------------------*/
 .macro DISCARD_CALLEE_SAVED_USER
-	add     sp, sp, SZ_CALLEE_REGS
+	ADDR     sp, sp, SZ_CALLEE_REGS
 .endm
 
 /*-------------------------------------------------------------
@@ -64,10 +64,10 @@
 .macro GET_TSK_STACK_BASE tsk, out
 
 	/* Get task->thread_info (this is essentially start of a PAGE) */
-	ld  \out, [\tsk, TASK_THREAD_INFO]
+	LDR  \out, \tsk, TASK_THREAD_INFO
 
 	/* Go to end of page where stack begins (grows upwards) */
-	add2 \out, \out, (THREAD_SIZE)/4
+	ADD2R \out, \out, (THREAD_SIZE)/4
 
 .endm
 
@@ -88,7 +88,7 @@
  */
 .macro  GET_CURR_TASK_ON_CPU   reg
 	GET_CPU_ID  \reg
-	ld.as  \reg, [@_current_task, \reg]
+	LDR.as  \reg, @_current_task, \reg
 .endm
 
 /*-------------------------------------------------
@@ -103,10 +103,10 @@
 
 .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
 	GET_CPU_ID  \tmp
-	add2 \tmp, @_current_task, \tmp
-	st   \tsk, [\tmp]
+	ADD2R \tmp, @_current_task, \tmp
+	STR   \tsk, \tmp
 #ifdef CONFIG_ARC_CURR_IN_REG
-	mov gp, \tsk
+	MOVR gp, \tsk
 #endif
 
 .endm
@@ -115,13 +115,13 @@
 #else   /* Uniprocessor implementation of macros */
 
 .macro  GET_CURR_TASK_ON_CPU    reg
-	ld  \reg, [@_current_task]
+	LDR  \reg, @_current_task
 .endm
 
 .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
-	st  \tsk, [@_current_task]
+	STR  \tsk, @_current_task
 #ifdef CONFIG_ARC_CURR_IN_REG
-	mov gp, \tsk
+	MOVR gp, \tsk
 #endif
 .endm
 
@@ -134,14 +134,14 @@
 #ifdef CONFIG_ARC_CURR_IN_REG
 
 .macro GET_CURR_TASK_FIELD_PTR  off,  reg
-	add \reg, gp, \off
+	ADDR \reg, gp, \off
 .endm
 
 #else
 
 .macro GET_CURR_TASK_FIELD_PTR  off,  reg
 	GET_CURR_TASK_ON_CPU  \reg
-	add \reg, \reg, \off
+	ADDR \reg, \reg, \off
 .endm
 
 #endif	/* CONFIG_ARC_CURR_IN_REG */

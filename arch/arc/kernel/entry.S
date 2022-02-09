@@ -57,7 +57,7 @@ ENTRY(ret_from_fork)
 	brne r9, 0, 1f
 
 	jl.d [r15]		; kernel thread entry point
-	mov  r0, r14		; (see PF_KTHREAD block in copy_thread)
+	MOVR  r0, r14		; (see PF_KTHREAD block in copy_thread)
 
 1:
 	; Return to user space
@@ -92,8 +92,8 @@ ENTRY(EV_MachineCheck)
 
 	EXCEPTION_PROLOGUE_KEEP_AE	; ECR returned in r10
 
-	lr  r0, [efa]
-	mov r1, sp
+	LRR	r0, [efa]
+	MOVR	r1, sp
 
 	lsr  	r3, r10, 8
 	bmsk 	r3, r3, 7
@@ -144,36 +144,34 @@ tracesys:
 	; safekeep EFA (r12) if syscall tracer wanted PC
 	; for traps, ERET is pre-commit so points to next-PC
 	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r11
-	st  r12, [r11, THREAD_FAULT_ADDR]	; thread.fault_address
+	STR  r12, r11, THREAD_FAULT_ADDR	; task->thread.fault_address
 
 	; PRE syscall trace hook
-	mov r0, sp				; pt_regs
+	MOVR r0, sp				; pt_regs
 	bl  @syscall_trace_enter
-
-	; Tracing code now returns the syscall num (orig or modif)
-	mov r8, r0
+	MOVR r8, r0				; syscall (orig or modified)
 
 	; Do the Sys Call as we normally would.
 	cmp     r8,  NR_syscalls - 1
-	mov.hi  r0, -ENOSYS
+	MOVR.hi  r0, -ENOSYS
 	bhi     tracesys_exit
 
 	; Restore the sys-call args. Mere invocation of the hook abv could have
 	; clobbered them (since they are in scratch regs). The tracer could also
 	; have deliberately changed the syscall args: r0-r7
-	ld  r0, [sp, PT_r0]
-	ld  r1, [sp, PT_r1]
-	ld  r2, [sp, PT_r2]
-	ld  r3, [sp, PT_r3]
-	ld  r4, [sp, PT_r4]
-	ld  r5, [sp, PT_r5]
-	ld  r6, [sp, PT_r6]
-	ld  r7, [sp, PT_r7]
-	ld.as   r9, [sys_call_table, r8]
+	LDR  r0, sp, PT_r0
+	LDR  r1, sp, PT_r1
+	LDR  r2, sp, PT_r2
+	LDR  r3, sp, PT_r3
+	LDR  r4, sp, PT_r4
+	LDR  r5, sp, PT_r5
+	LDR  r6, sp, PT_r6
+	LDR  r7, sp, PT_r7
+	LDR.as   r9, sys_call_table, r8
 	jl      [r9]
 
 tracesys_exit:
-	st  r0, [sp, PT_r0]
+	STR  r0, sp, PT_r0
 
 	; POST syscall trace hook
 	bl  @syscall_trace_exit
@@ -185,15 +183,15 @@ tracesys_exit:
 ; Breakpoint TRAP
 ; ---------------------------------------------
 trap_with_param:
-	mov r0, r12	; EFA in case ptracer/gdb wants stop_pc
-	mov r1, sp	; pt_regs
+	MOVR r0, r12	; EFA in case ptracer/gdb wants stop_pc
+	MOVR r1, sp	; pt_regs
 
 	; save callee regs in case tracer/gdb wants to peek
 	SAVE_CALLEE_SAVED_USER
 
 	; safekeep ref to callee regs
 	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r10
-	st  sp, [r10, THREAD_CALLEE_REG]
+	STR  sp, r10, THREAD_CALLEE_REG
 
 	; call the non syscall trap handler
 	bl  do_non_swi_trap
@@ -212,7 +210,7 @@ ENTRY(EV_Trap)
 
 	EXCEPTION_PROLOGUE_KEEP_AE
 
-	lr  r12, [efa]
+	LRR  r12, [efa]
 
 	FAKE_RET_FROM_EXCPN
 
@@ -230,15 +228,14 @@ ENTRY(EV_Trap)
 	;============ Normal syscall case
 
 	cmp     r8,  NR_syscalls - 1
-	mov.hi  r0, -ENOSYS
+	MOVR.hi r0, -ENOSYS
 	bhi     .Lret_from_system_call
 
-	ld.as   r9,[sys_call_table, r8]
+	LDR.as  r9, sys_call_table, r8
 	jl      [r9]
 
 .Lret_from_system_call:
-
-	st  r0, [sp, PT_r0]     ; sys call return value in pt_regs
+	STR  r0, sp, PT_r0	; sys call return value in pt_regs
 
 	; fall through to ret_from_exception
 END(EV_Trap)
@@ -270,14 +267,14 @@ resume_user_mode_begin:
 
 	; --- (Slow Path #1) task preemption ---
 	bbit0  r9, TIF_NEED_RESCHED, .Lchk_pend_signals
-	mov    blink, resume_user_mode_begin  ; tail-call to U mode ret chks
+	MOVR   blink, resume_user_mode_begin  ; tail-call to U mode ret chks
 	j      @schedule 	; BTST+Bnz causes relo error in link
 
 .Lchk_pend_signals:
 	IRQ_ENABLE	r10
 
 	; --- (Slow Path #2) pending signal  ---
-	mov r0, sp	; pt_regs for arg to do_signal()/do_notify_resume()
+	MOVR r0, sp	; pt_regs for arg to do_signal()/do_notify_resume()
 
 	GET_CURR_THR_INFO_FLAGS   r9
 	and.f  0,  r9, _TIF_SIGPENDING|_TIF_NOTIFY_SIGNAL
@@ -297,7 +294,7 @@ resume_user_mode_begin:
 
 	; save location of saved Callee Regs @ thread_struct->callee
 	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r10
-	st  sp, [r10, THREAD_CALLEE_REG]
+	STR  sp, r10, THREAD_CALLEE_REG
 
 	bl  @do_signal
 

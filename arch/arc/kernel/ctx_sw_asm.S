@@ -9,7 +9,6 @@
 
 #include <linux/linkage.h>
 #include <asm/entry.h>       /* For the SAVE_* macros */
-#include <asm/asm-offsets.h>
 
 ; IN
 ;  - r0: prev task (also current)
@@ -21,15 +20,15 @@
 ENTRY_CFI(__switch_to)
 
 	/* save kernel stack frame regs of @prev task */
-	push	blink
+	PUSHR	blink
 	CFI_DEF_CFA_OFFSET 4
 	CFI_OFFSET r31, -4
 
-	push	fp
+	PUSHR	fp
 	CFI_DEF_CFA_OFFSET 8
 	CFI_OFFSET r27, -8
 
-	mov	fp, sp
+	MOVR	fp, sp
 	CFI_DEF_CFA_REGISTER r27
 
 	/* kernel mode callee regs of @prev */
@@ -40,23 +39,23 @@ ENTRY_CFI(__switch_to)
 	 * @prev is "current" so thread_info derived from SP
 	 */
 	GET_CURR_THR_INFO_FROM_SP  r10
-	st	sp,  [r10, THREAD_INFO_KSP]
+	STR	sp,  r10, THREAD_INFO_KSP
 
 	/* update @next in _current_task[] and GP register caching it */
 	SET_CURR_TASK_ON_CPU  r1, r10
 
 	/* load SP from @next->thread_info.ksp */
-	ld	r10, [r1, TASK_THREAD_INFO]
-	ld	sp,  [r10, THREAD_INFO_KSP]
+	LDR	r10, r1, TASK_THREAD_INFO
+	LDR	sp,  r10, THREAD_INFO_KSP
 
 	/* restore callee regs, stack frame regs of @next */
 	RESTORE_CALLEE_SAVED_KERNEL
 
-	pop	fp
+	POPR	fp
 	CFI_RESTORE r27
 	CFI_DEF_CFA r28, 4
 
-	pop	blink
+	POPR	blink
 	CFI_RESTORE r31
 	CFI_DEF_CFA_OFFSET 0
 

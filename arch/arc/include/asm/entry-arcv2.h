@@ -63,12 +63,12 @@
 
 #ifdef CONFIG_ARC_IRQ_NO_AUTOSAVE
 	; carve pt_regs on stack (case #3), PC/STAT32 already on stack
-	sub	sp, sp, SZ_PT_REGS - 8
+	SUBR	sp, sp, SZ_PT_REGS - 2*REGSZ
 
 	__SAVE_REGFILE_HARD
 #else
 	; carve pt_regs on stack (case #4), which grew partially already
-	sub	sp, sp, PT_r0
+	SUBR	sp, sp, PT_r0
 #endif
 
 	__SAVE_REGFILE_SOFT
@@ -84,22 +84,22 @@
 	; Now manually save rest of reg file
 	; At the end, SP points to pt_regs
 
-	sub	sp, sp, SZ_PT_REGS	; carve space for pt_regs
+	SUBR	sp, sp, SZ_PT_REGS	; carve space for pt_regs
 
 	; _HARD saves r10 clobbered by _SOFT as scratch hence comes first
 
 	__SAVE_REGFILE_HARD
 	__SAVE_REGFILE_SOFT
 
-	st	r0, [sp]	; orig_r0
+	STR	r0, sp, 0	; pt_regs->orig_r0
 
-	lr	r10, [eret]
+	LRR	r10, [eret]
 	lr	r11, [erstatus]
-	ST2	r10, r11, PT_ret
+	STR2	r10, r11, sp, PT_ret
 
 	lr	r10, [ecr]
-	lr	r11, [erbta]
-	ST2	r10, r11, PT_event
+	LRR	r11, [erbta]
+	STR2	r10, r11, sp, PT_event
 
 	; OUTPUT: r10 has ECR expected by EV_Trap
 .endm
@@ -108,8 +108,8 @@
 
 	EXCEPTION_PROLOGUE_KEEP_AE	; return ECR in r10
 
-	lr  r0, [efa]
-	mov r1, sp
+	LRR  r0, [efa]
+	MOVR r1, sp
 
 	FAKE_RET_FROM_EXCPN		; clobbers r9
 .endm
@@ -122,21 +122,21 @@
  */
 .macro __SAVE_REGFILE_HARD
 
-	ST2	r0,  r1,  PT_r0
-	ST2	r2,  r3,  PT_r2
-	ST2	r4,  r5,  PT_r4
-	ST2	r6,  r7,  PT_r6
-	ST2	r8,  r9,  PT_r8
-	ST2	r10, r11, PT_r10
+	STR2	r0,  r1,  sp, PT_r0
+	STR2	r2,  r3,  sp, PT_r2
+	STR2	r4,  r5,  sp, PT_r4
+	STR2	r6,  r7,  sp, PT_r6
+	STR2	r8,  r9,  sp, PT_r8
+	STR2	r10, r11, sp, PT_r10
 
-	st	blink, [sp, PT_blink]
+	STR	blink, sp, PT_blink
 
 #ifndef CONFIG_ARC_LACKS_ZOL
-	lr	r10, [lp_end]
-	lr	r11, [lp_start]
-	ST2	r10, r11, PT_lpe
+	LRR	r10, [lp_end]
+	LRR	r11, [lp_start]
+	STR2	r10, r11, sp, PT_lpe
 
-	st	lp_count, [sp, PT_lpc]
+	STR	lp_count, sp, PT_lpc
 #endif
 
 	; skip JLI, LDI, EI for now
@@ -151,10 +151,10 @@
  */
 .macro __SAVE_REGFILE_SOFT
 
-	st	fp,  [sp, PT_fp]	; r27
-	st	r30, [sp, PT_r30]
-	st	r12, [sp, PT_r12]
-	st	r26, [sp, PT_r26]	; gp
+	STR	fp,  sp, PT_fp		; r27
+	STR	r30, sp, PT_r30
+	STR	r12, sp, PT_r12
+	STR	r26, sp, PT_r26		; gp
 
 	; Saving pt_regs->sp correctly requires some extra work due to the way
 	; Auto stack switch works
@@ -165,16 +165,15 @@
 	; 2. Upon entry SP is always saved (for any inspection, unwinding etc),
 	;    but on return, restored only if U mode
 
-	lr	r10, [AUX_USER_SP]	; U mode SP
+	LRR	r10, [AUX_USER_SP]	; U mode SP
 
-	; ISA requires ADD.nz to have same dest and src reg operands
-	mov.nz	r10, sp
-	add2.nz	r10, r10, SZ_PT_REGS/4	; K mode SP
+	MOVR.nz	r10, sp
+	ADD2R.nz r10, r10, SZ_PT_REGS/4	; K mode SP
 
-	st	r10, [sp, PT_sp]	; SP (pt_regs->sp)
+	STR	r10, sp, PT_sp		; pt_regs->sp
 
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
-	ST2	r58, r59, PT_r58
+	STR2	r58, r59, sp, PT_r58
 #endif
 
 #ifdef CONFIG_ARC_CURR_IN_REG
@@ -188,10 +187,10 @@
 /*------------------------------------------------------------------------*/
 .macro __RESTORE_REGFILE_SOFT
 
-	ld	fp,  [sp, PT_fp]
-	ld	r30, [sp, PT_r30]
-	ld	r12, [sp, PT_r12]
-	ld	r26, [sp, PT_r26]
+	LDR	fp,  sp, PT_fp
+	LDR	r30, sp, PT_r30
+	LDR	r12, sp, PT_r12
+	LDR	r26, sp, PT_r26
 
 	; Restore SP (into AUX_USER_SP) only if returning to U mode
 	;  - for K mode, it will be implicitly restored as stack is unwound
@@ -199,38 +198,39 @@
 	;    but that doesn't really matter
 	bz	1f
 
-	ld	r10, [sp, PT_sp]	; SP (pt_regs->sp)
-	sr	r10, [AUX_USER_SP]
+	LDR	r10, sp, PT_sp		; pt_regs->sp
+	SRR	r10, [AUX_USER_SP]
 1:
 
 	/* clobbers r10, r11 registers pair */
 	DSP_RESTORE_REGFILE_IRQ
 
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
-	LD2	r58, r59, PT_r58
+	LDR2	r58, r59, sp, PT_r58
 #endif
 .endm
 
 /*------------------------------------------------------------------------*/
 .macro __RESTORE_REGFILE_HARD
 
-	ld	blink, [sp, PT_blink]
+	LDR	blink, sp, PT_blink
 
 #ifndef CONFIG_ARC_LACKS_ZOL
-	LD2	r10, r11, PT_lpe
-	sr	r10, [lp_end]
-	sr	r11, [lp_start]
+	LDR2	r10, r11, sp, PT_lpe
+	SRR	r10, [lp_end]
+	SRR	r11, [lp_start]
 
-	ld	r10, [sp, PT_lpc]	; lp_count can't be target of LD
-	mov	lp_count, r10
+	LDR	r10, sp, PT_lpc		; lp_count can't be target of LD
+	MOVR	lp_count, r10
 #endif
 
-	LD2	r0,  r1,  PT_r0
-	LD2	r2,  r3,  PT_r2
-	LD2	r4,  r5,  PT_r4
-	LD2	r6,  r7,  PT_r6
-	LD2	r8,  r9,  PT_r8
-	LD2	r10, r11, PT_r10
+	LDR2	r0,  r1,  sp, PT_r0
+	LDR2	r2,  r3,  sp, PT_r2
+	LDR2	r4,  r5,  sp, PT_r4
+	LDR2	r6,  r7,  sp, PT_r6
+	LDR2	r8,  r9,  sp, PT_r8
+	LDR2	r10, r11, sp, PT_r10
+
 .endm
 
 
@@ -248,9 +248,9 @@
 	__RESTORE_REGFILE_HARD
 
 	; SP points to PC/STAT32: hw restores them despite NO_AUTOSAVE
-	add	sp, sp, SZ_PT_REGS - 8
+	ADDR	sp, sp, SZ_PT_REGS - 2*REGSZ
 #else
-	add	sp, sp, PT_r0
+	ADDR	sp, sp, PT_r0
 #endif
 
 .endm
@@ -262,17 +262,17 @@
 
 	btst	r0, STATUS_U_BIT	; Z flag set if K, used in restoring SP
 
-	ld	r10, [sp, PT_bta]
-	sr	r10, [erbta]
+	LDR	r10, sp, PT_bta
+	SRR	r10, [erbta]
 
-	LD2	r10, r11, PT_ret
-	sr	r10, [eret]
+	LDR2	r10, r11, sp, PT_ret
+	SRR	r10, [eret]
 	sr	r11, [erstatus]
 
 	__RESTORE_REGFILE_SOFT
 	__RESTORE_REGFILE_HARD
 
-	add	sp, sp, SZ_PT_REGS
+	ADDR	sp, sp, SZ_PT_REGS
 .endm
 
 .macro FAKE_RET_FROM_EXCPN
@@ -284,7 +284,7 @@
 
 /* Get thread_info of "current" tsk */
 .macro GET_CURR_THR_INFO_FROM_SP  reg
-	bmskn \reg, sp, THREAD_SHIFT - 1
+	BMSKNR \reg, sp, THREAD_SHIFT - 1
 .endm
 
 /* Get CPU-ID of this core */

@@ -20,7 +20,7 @@
 .macro CPU_EARLY_SETUP
 
 	; Setting up Vectror Table (in case exception happens in early boot
-	sr	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
+	SRR	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
 
 	; Disable I-cache/D-cache if kernel so configured
 	lr	r5, [ARC_REG_IC_BCR]
@@ -114,21 +114,22 @@ ENTRY(stext)
 
 	; Non-Masters wait for Master to boot enough and bring them up
 	; when they resume, tail-call to entry point
-	mov	blink, @first_lines_of_secondary
+	MOVR	blink, @first_lines_of_secondary
 	j	arc_platform_smp_wait_to_boot
 
 .Lmaster_proceed:
 #endif
 
 	; Clear BSS before updating any globals
-	mov	r5, __bss_start
-	sub	r6, __bss_stop, r5
+	MOVR	r5, __bss_start
+	SUBR	r6, __bss_stop, r5
 #ifndef CONFIG_ARC_LACKS_ZOL
 	lsr.f	lp_count, r6, 2
 	lpnz	1f
 	st.ab   0, [r5, 4]
 1:
 #else
+	; don't need LSRL: BSS size can't be more than 4GB
 	lsr	r6, r6, 3
 1:
 	ST64.ab	0, r5, 8
@@ -140,16 +141,16 @@ ENTRY(stext)
 	;    r1 = magic number (always zero as of now)
 	;    r2 = pointer to uboot provided cmdline or external DTB in mem
 	; These are handled later in handle_uboot_args()
-	st	r0, [@uboot_tag]
-	st      r1, [@uboot_magic]
-	st	r2, [@uboot_arg]
+	STR	r0, @uboot_tag
+	STR	r1, @uboot_magic
+	STR	r2, @uboot_arg
 
 	; setup "current" tsk and optionally cache it in dedicated r25
-	mov	r9, @init_task
+	MOVR	r9, @init_task
 	SET_CURR_TASK_ON_CPU  r9, r0	; r9 = tsk, r0 = scratch
 
 	; setup stack (fp, sp)
-	mov	fp, 0
+	MOVR	fp, 0
 
 	; tsk->thread_info is really a PAGE, whose bottom hoists stack
 	GET_TSK_STACK_BASE r9, sp	; r9 = tsk, sp = stack base(output)
@@ -165,11 +166,11 @@ END(stext)
 ENTRY(first_lines_of_secondary)
 
 	; setup per-cpu idle task as "current" on this CPU
-	ld	r0, [@secondary_idle_tsk]
+	LDR	r0, @secondary_idle_tsk
 	SET_CURR_TASK_ON_CPU  r0, r1
 
 	; setup stack (fp, sp)
-	mov	fp, 0
+	MOVR	fp, 0
 
 	; set it's stack base to tsk->thread_info bottom
 	GET_TSK_STACK_BASE r0, sp

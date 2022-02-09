@@ -88,10 +88,10 @@ ENTRY(handle_interrupt)
 	; icause is banked: one per priority level
 	; so a higher prio interrupt taken here won't clobber prev prio icause
 	lr  r0, [ICAUSE]
-	mov   blink, ret_from_exception
+	MOVR   blink, ret_from_exception
 
 	b.d  arch_do_IRQ
-	mov r1, sp
+	MOVR r1, sp
 
 END(handle_interrupt)
 
@@ -134,7 +134,7 @@ ENTRY(EV_Misaligned)
 	EXCEPTION_PROLOGUE
 
 	SAVE_CALLEE_SAVED_USER
-	mov r2, sp              ; callee_regs
+	MOVR r2, sp              ; callee_regs
 
 	bl  do_misaligned_access
 
@@ -153,8 +153,8 @@ ENTRY(EV_TLBProtV)
 
 	EXCEPTION_PROLOGUE
 
-	mov blink, ret_from_exception
-	b   do_page_fault
+	MOVR blink, ret_from_exception
+	b    do_page_fault
 
 END(EV_TLBProtV)
 

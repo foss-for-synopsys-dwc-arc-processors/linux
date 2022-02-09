@@ -18,3 +18,15 @@
 	ldd\xx	\d, [\s, \off]
 .endm
 .endr
+
+/*
+ * load/store register pair
+ */
+
+.macro STR2 de, do, s, off=0
+	std	\de, [\s, \off]
+.endm
+
+.macro LDR2 de, do, s, off=0
+	ldd	\de, [\s, \off]
+.endm

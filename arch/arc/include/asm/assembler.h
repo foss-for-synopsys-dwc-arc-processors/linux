@@ -5,6 +5,8 @@
 
 #ifdef __ASSEMBLY__
 
+#include <asm/asm-macro-32-bit.h>
+
 #ifdef CONFIG_ARC_HAS_LL64
 #include <asm/asm-macro-ll64.h>
 #else
@@ -18,6 +20,8 @@
 #endif
 
 #else	/* !__ASSEMBLY__ */
+
+asm(".include \"asm/asm-macro-32-bit.h\"\n");
 
 #ifdef CONFIG_ARC_HAS_LL64
 asm(".include \"asm/asm-macro-ll64.h\"\n");

@@ -29,3 +29,18 @@
 		ld.ab	r7, [\s, \incr / 2]
 	.endif
 .endm
+
+/*
+ * load/store register pair
+ *  - Emulate with 2 seperate load/stores
+ */
+
+.macro STR2 de, do, s, off=0
+	STR.as	\de, \s, \off / REGSZ
+	STR.as	\do, \s, (\off + REGSZ) / REGSZ
+.endm
+
+.macro LDR2 de, do, s, off=0
+	LDR	\de, \s, \off
+	LDR	\do, \s, \off + REGSZ
+.endm
