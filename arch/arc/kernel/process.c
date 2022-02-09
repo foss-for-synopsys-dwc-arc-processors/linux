@@ -138,7 +138,7 @@ asmlinkage void ret_from_fork(void);
  * |    unused      |
  * |                |
  * ------------------
- * |     r25        |   <==== top of Stack (thread.ksp)
+ * |     r25        |   <==== top of Stack (thread_info.ksp)
  * ~                ~
  * |    --to--      |   (CALLEE Regs of kernel mode)
  * |     r13        |
@@ -177,14 +177,14 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 	c_callee = ((struct callee_regs *)childksp) - 1;
 
 	/*
-	 * __switch_to() uses thread.ksp to start unwinding stack
+	 * __switch_to() uses thread_info.ksp to start unwinding stack
 	 * For kernel threads we don't need to create callee regs, the
 	 * stack layout nevertheless needs to remain the same.
 	 * Also, since __switch_to anyways unwinds callee regs, we use
 	 * this to populate kernel thread entry-pt/args into callee regs,
 	 * so that ret_from_kernel_thread() becomes simpler.
 	 */
-	p->thread.ksp = (unsigned long)c_callee;	/* THREAD_KSP */
+	task_thread_info(p)->ksp = (unsigned long)c_callee;	/* THREAD_INFO_KSP */
 
 	/* __switch_to expects FP(0), BLINK(return addr) at top */
 	childksp[0] = 0;			/* fp */
