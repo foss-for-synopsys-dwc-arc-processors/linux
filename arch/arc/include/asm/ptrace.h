@@ -57,7 +57,7 @@ struct callee_regs {
 	unsigned long r25, r24, r23, r22, r21, r20, r19, r18, r17, r16, r15, r14, r13;
 };
 
-#else
+#elif defined(CONFIG_ISA_ARCV2)
 
 struct pt_regs {
 
@@ -97,6 +97,32 @@ struct pt_regs {
 
 struct callee_regs {
 	unsigned long r25, r24, r23, r22, r21, r20, r19, r18, r17, r16, r15, r14, r13;
+};
+
+#else /* CONFIG_ISA_ARCV3 */
+
+struct pt_regs {
+
+	unsigned long orig_r0;
+
+	ecr_reg ecr;
+	unsigned long bta;
+	unsigned long fp;
+	unsigned long sp;
+	unsigned long gp;	/* r30 */
+	unsigned long r58, r59;
+
+	/*------- Below list auto saved by h/w -----------*/
+	unsigned long r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13;
+	unsigned long blink;
+
+	unsigned long ret;
+	unsigned long status32;
+};
+
+/* ARCv3 callee regs start from r14; gp is r30 not r26 */
+struct callee_regs {
+	unsigned long r14, r15, r16, r17, r18, r19, r20, r21, r22, r23, r24, r25, r26;
 };
 
 #endif

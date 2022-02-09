@@ -344,6 +344,11 @@ struct cpuinfo_arc {
 
 extern struct cpuinfo_arc cpuinfo_arc700[];
 
+static inline int is_isa_arcv3(void)
+{
+	return IS_ENABLED(CONFIG_ISA_ARCV3);
+}
+
 static inline int is_isa_arcv2(void)
 {
 	return IS_ENABLED(CONFIG_ISA_ARCV2);

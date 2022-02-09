@@ -67,7 +67,11 @@ static int genregs_get(struct task_struct *target,
 	membuf_store(&to, cregs->r16);
 	membuf_store(&to, cregs->r15);
 	membuf_store(&to, cregs->r14);
+#ifdef CONFIG_ISA_ARCV3
+	membuf_store(&to, &ptregs->r13);
+#else
 	membuf_store(&to, cregs->r13);
+#endif
 	membuf_store(&to, target->thread.fault_address); // efa
 
 	if (in_brkpt_trap(ptregs)) {
@@ -158,7 +162,12 @@ static int genregs_set(struct task_struct *target,
 	REG_IN_ONE(callee.r16, &cregs->r16);
 	REG_IN_ONE(callee.r15, &cregs->r15);
 	REG_IN_ONE(callee.r14, &cregs->r14);
+
+#ifdef CONFIG_ISA_ARCV3
+	REG_IN_ONE(callee.r13, &ptregs->r13);
+#else
 	REG_IN_ONE(callee.r13, &cregs->r13);
+#endif
 
 	REG_IGNORE_ONE(efa);			/* efa update invalid */
 	REG_IGNORE_ONE(stop_pc);		/* PC updated via @ret */

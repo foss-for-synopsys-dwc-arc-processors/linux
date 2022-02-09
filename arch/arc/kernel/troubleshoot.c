@@ -40,14 +40,21 @@ static noinline void print_regs_scratch(struct pt_regs *regs)
 		regs->r12);
 }
 
-static void print_regs_callee(struct callee_regs *regs)
+static void print_regs_callee(struct callee_regs *regs, struct pt_regs *ptregs)
 {
+	/* r13 is scratch reg in ARCv3 ABI, while callee in prev ABIs */
+#ifdef CONFIG_ISA_ARCV3
+	unsigned long r13 = ptregs->r13;
+#else
+	unsigned long r13 = regs->r13;
+#endif
+
 	pr_cont("r13: 0x%08lx\tr14: 0x%08lx\n"			\
 		"r15: 0x%08lx\tr16: 0x%08lx\tr17: 0x%08lx\n"	\
 		"r18: 0x%08lx\tr19: 0x%08lx\tr20: 0x%08lx\n"	\
 		"r21: 0x%08lx\tr22: 0x%08lx\tr23: 0x%08lx\n"	\
 		"r24: 0x%08lx\tr25: 0x%08lx\n",
-		regs->r13, regs->r14,
+		r13, regs->r14,
 		regs->r15, regs->r16, regs->r17,
 		regs->r18, regs->r19, regs->r20,
 		regs->r21, regs->r22, regs->r23,
@@ -208,7 +215,7 @@ void show_regs(struct pt_regs *regs)
 
 	print_regs_scratch(regs);
 	if (cregs)
-		print_regs_callee(cregs);
+		print_regs_callee(cregs, regs);
 
 	preempt_disable();
 }
