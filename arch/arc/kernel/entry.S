@@ -100,9 +100,6 @@ ENTRY(EV_MachineCheck)
 	lr  r0, [efa]
 	mov r1, sp
 
-	; MC excpetions disable MMU
-	ARC_MMU_REENABLE r3
-
 	lsr  	r3, r10, 8
 	bmsk 	r3, r3, 7
 	brne    r3, ECR_C_MCHK_DUP_TLB, 1f
