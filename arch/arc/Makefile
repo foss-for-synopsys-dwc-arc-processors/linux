@@ -9,10 +9,12 @@ ifeq ($(CROSS_COMPILE),)
 CROSS_COMPILE := $(call cc-cross-prefix, arc-linux- arceb-linux-)
 endif
 
-cflags-y	+= -fno-common -pipe -fno-builtin -mmedium-calls -D__linux__
-
 tune-mcpu-def-$(CONFIG_ISA_ARCOMPACT)	:= -mcpu=arc700
 tune-mcpu-def-$(CONFIG_ISA_ARCV2)	:= -mcpu=hs38
+
+cflags-y	+= -fno-common -pipe -fno-builtin -D__linux__
+cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls -fcall-used-gp
+cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
 
 ifeq ($(CONFIG_ARC_TUNE_MCPU),"")
 cflags-y				+= $(tune-mcpu-def-y)
@@ -37,9 +39,6 @@ ifdef CONFIG_ARC_CURR_IN_REG
 # due to <linux/thread_info.h>
 LINUXINCLUDE	+=  -include $(srctree)/arch/arc/include/asm/current.h
 endif
-
-cflags-y				+= -fsection-anchors
-cflags-y				+= -Wa,-I$(srctree)/arch/arc/include
 
 cflags-$(CONFIG_ARC_HAS_LLSC)		+= -mlock
 cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -mswape
@@ -66,11 +65,6 @@ endif
 
 cfi := $(call as-instr,.cfi_startproc\n.cfi_endproc,-DARC_DW2_UNWIND_AS_CFI)
 cflags-$(CONFIG_ARC_DW2_UNWIND)		+= -fasynchronous-unwind-tables $(cfi)
-
-# small data is default for elf32 tool-chain. If not usable, disable it
-# This also allows repurposing GP as scratch reg to gcc reg allocator
-disable_small_data := y
-cflags-$(disable_small_data)		+= -mno-sdata -fcall-used-gp
 
 cflags-$(CONFIG_CPU_BIG_ENDIAN)		+= -mbig-endian
 ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
