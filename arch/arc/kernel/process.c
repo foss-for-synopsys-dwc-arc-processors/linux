@@ -276,7 +276,7 @@ int elf_check_arch(const struct elf32_hdr *x)
 {
 	unsigned int eflags;
 
-	if (x->e_machine != EM_ARC_INUSE) {
+	if (x->e_machine != ELF_ARCH) {
 		pr_err("ELF not built for %s ISA\n",
 			is_isa_arcompact() ? "ARCompact":"ARCv2");
 		return 0;

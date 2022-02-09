@@ -244,7 +244,7 @@ static const struct user_regset arc_regsets[] = {
 
 static const struct user_regset_view user_arc_view = {
 	.name		= "arc",
-	.e_machine	= EM_ARC_INUSE,
+	.e_machine	= ELF_ARCH,
 	.regsets	= arc_regsets,
 	.n		= ARRAY_SIZE(arc_regsets)
 };

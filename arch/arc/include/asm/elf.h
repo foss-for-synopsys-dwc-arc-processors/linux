@@ -10,16 +10,12 @@
 #include <linux/elf-em.h>
 #include <uapi/asm/elf.h>
 
-#define EM_ARC_INUSE		(IS_ENABLED(CONFIG_ISA_ARCOMPACT) ? \
-					EM_ARCOMPACT : EM_ARCV2)
+#ifdef CONFIG_ISA_ARCOMPACT
+#define ELF_ARCH		EM_ARCOMPACT
+#elif defined(CONFIG_ISA_ARCV2)
+#define ELF_ARCH		EM_ARCV2
+#endif
 
-/* ARC Relocations (kernel Modules only) */
-#define  R_ARC_32		0x4
-#define  R_ARC_32_ME		0x1B
-#define  R_ARC_32_PCREL		0x31
-
-/*to set parameters in the core dumps */
-#define ELF_ARCH		EM_ARC_INUSE
 #define ELF_CLASS		ELFCLASS32
 
 #ifdef CONFIG_CPU_BIG_ENDIAN
@@ -27,6 +23,11 @@
 #else
 #define ELF_DATA		ELFDATA2LSB
 #endif
+
+/* ARC Relocations (kernel Modules only) */
+#define  R_ARC_32		0x4
+#define  R_ARC_32_ME		0x1B
+#define  R_ARC_32_PCREL		0x31
 
 /*
  * To ensure that
