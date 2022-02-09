@@ -342,7 +342,7 @@ static char *arc_extn_mumbojumbo(int cpu_id, char *buf, int len)
 
 	FIX_PTR(cpu);
 
-	n += scnprintf(buf + n, len - n, "Vector Table\t: %#x\n", cpu->vec_base);
+	n += scnprintf(buf + n, len - n, "Vector Table\t: %#lx\n", cpu->vec_base);
 
 	if (cpu->extn.fpu_sp || cpu->extn.fpu_dp)
 		n += scnprintf(buf + n, len - n, "FPU\t\t: %s%s\n",
@@ -362,7 +362,7 @@ static char *arc_extn_mumbojumbo(int cpu_id, char *buf, int len)
 	}
 
 	if (cpu->dccm.sz || cpu->iccm.sz)
-		n += scnprintf(buf + n, len - n, "Extn [CCM]\t: DCCM @ %x, %d KB / ICCM: @ %x, %d KB\n",
+		n += scnprintf(buf + n, len - n, "Extn [CCM]\t: DCCM @ %lx, %d KB / ICCM: @ %lx, %d KB\n",
 			       cpu->dccm.base_addr, TO_KB(cpu->dccm.sz),
 			       cpu->iccm.base_addr, TO_KB(cpu->iccm.sz));
 
@@ -609,8 +609,8 @@ late_initcall(init_late_machine);
  *  Get CPU information for use by the procfs.
  */
 
-#define cpu_to_ptr(c)	((void *)(0xFFFF0000 | (unsigned int)(c)))
-#define ptr_to_cpu(p)	(~0xFFFF0000UL & (unsigned int)(p))
+#define cpu_to_ptr(c)	((void *)(~0xFFFF | (unsigned long)(c)))
+#define ptr_to_cpu(p)	(0xFFFFU & (unsigned long)(p))
 
 static int show_cpuinfo(struct seq_file *m, void *v)
 {

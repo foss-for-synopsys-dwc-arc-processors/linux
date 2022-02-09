@@ -321,7 +321,8 @@ struct cpuinfo_arc_bpu {
 };
 
 struct cpuinfo_arc_ccm {
-	unsigned int base_addr, sz;
+	unsigned long base_addr;
+	unsigned int sz;
 };
 
 struct cpuinfo_arc {
@@ -331,7 +332,7 @@ struct cpuinfo_arc {
 	struct bcr_identity core;
 	struct bcr_isa_arcv2 isa;
 	const char *release, *name;
-	unsigned int vec_base;
+	unsigned long vec_base;
 	struct cpuinfo_arc_ccm iccm, dccm;
 	struct {
 		unsigned int swap:1, norm:1, minmax:1, barrel:1, crc:1, swape:1, pad1:2,

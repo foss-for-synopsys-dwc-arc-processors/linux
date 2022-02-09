@@ -40,7 +40,7 @@ unhandled_exception(const char *str, struct pt_regs *regs,
 	if (user_mode(regs)) {
 		struct task_struct *tsk = current;
 
-		tsk->thread.fault_address = (__force unsigned int)addr;
+		tsk->thread.fault_address = (__force unsigned long)addr;
 
 		force_sig_fault(signo, si_code, addr);
 

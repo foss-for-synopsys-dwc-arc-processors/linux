@@ -24,7 +24,7 @@
 
 SYSCALL_DEFINE1(arc_settls, void *, user_tls_data_ptr)
 {
-	task_thread_info(current)->thr_ptr = (unsigned int)user_tls_data_ptr;
+	task_thread_info(current)->thr_ptr = (unsigned long)user_tls_data_ptr;
 	return 0;
 }
 
@@ -113,7 +113,7 @@ void arch_cpu_idle(void)
 	__asm__ __volatile__(
 		"sleep %0	\n"
 		:
-		:"I"(arg)); /* can't be "r" has to be embedded const */
+		:"i"(arg)); /* can't be "r" has to be embedded const */
 }
 
 #else	/* ARC700 */

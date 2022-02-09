@@ -44,7 +44,7 @@
 #define MM_CTXT_CYCLE_MASK	(~MM_CTXT_ASID_MASK)
 
 #define MM_CTXT_FIRST_CYCLE	(MM_CTXT_ASID_MASK + 1)
-#define MM_CTXT_NO_ASID		0UL
+#define MM_CTXT_NO_ASID		0U
 
 #define asid_mm(mm, cpu)	mm->context.asid[cpu]
 #define hw_pid(mm, cpu)		(asid_mm(mm, cpu) & MM_CTXT_ASID_MASK)

@@ -91,7 +91,7 @@ seed_unwind_frame_info(struct task_struct *tsk, struct pt_regs *regs,
 		frame_info->regs.r27 = TSK_K_FP(tsk);
 		frame_info->regs.r28 = TSK_K_ESP(tsk);
 		frame_info->regs.r31 = TSK_K_BLINK(tsk);
-		frame_info->regs.r63 = (unsigned int)__switch_to;
+		frame_info->regs.r63 = (unsigned long)__switch_to;
 
 		/* In the prologue of __switch_to, first FP is saved on stack
 		 * and then SP is copied to FP. Dwarf assumes cfa as FP based
@@ -112,13 +112,13 @@ seed_unwind_frame_info(struct task_struct *tsk, struct pt_regs *regs,
 
 #endif
 
-notrace noinline unsigned int
+notrace noinline unsigned long
 arc_unwind_core(struct task_struct *tsk, struct pt_regs *regs,
-		int (*consumer_fn) (unsigned int, void *), void *arg)
+		long (*consumer_fn) (unsigned long, void *), void *arg)
 {
 #ifdef CONFIG_ARC_DW2_UNWIND
 	int ret = 0, cnt = 0;
-	unsigned int address;
+	unsigned long address;
 	struct unwind_frame_info frame_info;
 
 	if (seed_unwind_frame_info(tsk, regs, &frame_info))
@@ -169,7 +169,7 @@ arc_unwind_core(struct task_struct *tsk, struct pt_regs *regs,
 /* Call-back which plugs into unwinding core to dump the stack in
  * case of panic/OOPs/BUG etc
  */
-static int __print_sym(unsigned int address, void *arg)
+static long __print_sym(unsigned long address, void *arg)
 {
 	const char *loglvl = arg;
 
@@ -182,7 +182,7 @@ static int __print_sym(unsigned int address, void *arg)
 /* Call-back which plugs into unwinding core to capture the
  * traces needed by kernel on /proc/<pid>/stack
  */
-static int __collect_all(unsigned int address, void *arg)
+static long __collect_all(unsigned long address, void *arg)
 {
 	struct stack_trace *trace = arg;
 
@@ -197,7 +197,7 @@ static int __collect_all(unsigned int address, void *arg)
 	return 0;
 }
 
-static int __collect_all_but_sched(unsigned int address, void *arg)
+static long __collect_all_but_sched(unsigned long address, void *arg)
 {
 	struct stack_trace *trace = arg;
 
@@ -217,7 +217,7 @@ static int __collect_all_but_sched(unsigned int address, void *arg)
 
 #endif
 
-static int __get_first_nonsched(unsigned int address, void *unused)
+static long __get_first_nonsched(unsigned long address, void *unused)
 {
 	if (in_sched_functions(address))
 		return 0;
@@ -248,7 +248,7 @@ void show_stack(struct task_struct *tsk, unsigned long *sp, const char *loglvl)
  * Of course just returning schedule( ) would be pointless so unwind until
  * the function is not in schedular code
  */
-unsigned int __get_wchan(struct task_struct *tsk)
+unsigned long __get_wchan(struct task_struct *tsk)
 {
 	return arc_unwind_core(tsk, NULL, __get_first_nonsched, NULL);
 }

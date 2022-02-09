@@ -11,7 +11,7 @@
 #include <linux/threads.h>	/* NR_CPUS */
 
 typedef struct {
-	unsigned long asid[NR_CPUS];	/* 8 bit MMU PID + Generation cycle */
+	unsigned int asid[NR_CPUS];	/* 8 bit MMU PID + Generation cycle */
 } mm_context_t;
 
 #endif
