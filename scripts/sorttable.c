@@ -58,6 +58,11 @@
 #define EM_RISCV	243
 #endif
 
+#ifndef EM_ARCV3
+#define EM_ARCV3	253
+#define EM_ARCV3_32	255
+#endif
+
 static uint32_t (*r)(const uint32_t *);
 static uint16_t (*r2)(const uint16_t *);
 static uint64_t (*r8)(const uint64_t *);
@@ -380,6 +385,8 @@ static int do_file(char const *const fname, void *addr)
 		break;
 	case EM_ARCOMPACT:
 	case EM_ARCV2:
+	case EM_ARCV3:
+	case EM_ARCV3_32:
 	case EM_ARM:
 	case EM_MICROBLAZE:
 	case EM_MIPS:
