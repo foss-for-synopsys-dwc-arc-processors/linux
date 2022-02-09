@@ -117,7 +117,7 @@ stash_usr_regs(struct rt_sigframe __user *sf, struct pt_regs *regs,
 	uregs.scratch.ret	= regs->ret;
 	uregs.scratch.blink	= regs->blink;
 	uregs.scratch.fp	= regs->fp;
-	uregs.scratch.gp	= regs->r26;
+	uregs.scratch.gp	= regs->gp;
 	uregs.scratch.r12	= regs->r12;
 	uregs.scratch.r11	= regs->r11;
 	uregs.scratch.r10	= regs->r10;
@@ -172,7 +172,7 @@ static int restore_usr_regs(struct pt_regs *regs, struct rt_sigframe __user *sf)
 	regs->ret	= uregs.scratch.ret;
 	regs->blink	= uregs.scratch.blink;
 	regs->fp	= uregs.scratch.fp;
-	regs->r26	= uregs.scratch.gp;
+	regs->gp	= uregs.scratch.gp;
 	regs->r12	= uregs.scratch.r12;
 	regs->r11	= uregs.scratch.r11;
 	regs->r10	= uregs.scratch.r10;

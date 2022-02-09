@@ -154,7 +154,7 @@
 	STR	fp,  sp, PT_fp		; r27
 	STR	r30, sp, PT_r30
 	STR	r12, sp, PT_r12
-	STR	r26, sp, PT_r26		; gp
+	STR	gp, sp, PT_gp		; gp
 
 	; Saving pt_regs->sp correctly requires some extra work due to the way
 	; Auto stack switch works
@@ -190,7 +190,7 @@
 	LDR	fp,  sp, PT_fp
 	LDR	r30, sp, PT_r30
 	LDR	r12, sp, PT_r12
-	LDR	r26, sp, PT_r26
+	LDR	gp, sp, PT_gp
 
 	; Restore SP (into AUX_USER_SP) only if returning to U mode
 	;  - for K mode, it will be implicitly restored as stack is unwound

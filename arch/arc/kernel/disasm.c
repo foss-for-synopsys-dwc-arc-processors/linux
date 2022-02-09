@@ -445,7 +445,7 @@ long __kprobes get_reg(int reg, struct pt_regs *regs,
 	}
 
 	if (reg == 26)
-		return regs->r26;
+		return regs->gp;
 	if (reg == 27)
 		return regs->fp;
 	if (reg == 28)
@@ -473,7 +473,7 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
 		}
 		break;
 	case 26:
-		regs->r26 = val;
+		regs->gp = val;
 		break;
 	case 27:
 		regs->fp = val;

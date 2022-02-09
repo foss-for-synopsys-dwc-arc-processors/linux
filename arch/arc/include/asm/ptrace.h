@@ -36,7 +36,7 @@ struct pt_regs {
 	unsigned long ret;	/* ilink1, ilink2 or eret */
 	unsigned long blink;
 	unsigned long fp;
-	unsigned long r26;	/* gp */
+	unsigned long gp;	/* r26 */
 
 	unsigned long r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0;
 
@@ -70,7 +70,7 @@ struct pt_regs {
 	unsigned long fp;
 	unsigned long r30;
 	unsigned long r12;
-	unsigned long r26;	/* gp */
+	unsigned long gp;	/* r26 */
 
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
 	unsigned long r58, r59;	/* ACCL/ACCH used by FPU / DSP MPY */

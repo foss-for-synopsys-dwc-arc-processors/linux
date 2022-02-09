@@ -39,7 +39,7 @@ static int genregs_get(struct task_struct *target,
 	membuf_store(&to, ptregs->ret);
 	membuf_store(&to, ptregs->blink);
 	membuf_store(&to, ptregs->fp);
-	membuf_store(&to, ptregs->r26);	// gp
+	membuf_store(&to, ptregs->gp);
 	membuf_store(&to, ptregs->r12);
 	membuf_store(&to, ptregs->r11);
 	membuf_store(&to, ptregs->r10);
@@ -128,7 +128,7 @@ static int genregs_set(struct task_struct *target,
 	REG_IN_ONE(scratch.ret, &ptregs->ret);
 	REG_IN_ONE(scratch.blink, &ptregs->blink);
 	REG_IN_ONE(scratch.fp, &ptregs->fp);
-	REG_IN_ONE(scratch.gp, &ptregs->r26);
+	REG_IN_ONE(scratch.gp, &ptregs->gp);
 	REG_IN_ONE(scratch.r12, &ptregs->r12);
 	REG_IN_ONE(scratch.r11, &ptregs->r11);
 	REG_IN_ONE(scratch.r10, &ptregs->r10);
