@@ -29,14 +29,7 @@
 #define  R_ARC_32_ME		0x1B
 #define  R_ARC_32_PCREL		0x31
 
-/*
- * To ensure that
- *  -we don't load something for the wrong architecture.
- *  -The userspace is using the correct syscall ABI
- */
-struct elf32_hdr;
-extern int elf_check_arch(const struct elf32_hdr *);
-#define elf_check_arch	elf_check_arch
+#define elf_check_arch(x)	((x)->e_machine == ELF_ARCH)
 
 #define CORE_DUMP_USE_REGSET
 
