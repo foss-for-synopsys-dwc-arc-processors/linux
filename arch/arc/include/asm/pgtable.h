@@ -9,7 +9,13 @@
 #include <linux/bits.h>
 
 #include <asm/pgtable-levels.h>
+
+#ifndef CONFIG_ARC_MMU_V6
 #include <asm/pgtable-bits-arcv2.h>
+#else
+#include <asm/pgtable-bits-arcv3.h>
+#endif
+
 #include <asm/page.h>
 #include <asm/mmu.h>
 

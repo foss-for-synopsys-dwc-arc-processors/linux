@@ -12,8 +12,6 @@
 /*
  * TLB Management regs
  */
-#define ARC_REG_MMU_BCR		0x06f
-
 #ifdef CONFIG_ARC_MMU_V3
 #define ARC_REG_TLBPD0		0x405
 #define ARC_REG_TLBPD1		0x406

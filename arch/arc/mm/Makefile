@@ -6,13 +6,13 @@
 obj-y	:= extable.o ioremap.o dma.o fault.o init.o mmap.o
 
 ifdef CONFIG_ARC_MMU_V6
-obj-y	+= tlb-hwalk.o
+obj-y	+= tlb-arcv3.o
 else
 obj-y	+= tlb.o tlbex.o
 endif
 
 ifdef CONFIG_ISA_ARCV3
-obj-y	+= cache-hwalk.o
+obj-y	+= cache-arcv3.o
 else
 obj-y	+= cache.o
 endif

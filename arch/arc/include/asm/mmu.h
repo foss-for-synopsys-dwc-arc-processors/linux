@@ -6,6 +6,8 @@
 #ifndef _ASM_ARC_MMU_H
 #define _ASM_ARC_MMU_H
 
+#define ARC_REG_MMU_BCR		0x06f
+
 #ifndef __ASSEMBLY__
 
 #include <linux/threads.h>	/* NR_CPUS */
@@ -16,6 +18,10 @@ typedef struct {
 
 #endif
 
+#ifdef CONFIG_ARC_MMU_V6
+#include <asm/mmu-arcv3.h>
+#else
 #include <asm/mmu-arcv2.h>
+#endif
 
 #endif
