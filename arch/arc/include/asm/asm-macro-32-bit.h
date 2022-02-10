@@ -59,6 +59,10 @@
 	bmskn   \d, \s, \v
 .endm
 
+.macro LSRR d, s, v
+	lsr	\d, \s, \v
+.endm
+
 .irp    cc,ne,eq
 .macro BRR\cc d, s, lbl
 	br\cc  \d, \s, \lbl

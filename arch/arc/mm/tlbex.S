@@ -168,13 +168,13 @@ ex_saved_reg1:
 	ld  r1, [r1, MM_PGD]
 #endif
 
-	lsr     r0, r2, PGDIR_SHIFT     ; Bits for indexing into PGD
+	LSRR	r0, r2, PGDIR_SHIFT     ; Bits for indexing into PGD
 	LDR.as  r3, r1, r0              ; PGD entry corresp to faulting addr
 	tst	r3, r3
 	bz	do_slow_path_pf         ; if no Page Table, do page fault
 
 #if CONFIG_PGTABLE_LEVELS > 3
-	lsr     r0, r2, PUD_SHIFT	; Bits for indexing into PUD
+	LSRR	r0, r2, PUD_SHIFT	; Bits for indexing into PUD
 	and	r0, r0, (PTRS_PER_PUD - 1)
 	ld.as	r1, [r3, r0]		; PUD entry
 	tst	r1, r1
@@ -183,7 +183,7 @@ ex_saved_reg1:
 #endif
 
 #if CONFIG_PGTABLE_LEVELS > 2
-	lsr     r0, r2, PMD_SHIFT	; Bits for indexing into PMD
+	LSRR	r0, r2, PMD_SHIFT	; Bits for indexing into PMD
 	and	r0, r0, (PTRS_PER_PMD - 1)
 	ld.as	r1, [r3, r0]		; PMD entry
 	tst	r1, r1
