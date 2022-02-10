@@ -116,26 +116,26 @@ ex_saved_reg1:
 #else	/* ARCv2 */
 
 .macro TLBMISS_FREEUP_REGS
-#ifdef CONFIG_ARC_HAS_LL64
+#if CONFIG_ARC_HAS_LL64
 	std   r0, [sp, -16]
 	std   r2, [sp, -8]
 #else
-	PUSH  r0
-	PUSH  r1
-	PUSH  r2
-	PUSH  r3
+	PUSHR  r0
+	PUSHR  r1
+	PUSHR  r2
+	PUSHR  r3
 #endif
 .endm
 
 .macro TLBMISS_RESTORE_REGS
-#ifdef CONFIG_ARC_HAS_LL64
+#if CONFIG_ARC_HAS_LL64
 	ldd   r0, [sp, -16]
 	ldd   r2, [sp, -8]
 #else
-	POP   r3
-	POP   r2
-	POP   r1
-	POP   r0
+	POPR   r3
+	POPR   r2
+	POPR   r1
+	POPR   r0
 #endif
 .endm
 
@@ -169,7 +169,7 @@ ex_saved_reg1:
 #endif
 
 	lsr     r0, r2, PGDIR_SHIFT     ; Bits for indexing into PGD
-	ld.as   r3, [r1, r0]            ; PGD entry corresp to faulting addr
+	LDR.as  r3, r1, r0              ; PGD entry corresp to faulting addr
 	tst	r3, r3
 	bz	do_slow_path_pf         ; if no Page Table, do page fault
 
@@ -205,7 +205,7 @@ ex_saved_reg1:
 	; (2) y = x & (PTRS_PER_PTE - 1) -> to get index
 	; (3) z = (pgtbl + y * 4)
 
-#ifdef CONFIG_ARC_HAS_PAE40
+#if defined(CONFIG_ARC_HAS_PAE40) || defined(CONFIG_ISA_ARCV3)
 #define PTE_SIZE_LOG	3	/* 8 == 2 ^ 3 */
 #else
 #define PTE_SIZE_LOG	2	/* 4 == 2 ^ 2 */
@@ -214,7 +214,7 @@ ex_saved_reg1:
 	; multiply in step (3) above avoided by shifting lesser in step (1)
 	lsr     r0, r2, ( PAGE_SHIFT - PTE_SIZE_LOG )
 	and     r0, r0, ( (PTRS_PER_PTE - 1) << PTE_SIZE_LOG )
-	ld.aw   r0, [r1, r0]            ; r0: PTE (lower word only for PAE40)
+	LDR.aw  r0, r1, r0              ; r0: PTE (lower word only for PAE40)
 					; r1: PTE ptr
 
 2:
@@ -358,7 +358,7 @@ EV_TLBMissD_fast_ret:	; additional label for VDK OS-kit instrumentation
 ;-------- Common routine to call Linux Page Fault Handler -----------
 do_slow_path_pf:
 
-#ifdef CONFIG_ISA_ARCV2
+#if !defined(CONFIG_ISA_ARCOMPACT)
 	; Set Z flag if exception in U mode. Hardware micro-ops do this on any
 	; taken interrupt/exception, and thus is already the case at the entry
 	; above, but ensuing code would have already clobbered.

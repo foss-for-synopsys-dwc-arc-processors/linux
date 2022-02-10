@@ -6,7 +6,7 @@
 .endm
 .endr
 
-.irp    aa,,.as
+.irp    aa,,.as,.aw
 .macro LDR\aa d, s, off=0
 	ldl\aa \d, [\s, \off]
 .endm

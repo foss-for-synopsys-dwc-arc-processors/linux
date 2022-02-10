@@ -30,8 +30,13 @@ VECTOR	res_service		; Reset Vector
 VECTOR	mem_service		; Mem exception
 VECTOR	instr_service		; Instrn Error
 VECTOR	EV_MachineCheck		; Fatal Machine check
+#ifdef CONFIG_ARC_MMU_V4
+VECTOR	EV_TLBMissI		; Intruction TLB miss
+VECTOR	EV_TLBMissD		; Data TLB miss
+#else
 VECTOR	EV_IMMUFault		; Translation Fault: Instruction
 VECTOR	EV_DMMUFault		; Translation Fault: Data
+#endif
 VECTOR	EV_TLBProtV		; Protection Violation
 VECTOR	EV_PrivilegeV		; Privilege Violation
 VECTOR	EV_SWI			; Software Breakpoint

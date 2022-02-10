@@ -298,7 +298,7 @@ config ARC_MMU_V3
 
 config ARC_MMU_V4
 	bool "MMU v4"
-	depends on ISA_ARCV2
+	depends on ISA_ARCV2 || ISA_ARCV3
 
 config ARC_MMU_V6
 	bool "MMU v6"

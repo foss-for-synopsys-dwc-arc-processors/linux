@@ -6,9 +6,15 @@
 obj-y	:= extable.o ioremap.o dma.o fault.o init.o mmap.o
 
 ifdef CONFIG_ARC_MMU_HW_WALK
-obj-y	+= tlb-hwalk.o cache-hwalk.o
+obj-y	+= tlb-hwalk.o
 else
-obj-y	+= tlb.o tlbex.o cache.o
+obj-y	+= tlb.o tlbex.o
+endif
+
+ifdef CONFIG_ISA_ARCV3
+obj-y	+= cache-hwalk.o
+else
+obj-y	+= cache.o
 endif
 
 obj-$(CONFIG_HIGHMEM)	+= highmem.o

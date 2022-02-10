@@ -641,7 +641,7 @@ void arc_mmu_init(void)
 	 */
 	if (is_isa_arcompact() && mmu->ver == 3)
 		compat = 1;
-	else if (is_isa_arcv2() && mmu->ver >= 4)
+	else if (!is_isa_arcompact() && mmu->ver >= 4)
 		compat = 1;
 
 	if (!compat)
