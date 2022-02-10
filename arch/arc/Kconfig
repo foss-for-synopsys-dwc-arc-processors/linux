@@ -279,10 +279,6 @@ config ARC_DCCM_BASE
 	default "0xA0000000"
 	depends on ARC_HAS_DCCM
 
-config ARC_MMU_HW_WALK
-	bool
-	depends on ARC_MMU_V6
-
 choice
 	prompt "MMU Version"
 	default ARC_MMU_V3 if ISA_ARCOMPACT
@@ -303,7 +299,6 @@ config ARC_MMU_V4
 config ARC_MMU_V6
 	bool "MMU v6"
 	depends on ISA_ARCV3
-	select ARC_MMU_HW_WALK
 	help
 	  MMU with hardware Page Walker
 

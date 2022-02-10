@@ -5,7 +5,7 @@
 
 obj-y	:= extable.o ioremap.o dma.o fault.o init.o mmap.o
 
-ifdef CONFIG_ARC_MMU_HW_WALK
+ifdef CONFIG_ARC_MMU_V6
 obj-y	+= tlb-hwalk.o
 else
 obj-y	+= tlb.o tlbex.o
