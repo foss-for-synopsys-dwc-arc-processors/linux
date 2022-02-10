@@ -20,6 +20,12 @@
 #include <asm/tlb.h>
 #include <asm-generic/mm_hooks.h>
 
+#ifdef CONFIG_ARC_MMU_V6
+#include <asm/mmu-arcv3.h>
+#else
+#include <asm/mmu-arcv2.h>
+#endif
+
 /*		ARC ASID Management
  *
  * MMU tags TLBs with an 8-bit ASID, avoiding need to flush the TLB on

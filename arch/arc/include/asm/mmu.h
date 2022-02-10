@@ -18,10 +18,4 @@ typedef struct {
 
 #endif
 
-#ifdef CONFIG_ARC_MMU_V6
-#include <asm/mmu-arcv3.h>
-#else
-#include <asm/mmu-arcv2.h>
-#endif
-
 #endif
