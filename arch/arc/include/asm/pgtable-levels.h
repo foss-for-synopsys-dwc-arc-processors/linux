@@ -49,6 +49,27 @@
 
 #endif
 
+#elif defined(CONFIG_ISA_ARCV3) && CONFIG_PGTABLE_LEVELS == 4
+
+/*
+ * paging levels for hardware page walked MMUv6
+ * Page Descriptors for all variants are 64-bits
+ */
+
+/* MMU48 (4K page) : <9> : <9>  : <9>  : <9>  : <12> */
+
+#define PGDIR_SHIFT		39
+#define PUD_SHIFT		30
+#define PMD_SHIFT		21
+
+#define ARC_VADDR_BITS		48
+
+/*
+ * TBD:
+ * MMU32 (4K page) :       <2>  : <9>  : <9>  : <12>
+ * MMU48 (16K page): <1> : <11> : <11> : <11> : <14>
+ */
+
 #else /* CONFIG_PGTABLE_LEVELS != 2 */
 
 /*
@@ -67,9 +88,14 @@
 
 #endif /* CONFIG_PGTABLE_LEVELS */
 
+/* default vaddr width if not set already */
+#ifndef ARC_VADDR_BITS
+#define ARC_VADDR_BITS		32
+#endif
+
 #define PGDIR_SIZE		BIT(PGDIR_SHIFT)
 #define PGDIR_MASK		(~(PGDIR_SIZE - 1))
-#define PTRS_PER_PGD		BIT(32 - PGDIR_SHIFT)
+#define PTRS_PER_PGD		BIT(ARC_VADDR_BITS - PGDIR_SHIFT)
 
 #if CONFIG_PGTABLE_LEVELS > 3
 #define PUD_SIZE		BIT(PUD_SHIFT)
