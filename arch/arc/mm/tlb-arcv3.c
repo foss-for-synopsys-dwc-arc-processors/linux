@@ -47,6 +47,54 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	return n;
 }
 
+/*
+ * Map the kernel code/data into page tables for a given @mm
+ *
+ * Assumes
+ *  - pgd and pud are already allocated
+ *  - pud is wired up to pgd
+ *
+ * TBD: assumes 4 levels, implement properly using p*d_addr_end loops
+ */
+int arc_map_kernel_in_mm(struct mm_struct *mm)
+{
+	unsigned long addr = (unsigned long) PAGE_OFFSET, end = 0xFFFFFFFF;
+	pgd_t *pgd;
+	p4d_t *p4d;
+	pud_t *pud;
+
+	pgd = pgd_offset(mm, addr);
+	if (pgd_none(*pgd) || !pgd_present(*pgd))
+		return 1;
+
+	p4d = p4d_offset(pgd, addr);
+	if (p4d_none(*p4d) || !p4d_present(*p4d))
+		return 1;
+
+	do {
+		pud = pud_offset(p4d, addr);
+		if (!pud_none(*pud) || pud_present(*pud))
+			return 1;
+
+		set_pud(pud, pfn_pud(PFN_DOWN(addr), PAGE_KERNEL_BLK));
+		addr = pud_addr_end(addr, end);
+	}
+	while (addr != end);
+
+	return 0;
+}
+
+void arc_paging_init(void)
+{
+	unsigned int idx = pgd_index(PAGE_OFFSET);
+	swapper_pg_dir[idx] = pfn_pgd(PFN_DOWN((phys_addr_t)swapper_pud), PAGE_TABLE);
+
+	arc_map_kernel_in_mm(&init_mm);
+
+	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
+	write_aux_64(ARC_REG_MMU_RTP1, 0);	/* to catch bugs */
+}
+
 void arc_mmu_init(void)
 {
 	struct mmu_ttbc {
@@ -60,8 +108,6 @@ void arc_mmu_init(void)
 
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
-
-	arc_paging_init();
 
 	ttbc.t0sz = 16;
 	ttbc.t1sz = 16;	/* Not relevant since kernel linked under 4GB hits T0SZ */
@@ -79,8 +125,7 @@ void arc_mmu_init(void)
 
 	WRITE_AUX64(ARC_REG_MMU_MEM_ATTR, memattr);
 
-	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
-	write_aux_64(ARC_REG_MMU_RTP1, 0);	/* to catch bugs */
+	arc_paging_init();
 
 	write_aux_reg(ARC_REG_MMU_CTRL, 0x7);
 }
@@ -89,6 +134,21 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 		      pte_t *ptep)
 {
 
+}
+
+{
+
+
+}
+
+void activate_mm(struct mm_struct *prev_mm, struct mm_struct *next_mm)
+{
+	int map = 0;
+
+	map = arc_map_kernel_in_mm(next_mm);
+	BUG_ON(map);
+
+	switch_mm(prev_mm, next_mm, NULL);
 }
 
 noinline void local_flush_tlb_all(void)
