@@ -76,7 +76,7 @@
 	__typeof__(*(ptr)) _n_ = (new);					\
 	__typeof__(*(ptr)) _prev_;					\
 									\
-	switch(sizeof((_p_))) {						\
+	switch(sizeof(*(_p_))) {						\
 	case 4:								\
 		_prev_ = __cmpxchg(_p_, _o_, _n_);			\
 		break;							\
@@ -99,7 +99,7 @@
 	__typeof__(*(ptr)) _prev_;					\
 	unsigned long __flags;						\
 									\
-	BUILD_BUG_ON(sizeof(_p_) != 4);					\
+	BUILD_BUG_ON(sizeof(*_p_) != 4);					\
 									\
 	/*								\
 	 * spin lock/unlock provide the needed smp_mb() before/after	\
