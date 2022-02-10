@@ -34,6 +34,7 @@ long __init arc_get_mem_sz(void);
 #define IS_AVAIL2(v, s, cfg)	IS_AVAIL1(v, s), IS_AVAIL1(v, IS_USED_CFG(cfg))
 #define IS_AVAIL3(v, v2, s)	IS_AVAIL1(v, s), IS_AVAIL1(v, IS_DISABLED_RUN(v2))
 
+extern void arc_paging_init(void);
 extern void arc_mmu_init(void);
 extern int arc_mmu_mumbojumbo(int cpu_id, char *buf, int len);
 

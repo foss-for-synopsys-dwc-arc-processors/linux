@@ -49,9 +49,10 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 
 void arc_mmu_init(void)
 {
-	return;
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
+
+	arc_paging_init();
 }
 
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,

@@ -30,7 +30,9 @@
 extern char empty_zero_page[PAGE_SIZE];
 #define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
 
-extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
+extern pgd_t swapper_pg_dir[] __page_aligned_bss;
+extern pud_t swapper_pud[] __page_aligned_bss;
+extern pmd_t swapper_pmd[] __page_aligned_bss;
 
 /* to cope with aliasing VIPT cache */
 #define HAVE_ARCH_UNMAPPED_AREA
