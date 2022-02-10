@@ -151,6 +151,14 @@ void activate_mm(struct mm_struct *prev_mm, struct mm_struct *next_mm)
 	switch_mm(prev_mm, next_mm, NULL);
 }
 
+int arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
+{
+	int map = arc_map_kernel_in_mm(mm);
+	BUG_ON(map);
+
+	return 0;
+}
+
 noinline void local_flush_tlb_all(void)
 {
 	write_aux_reg(ARC_REG_MMU_TLB_CMD, 1);
