@@ -344,6 +344,7 @@ endchoice
 
 config PGTABLE_LEVELS
 	int "Number of Page table levels"
+	default 3 if 64BIT
 	default 2
 
 config ARC_COMPACT_IRQ_LEVELS

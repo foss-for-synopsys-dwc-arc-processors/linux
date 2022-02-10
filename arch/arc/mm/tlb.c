@@ -603,8 +603,8 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 			  IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE) ? " (THP enabled)":"");
 
 	n += scnprintf(buf + n, len - n,
-		       "MMU [v%x]\t: %dk%s, JTLB %dx%d, uDTLB %d, uITLB %d%s%s\n",
-		       mmu->ver, mmu->pg_sz_k, super_pg,
+		       "MMU [v%x]\t: %dk%s, swalk %d lvl, JTLB %dx%d, uDTLB %d, uITLB %d%s%s\n",
+		       mmu->ver, mmu->pg_sz_k, super_pg, CONFIG_PGTABLE_LEVELS,
 		       mmu->sets, mmu->ways,
 		       u_dtlb, u_itlb,
 		       IS_AVAIL2(mmu->pae, ", PAE40 ", CONFIG_ARC_HAS_PAE40));

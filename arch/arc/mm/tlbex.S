@@ -176,7 +176,7 @@ ex_saved_reg1:
 #if CONFIG_PGTABLE_LEVELS > 3
 	lsr     r0, r2, PUD_SHIFT	; Bits for indexing into PUD
 	and	r0, r0, (PTRS_PER_PUD - 1)
-	ld.as	r1, [r3, r0]		; PMD entry
+	ld.as	r1, [r3, r0]		; PUD entry
 	tst	r1, r1
 	bz	do_slow_path_pf
 	mov	r3, r1
