@@ -171,12 +171,13 @@ ex_saved_reg1:
 	LSRR	r0, r2, PGDIR_SHIFT     ; Bits for indexing into PGD
 	LDR.as  r3, r1, r0              ; PGD entry corresp to faulting addr
 	tst	r3, r3
-	bz	do_slow_path_pf         ; if no Page Table, do page fault
+	bz	do_slow_path_pf         ; next level table missing, handover to linux vm code
 
 #if CONFIG_PGTABLE_LEVELS > 3
 	LSRR	r0, r2, PUD_SHIFT	; Bits for indexing into PUD
 	and	r0, r0, (PTRS_PER_PUD - 1)
-	ld.as	r1, [r3, r0]		; PUD entry
+	BMSKNR	r3, r3, 1		; clear _PAGE_TABLE bits
+	LDR.as	r1, r3, r0		; PUD entry
 	tst	r1, r1
 	bz	do_slow_path_pf
 	mov	r3, r1
@@ -185,7 +186,8 @@ ex_saved_reg1:
 #if CONFIG_PGTABLE_LEVELS > 2
 	LSRR	r0, r2, PMD_SHIFT	; Bits for indexing into PMD
 	and	r0, r0, (PTRS_PER_PMD - 1)
-	ld.as	r1, [r3, r0]		; PMD entry
+	BMSKNR	r3, r3, 1		; clear _PAGE_TABLE bits
+	LDR.as	r1, r3, r0		; PMD entry
 	tst	r1, r1
 	bz	do_slow_path_pf
 	mov	r3, r1
