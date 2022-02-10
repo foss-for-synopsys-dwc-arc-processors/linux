@@ -289,6 +289,56 @@ static int arcv2_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 	return n;
 }
 
+static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
+{
+	int n = 0;
+#ifdef CONFIG_ISA_ARCV3
+	int arc64, dual_issue = 0, dual_enb = 0;
+	const char *cpu_nm, *isa_nm;
+	struct bcr_isa_cfg_arcv3 isa;
+	struct bcr_uarch_build uarch;
+	char mpy_nm[32];
+
+	arc64 = (info->arcver & 0x70) == 0x70;
+
+	READ_BCR(ARC_REG_ISA_CFG_BCR, isa);
+	READ_BCR(ARC_REG_MICRO_ARCH_BCR, uarch);
+
+	cpu_nm = arc64 ? "HS68" : "HS58";
+	isa_nm = arc64 ? "ARC64" : "ARC32";
+
+	n += scnprintf(buf + n, len - n, "processor [%d]\t: %s (%s ARCv3 ISA) %s%s%s\n",
+		       c, cpu_nm, isa_nm,
+		       IS_AVAIL1(isa.be, "[Big-Endian]"),
+		       IS_AVAIL3(dual_issue, dual_enb, " Dual-Issue "));
+
+	if (arc64) {
+		struct bcr_mpy_arc64 mpy;
+
+		READ_BCR(ARC_REG_MPY_ARC64_BCR, mpy);
+		scnprintf(mpy_nm, 32, "mpy[32x32%s] ",
+			  mpy.is64x64 ? " ,64x64" : "");
+
+	} else {
+		struct bcr_mpy mpy;
+		int mpy_opt;
+
+		READ_BCR(ARC_REG_MPY_BCR, mpy);
+		mpy_opt = 2;	/* stock MPY/MPYH */
+		if (mpy.dsp)	/* OPT 7-9 */
+			mpy_opt = mpy.dsp + 6;
+		scnprintf(mpy_nm, 32, "mpy[opt %d] ", mpy_opt);
+	}
+
+	n += scnprintf(buf + n, len - n, "ISA Extn\t: %s%s%s%s%s%s\n",
+		       IS_AVAIL2(isa.atomic, "atomic ", CONFIG_ARC_HAS_LLSC),
+		       IS_AVAIL2(isa.unalign, "unalign ", CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS),
+		       mpy_nm,
+		       IS_AVAIL1(isa.div64, "div64 "));
+#endif
+	return n;
+}
+
 static char *arc_cpu_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 {
 	struct bcr_identity ident;
@@ -312,6 +362,8 @@ static char *arc_cpu_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int 
 		n += arcompact_mumbojumbo(c, info, buf + n, len - n);
 	} else if (is_isa_arcv2()){
 		n += arcv2_mumbojumbo(c, info, buf + n, len - n);
+	} else {
+		n += arcv3_mumbojumbo(c, info, buf + n, len - n);
 	}
 
 	n += arc_mmu_mumbojumbo(c, buf + n, len - n);

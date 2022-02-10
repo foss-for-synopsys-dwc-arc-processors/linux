@@ -14,7 +14,7 @@ config ARC
 	select ARCH_HAS_SYNC_DMA_FOR_CPU
 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
 	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
-	select ARCH_32BIT_OFF_T
+	select ARCH_32BIT_OFF_T if !64BIT
 	select BUILDTIME_TABLE_SORT
 	select CLONE_BACKWARDS
 	select COMMON_CLK
@@ -46,7 +46,7 @@ config ARC
 	select OF_EARLY_FLATTREE
 	select PCI_SYSCALL if PCI
 	select PERF_USE_VMALLOC if ARC_CACHE_VIPT_ALIASING
-	select HAVE_ARCH_JUMP_LABEL if ISA_ARCV2 && !CPU_ENDIAN_BE32
+	select HAVE_ARCH_JUMP_LABEL if !ISA_ARCOMPACT && !CPU_ENDIAN_BE32
 	select SET_FS
 	select TRACE_IRQFLAGS_SUPPORT
 
@@ -78,6 +78,9 @@ config STACKTRACE_SUPPORT
 	def_bool y
 	select STACKTRACE
 
+config 64BIT
+	bool
+
 menu "ARC Architecture Configuration"
 
 menu "ARC Platform/SoC/Board"
@@ -104,6 +107,15 @@ config ISA_ARCV2
 	help
 	  ISA for the Next Generation ARC-HS cores
 
+config ISA_ARCV3
+	bool "ARC ISA v3"
+	select 64BIT
+	select ARC_HAS_LL64
+	select ARC_LACKS_ZOL
+	select ARC_TIMERS_64BIT
+	help
+	  ISA supporting 64-bit addressing for ARC HS5x/HS6x cores
+
 endchoice
 
 menu "ARC CPU Configuration"
@@ -112,6 +124,7 @@ choice
 	prompt "ARC Core"
 	default ARC_CPU_770 if ISA_ARCOMPACT
 	default ARC_CPU_HS if ISA_ARCV2
+	default ARC_CPU_HS6X if ISA_ARCV3
 
 config ARC_CPU_770
 	bool "ARC770"
@@ -126,7 +139,7 @@ config ARC_CPU_770
 	  -Insns: endian swap, load-locked/store-conditional, time-stamp-ctr
 
 config ARC_CPU_HS
-	bool "ARC-HS"
+	bool "ARC-HS38x/HS48x"
 	depends on ISA_ARCV2
 	help
 	  Support for ARC HS38x Cores based on ARCv2 ISA
@@ -143,6 +156,12 @@ config ARC_CPU_HS
 		* IRQ enable/disable: CLRI, SETI
 		* pop count: FFS, FLS
 		* SETcc, BMSKN, XBFU...
+
+config ARC_CPU_HS6X
+	bool "ARC-HS58x/HS68x"
+	depends on ISA_ARCV3
+	help
+	  Support for ARC HS68x Cores based on ARCv3 ISA
 
 endchoice
 
@@ -162,7 +181,7 @@ config CPU_BIG_ENDIAN
 
 config SMP
 	bool "Symmetric Multi-Processing"
-	select ARC_MCIP if ISA_ARCV2
+	select ARC_MCIP if !ISA_ARCOMPACT
 	help
 	  This enables support for systems with more than one CPU.
 
@@ -186,7 +205,7 @@ endif #SMP
 
 config ARC_MCIP
 	bool "ARConnect Multicore IP (MCIP) Support "
-	depends on ISA_ARCV2
+	depends on !ISA_ARCOMPACT
 	default y if SMP
 	help
 	  This IP block enables SMP in ARC-HS38 cores.
@@ -260,6 +279,10 @@ config ARC_DCCM_BASE
 	default "0xA0000000"
 	depends on ARC_HAS_DCCM
 
+config ARC_MMU_HW_WALK
+	bool
+	depends on ARC_MMU_V6
+
 choice
 	prompt "MMU Version"
 	default ARC_MMU_V3 if ISA_ARCOMPACT
@@ -277,12 +300,20 @@ config ARC_MMU_V4
 	bool "MMU v4"
 	depends on ISA_ARCV2
 
+config ARC_MMU_V6
+	bool "MMU v6"
+	depends on ISA_ARCV3
+	select ARC_MMU_HW_WALK
+	help
+	  MMU with hardware Page Walker
+
 endchoice
 
 
 choice
 	prompt "MMU Page Size"
-	default ARC_PAGE_SIZE_8K
+	default ARC_PAGE_SIZE_8K if !ISA_ARCV3
+	default ARC_PAGE_SIZE_4K if ISA_ARCV3
 
 config ARC_PAGE_SIZE_8K
 	bool "8KB"
@@ -294,7 +325,7 @@ config ARC_PAGE_SIZE_16K
 
 config ARC_PAGE_SIZE_4K
 	bool "4KB"
-	depends on ARC_MMU_V3 || ARC_MMU_V4
+	depends on ARC_MMU_V3 || ARC_MMU_V4 || ARC_MMU_V6
 
 endchoice
 
@@ -341,7 +372,7 @@ config ARC_HAS_SWAPE
 	bool "Insn: SWAPE (endian-swap)"
 	default y
 
-if ISA_ARCV2
+if !ISA_ARCOMPACT
 
 config ARC_LACKS_ZOL
 	bool "Disable Zero Delay hardware loops"

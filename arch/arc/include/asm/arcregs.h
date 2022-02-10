@@ -24,6 +24,7 @@
 #define ARC_REG_XY_MEM_BCR	0x79
 #define ARC_REG_MAC_BCR		0x7a
 #define ARC_REG_MPY_BCR		0x7b
+#define ARC_REG_MPY_ARC64_BCR	0xc8
 #define ARC_REG_SWAP_BCR	0x7c
 #define ARC_REG_NORM_BCR	0x7d
 #define ARC_REG_MIXMAX_BCR	0x7e
@@ -177,6 +178,17 @@ struct bcr_isa_arcv2 {
 #endif
 };
 
+struct bcr_isa_cfg_arcv3 {
+#ifdef CONFIG_CPU_BIG_ENDIAN
+	unsigned int pad3:2, div64:2, pad2:2, ldst128:2, unalign:1,
+		     atomic:2, be:1, pasz:4, pad:4, vasz:4, ver:8;
+
+#else
+	unsigned int ver:8, vasz:4, pad:4, pasz:4, be:1, atomic:2,
+		     unalign:1, ldst128:2, pad2:2, div64:2, pad3:2;
+#endif
+};
+
 struct bcr_uarch_build {
 #ifdef CONFIG_CPU_BIG_ENDIAN
 	unsigned int pad:8, prod:8, maj:8, min:8;
@@ -203,6 +215,14 @@ struct bcr_mmu_4 {
 	/*           DTLB      ITLB      JES        JE         JA      */
 	unsigned int u_dtlb:3, u_itlb:3, n_super:2, n_entry:2, n_ways:2,
 		     pae:1, res:2, sz0:4, sz1:4, sasid:1, ver:8;
+#endif
+};
+
+struct bcr_mmu_6 {
+#ifdef CONFIG_CPU_BIG_ENDIAN
+	unsigned int ver:4, variant:2, res:17, n_tlb:3, u_itlb:3, u_dtlb:3;
+#else
+	unsigned int u_dtlb:3, u_itlb:3, n_tlb:3, res:17, variant:2, ver:4;
 #endif
 };
 
@@ -243,6 +263,14 @@ struct bcr_mpy {
 	unsigned int pad:8, x1616:8, dsp:4, cycles:2, type:2, ver:8;
 #else
 	unsigned int ver:8, type:2, cycles:2, dsp:4, x1616:8, pad:8;
+#endif
+};
+
+struct bcr_mpy_arc64 {
+#ifdef CONFIG_CPU_BIG_ENDIAN
+	unsigned int pad:19, lr:2, is64x64:1, lat32x32:2, ver:8;
+#else
+	unsigned int ver:8, lat32x32:2, is64x64:1, lr:2, pad:19;
 #endif
 };
 
