@@ -27,6 +27,12 @@
 	sr	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
 #endif
 
+#ifdef CONFIG_ARC_HWPF
+        lr      r5, [ARC_REG_HW_PF_CTRL]
+        or      r5, r5, 1
+        sr      r5, [ARC_REG_HW_PF_CTRL]
+#endif
+
 	; Disable I-cache/D-cache if kernel so configured
 	lr	r5, [ARC_REG_IC_BCR]
 	breq    r5, 0, 1f		; I$ doesn't exist

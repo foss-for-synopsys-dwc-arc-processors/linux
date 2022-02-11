@@ -254,6 +254,15 @@ config ARC_CACHE_VIPT_ALIASING
 
 endif #ARC_CACHE
 
+config ARC_HWPF
+	bool "Hardware Data-cache Stride Prefetcher"
+	depends on ISA_ARCV3
+	default n
+	help
+	  Hardware Prefetcher which monitors data accesses. Optimizes reads to
+	  memory by doind readahead and also optimizes writes by switching to
+	  write streaming, bypassing caches.
+
 config ARC_HAS_ICCM
 	bool "Use ICCM"
 	help
