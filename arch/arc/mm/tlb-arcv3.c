@@ -150,24 +150,6 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 
 }
 
-void activate_mm(struct mm_struct *prev_mm, struct mm_struct *next_mm)
-{
-	int map = 0;
-
-	map = arc_map_kernel_in_mm(next_mm);
-	BUG_ON(map);
-
-	switch_mm(prev_mm, next_mm, NULL);
-}
-
-int arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
-{
-	int map = arc_map_kernel_in_mm(mm);
-	BUG_ON(map);
-
-	return 0;
-}
-
 void arch_exit_mmap(struct mm_struct *mm)
 {
 	/*

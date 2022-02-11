@@ -174,28 +174,21 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
  * again (this teased me for a whole day).
  */
 
-#ifdef CONFIG_ARC_MMU_V6
-#define activate_mm activate_mm
-extern void activate_mm(struct mm_struct *prev, struct mm_struct *next);
-#endif
-
 #include <asm-generic/mmu_context.h>
 
 /* override mm_hooks.h */
 
-#ifndef CONFIG_ARC_MMU_V6
 static inline int arch_dup_mmap(struct mm_struct *oldmm,
 				struct mm_struct *mm)
 {
 	return 0;
 }
 
+#ifndef CONFIG_ARC_MMU_V6
 static inline void arch_exit_mmap(struct mm_struct *mm)
 {
 }
-
 #else
-extern int arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm);
 extern void arch_exit_mmap(struct mm_struct *mm);
 #endif
 
