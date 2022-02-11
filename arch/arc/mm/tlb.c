@@ -171,11 +171,16 @@ noinline void local_flush_tlb_all(void)
 	local_irq_restore(flags);
 }
 
+#define TLB_FLUSH_MM_INCR_ASID 1
+
 /*
  * Flush the entire MM for userland. The fastest way is to move to Next ASID
  */
 noinline void local_flush_tlb_mm(struct mm_struct *mm)
 {
+#ifndef TLB_FLUSH_MM_INCR_ASID
+	local_flush_tlb_all();
+#else
 	/*
 	 * Small optimisation courtesy IA64
 	 * flush_mm called during fork,exit,munmap etc, multiple times as well.
@@ -195,6 +200,7 @@ noinline void local_flush_tlb_mm(struct mm_struct *mm)
 	destroy_context(mm);
 	if (current->mm == mm)
 		get_new_mmu_context(mm);
+#endif
 }
 
 /*
