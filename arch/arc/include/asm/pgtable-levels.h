@@ -151,13 +151,6 @@ extern void ptw_flush(void *pxx);
 /*
  * 2nd level paging: pud
  */
-#define pud_index(addr) (((addr) >> PUD_SHIFT) & (PTRS_PER_PUD - 1))
-
-static inline pud_t * pud_offset(p4d_t * p4d, unsigned long addr)
-{
-	return (pud_t *)p4d_page_vaddr(*p4d) + pud_index(addr);
-}
-
 #define pud_ERROR(e) \
 	pr_crit("%s:%d: bad pud %08lx.\n", __FILE__, __LINE__, pud_val(e))
 
@@ -181,13 +174,6 @@ static inline pud_t * pud_offset(p4d_t * p4d, unsigned long addr)
 /*
  * 3rd level paging: pmd
  */
-#define pmd_index(addr) (((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
-
-static inline pmd_t * pmd_offset(pud_t * pud, unsigned long addr)
-{
-	return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(addr);
-}
-
 #define pmd_ERROR(e) \
 	pr_crit("%s:%d: bad pmd %08lx.\n", __FILE__, __LINE__, pmd_val(e))
 
