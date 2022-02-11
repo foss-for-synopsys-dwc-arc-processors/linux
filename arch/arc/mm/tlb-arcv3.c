@@ -98,6 +98,7 @@ void arc_paging_init(void)
 {
 	unsigned int idx = pgd_index(PAGE_OFFSET);
 	swapper_pg_dir[idx] = pfn_pgd(PFN_DOWN((phys_addr_t)swapper_pud), PAGE_TABLE);
+	ptw_flush(&swapper_pg_dir[idx]);
 
 	arc_map_kernel_in_mm(&init_mm);
 
@@ -126,8 +127,8 @@ void arc_mmu_init(void)
 	ttbc.t1sz = 16;	/* Not relevant since kernel linked under 4GB hits T0SZ */
 	ttbc.t0sh = __SHR_INNER;
 	ttbc.t1sh = __SHR_INNER;
-	ttbc.t0c = IS_ENABLED(CONFIG_ARC_HAS_DCACHE);
-	ttbc.t1c = IS_ENABLED(CONFIG_ARC_HAS_DCACHE);
+	ttbc.t0c = !IS_ENABLED(CONFIG_ARC_PTW_UNCACHED);
+	ttbc.t1c = !IS_ENABLED(CONFIG_ARC_PTW_UNCACHED);
 	ttbc.a1 = 0;  /* ASID used is from MMU_RTP0 */
 
 	WRITE_AUX(ARC_REG_MMU_TTBC, ttbc);
@@ -146,11 +147,6 @@ void arc_mmu_init(void)
 void update_mmu_cache(struct vm_area_struct *vma, unsigned long vaddr_unaligned,
 		      pte_t *ptep)
 {
-
-}
-
-{
-
 
 }
 

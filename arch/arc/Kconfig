@@ -303,6 +303,12 @@ config ARC_MMU_V6
 	help
 	  MMU with hardware Page Walker
 
+config ARC_PTW_UNCACHED
+	bool "Hardware Page Walker needs Uncached page tables"
+	depends on ARC_MMU_V6
+	help
+	  Hardware Page Walker needs Uncached page tables
+
 endchoice
 
 

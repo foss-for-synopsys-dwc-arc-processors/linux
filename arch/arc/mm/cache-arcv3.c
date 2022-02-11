@@ -212,6 +212,13 @@ void flush_dcache_page(struct page *page)
 	clear_bit(PG_dc_clean, &page->flags);
 }
 
+void ptw_flush(void *xp)
+{
+#ifdef CONFIG_ARC_PTW_UNCACHED
+        write_aux_64(ARC_REG_DC_IVDL, (unsigned long)xp);
+#endif
+}
+
 void set_pte_at(struct mm_struct *mm, unsigned long vaddr, pte_t *ptep, pte_t pte)
 {
 	if (pte_present(pte) && pte_exec(pte)) {
