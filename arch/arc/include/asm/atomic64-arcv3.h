@@ -12,11 +12,11 @@
  * since gcc could tear load/store
  */
 
-#define atomic64_read(v)	READ_ONCE((v)->counter)
-#define atomic64_set(v, i)	WRITE_ONCE(((v)->counter), (i))
+#define arch_atomic64_read(v)	READ_ONCE((v)->counter)
+#define arch_atomic64_set(v, i)	WRITE_ONCE(((v)->counter), (i))
 
 #define ATOMIC64_OP(op, op1)						\
-static inline void atomic64_##op(s64 a, atomic64_t *v)			\
+static inline void arch_atomic64_##op(s64 a, atomic64_t *v)			\
 {									\
 	s64 val;							\
 									\
@@ -32,7 +32,7 @@ static inline void atomic64_##op(s64 a, atomic64_t *v)			\
 }									\
 
 #define ATOMIC64_OP_RETURN(op, op1)		        	\
-static inline s64 atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
+static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val;							\
 									\
@@ -50,7 +50,7 @@ static inline s64 atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 }
 
 #define ATOMIC64_FETCH_OP(op, op1)		        		\
-static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
+static inline s64 arch_atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val, orig;							\
 									\
@@ -75,10 +75,10 @@ static inline s64 atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 ATOMIC64_OPS(add, addl)
 ATOMIC64_OPS(sub, subl)
 
-#define atomic64_fetch_add_relaxed	atomic64_fetch_add_relaxed
-#define atomic64_fetch_sub_relaxed	atomic64_fetch_sub_relaxed
-#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
-#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
+#define arch_atomic64_fetch_add_relaxed		arch_atomic64_fetch_add_relaxed
+#define arch_atomic64_fetch_sub_relaxed		arch_atomic64_fetch_sub_relaxed
+#define arch_atomic64_add_return_relaxed	arch_atomic64_add_return_relaxed
+#define arch_atomic64_sub_return_relaxed	arch_atomic64_sub_return_relaxed
 
 #undef ATOMIC64_OPS
 #define ATOMIC64_OPS(op, op1)					\
@@ -90,11 +90,11 @@ ATOMIC64_OPS(andnot, bicl)
 ATOMIC64_OPS(or, orl)
 ATOMIC64_OPS(xor, xorl)
 
-#define atomic64_andnot			atomic64_andnot
-#define atomic64_fetch_and_relaxed	atomic64_fetch_and_relaxed
-#define atomic64_fetch_andnot_relaxed	atomic64_fetch_andnot_relaxed
-#define atomic64_fetch_or_relaxed	atomic64_fetch_or_relaxed
-#define atomic64_fetch_xor_relaxed	atomic64_fetch_xor_relaxed
+#define arch_atomic64_andnot			arch_atomic64_andnot
+#define arch_atomic64_fetch_and_relaxed		arch_atomic64_fetch_and_relaxed
+#define arch_atomic64_fetch_andnot_relaxed	arch_atomic64_fetch_andnot_relaxed
+#define arch_atomic64_fetch_or_relaxed		arch_atomic64_fetch_or_relaxed
+#define arch_atomic64_fetch_xor_relaxed		arch_atomic64_fetch_xor_relaxed
 
 #undef ATOMIC64_OPS
 #undef ATOMIC64_FETCH_OP
@@ -102,7 +102,7 @@ ATOMIC64_OPS(xor, xorl)
 #undef ATOMIC64_OP
 
 static inline s64
-atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
+arch_atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 {
 	s64 prev;
 
@@ -123,7 +123,7 @@ atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 	return prev;
 }
 
-static inline s64 atomic64_xchg(atomic64_t *ptr, s64 new)
+static inline s64 arch_atomic64_xchg(atomic64_t *ptr, s64 new)
 {
 	s64 prev;
 
@@ -151,7 +151,7 @@ static inline s64 atomic64_xchg(atomic64_t *ptr, s64 new)
  * the atomic variable, v, was not decremented.
  */
 
-static inline s64 atomic64_dec_if_positive(atomic64_t *v)
+static inline s64 arch_atomic64_dec_if_positive(atomic64_t *v)
 {
 	s64 val;
 
@@ -172,7 +172,7 @@ static inline s64 atomic64_dec_if_positive(atomic64_t *v)
 
 	return val;
 }
-#define atomic64_dec_if_positive atomic64_dec_if_positive
+#define arch_atomic64_dec_if_positive arch_atomic64_dec_if_positive
 
 /**
  * atomic64_fetch_add_unless - add unless the number is a given value
@@ -183,7 +183,7 @@ static inline s64 atomic64_dec_if_positive(atomic64_t *v)
  * Atomically adds @a to @v, if it was not @u.
  * Returns the old value of @v
  */
-static inline s64 atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
+static inline s64 arch_atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
 {
 	s64 old, temp;
 
@@ -205,6 +205,6 @@ static inline s64 atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
 
 	return old;
 }
-#define atomic64_fetch_add_unless atomic64_fetch_add_unless
+#define arch_atomic64_fetch_add_unless arch_atomic64_fetch_add_unless
 
 #endif
