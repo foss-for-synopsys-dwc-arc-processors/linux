@@ -127,8 +127,12 @@ TIMER_OF_DECLARE(arc_gfrc, "snps,archs-timer-gfrc", arc_cs_setup_gfrc);
 
 static u64 arc_read_rtc(struct clocksource *cs)
 {
+	u64 rtc;
+
+#ifdef CONFIG_64BIT
+	rtc = read_aux_64(AUX_RTC_LOW);
+#else
 	unsigned long status;
-	u32 l, h;
 
 	/*
 	 * hardware has an internal state machine which tracks readout of
@@ -137,12 +141,13 @@ static u64 arc_read_rtc(struct clocksource *cs)
 	 *  - high increments after low has been read
 	 */
 	do {
-		l = read_aux_reg(AUX_RTC_LOW);
-		h = read_aux_reg(AUX_RTC_HIGH);
+		rtc = read_aux_reg(AUX_RTC_LOW);
+		rtc |= ((u64)read_aux_reg(AUX_RTC_HIGH)) << 32;
 		status = read_aux_reg(AUX_RTC_CTRL);
 	} while (!(status & BIT(31)));
+#endif
 
-	return (((u64)h) << 32) | l;
+	return rtc;
 }
 
 static notrace u64 arc_rtc_clock_read(void)
