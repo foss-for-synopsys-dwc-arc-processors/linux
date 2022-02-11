@@ -29,7 +29,12 @@
 #endif
 
 #define PAGE_SIZE	_BITUL(PAGE_SHIFT)	/* Default 8K */
+
+#ifdef CONFIG_64BIT
+#define PAGE_OFFSET	_AC(0xffff000000000000, UL)
+#else
 #define PAGE_OFFSET	_AC(0x80000000, UL)	/* Kernel starts at 2G onwrds */
+#endif
 
 #define PAGE_MASK	(~(PAGE_SIZE-1))
 

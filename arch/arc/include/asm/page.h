@@ -19,7 +19,9 @@
 
 #endif /* CONFIG_ARC_HAS_PAE40 */
 
-#ifndef __ASSEMBLY__
+#ifdef __ASSEMBLY__
+#define __pgprot(x)	(x)
+#else
 
 #define clear_page(paddr)		memset((paddr), 0, PAGE_SIZE)
 #define copy_user_page(to, from, vaddr, pg)	copy_page(to, from)
@@ -116,9 +118,9 @@ extern int pfn_valid(unsigned long pfn);
 #ifdef CONFIG_ISA_ARCV3
 
 #define __pa(vaddr)  		((unsigned long)(vaddr) - \
-				PAGE_OFFSET + CONFIG_LINUX_RAM_BASE)
+				PAGE_OFFSET + CONFIG_LINUX_LINK_BASE)
 #define __va(paddr)  		((void *)((unsigned long)(paddr) - \
-				CONFIG_LINUX_RAM_BASE + PAGE_OFFSET))
+				CONFIG_LINUX_LINK_BASE + PAGE_OFFSET))
 
 #else /* V2 and Compact */
 

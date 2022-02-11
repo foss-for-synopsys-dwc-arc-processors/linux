@@ -167,7 +167,8 @@ tracesys:
 	LDR  r5, sp, PT_r5
 	LDR  r6, sp, PT_r6
 	LDR  r7, sp, PT_r7
-	LDR.as   r9, sys_call_table, r8
+	MOVA 	r9, sys_call_table
+	LDR.as  r9, r9, r8
 	jl      [r9]
 
 tracesys_exit:
@@ -231,7 +232,8 @@ ENTRY(EV_Trap)
 	MOVR.hi r0, -ENOSYS
 	bhi     .Lret_from_system_call
 
-	LDR.as  r9, sys_call_table, r8
+	MOVA 	r9, sys_call_table
+	LDR.as  r9, r9, r8
 	jl      [r9]
 
 .Lret_from_system_call:

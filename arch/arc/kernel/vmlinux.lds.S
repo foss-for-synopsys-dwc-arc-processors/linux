@@ -25,7 +25,11 @@ SECTIONS
 	 * Essentially vector is also in ICCM.
 	 */
 
+#ifdef CONFIG_64BIT
+	. = PAGE_OFFSET;
+#else
 	. = CONFIG_LINUX_LINK_BASE;
+#endif
 
 	_int_vec_base_lds = .;
 	.vector : {

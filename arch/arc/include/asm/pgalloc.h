@@ -53,6 +53,9 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t pte_
 
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 {
+#if defined(CONFIG_64BIT)
+	pgd_t *ret = (pgd_t *) __get_free_page(GFP_KERNEL | __GFP_ZERO);
+#else
 	pgd_t *ret = (pgd_t *) __get_free_page(GFP_KERNEL);
 
 	if (ret) {
@@ -64,9 +67,11 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 		memcpy(ret + num, swapper_pg_dir + num, num2 * sizeof(pgd_t));
 
 		memzero(ret + num + num2,
-			       (PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
+				(PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
 
 	}
+#endif
+
 	return ret;
 }
 

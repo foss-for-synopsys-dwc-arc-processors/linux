@@ -18,6 +18,11 @@
 	orl	\d, \d, \sym@u32
 .endm
 
+.macro MOVI d, imm
+	movhl	\d, (\imm >> 32)
+	orl	\d, \d, \imm@u32
+.endm
+
 .irp    aa,,.as,.aw
 .macro LDR\aa d, s, off=0
 	ldl\aa \d, [\s, \off]
@@ -91,11 +96,39 @@
 	lsrl	\d, \s, \v
 .endm
 
+.macro ASLR d, s, v
+	asll \d, \s, \v
+.endm
+
+.macro ANDR d, s, v
+	andl \d, \s, \v
+.endm
+
+.macro ORR, d, s, v
+	orl \d, \s, \v
+.endm
+
+.macro XORR d, s, v
+	xorl \d, \s, \v
+.endm
+
 .irp    cc,ne,eq
 .macro BRR\cc d, s, lbl
 	br\cc\()l  \d, \s, \lbl
 .endm
 .endr
+
+.macro CMPR op1, op2
+	cmpl \op1, \op2
+.endm
+
+.macro BBIT0R d, s, lbl
+	bbit0l \d, \s, \lbl
+.endm
+
+.macro BBIT1R d, s, lbl
+	bbit1l \d, \s, \lbl
+.endm
 
 /*
  * Abstraction for 64-bit load/store
