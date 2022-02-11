@@ -20,20 +20,7 @@
 
 #ifndef __ASSEMBLY__
 
-#include <linux/sched/mm.h>
-
-static void inline mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
-{
-#ifdef CONFIG_64BIT
-	unsigned long rtp0 = (asid << 48) | __pa(mm->pgd);
-
-	BUG_ON(__pa(mm->pgd) >> 48);
-	write_aux_64(ARC_REG_MMU_RTP0, rtp0);
-
-#else
-#error "Need to implement 2 SR ops"
-#endif
-}
+extern void mmu_setup_asid(struct mm_struct *mm, unsigned long asid);
 
 static void inline mmu_setup_pgd(struct mm_struct *mm, void *pgd)
 {
