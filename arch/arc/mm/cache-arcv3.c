@@ -104,6 +104,7 @@ static inline void __dc_op_after(const int op)
 
 static void __flush_dcache_range(phys_addr_t paddr, unsigned long vaddr, int len, const int op)
 {
+#ifdef CONFIG_ARC_HAS_DCACHE
 	unsigned long end;
 
 	end = paddr + len + L1_CACHE_BYTES - 1;
@@ -114,6 +115,7 @@ static void __flush_dcache_range(phys_addr_t paddr, unsigned long vaddr, int len
         write_aux_64(ARC_REG_DC_STARTR, paddr);
 
         __dc_op_after(op);
+#endif
 }
 
 /*

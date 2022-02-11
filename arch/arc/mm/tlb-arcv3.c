@@ -126,8 +126,8 @@ void arc_mmu_init(void)
 	ttbc.t1sz = 16;	/* Not relevant since kernel linked under 4GB hits T0SZ */
 	ttbc.t0sh = __SHR_INNER;
 	ttbc.t1sh = __SHR_INNER;
-	ttbc.t0c = 1;
-	ttbc.t1c = 1;
+	ttbc.t0c = IS_ENABLED(CONFIG_ARC_HAS_DCACHE);
+	ttbc.t1c = IS_ENABLED(CONFIG_ARC_HAS_DCACHE);
 	ttbc.a1 = 0;  /* ASID used is from MMU_RTP0 */
 
 	WRITE_AUX(ARC_REG_MMU_TTBC, ttbc);
