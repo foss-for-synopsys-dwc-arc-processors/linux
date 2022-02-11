@@ -23,7 +23,7 @@ static int genregs_get(struct task_struct *target,
 {
 	const struct pt_regs *ptregs = task_pt_regs(target);
 	const struct callee_regs *cregs = task_callee_regs(target);
-	unsigned int stop_pc_val;
+	unsigned long stop_pc_val;
 
 	membuf_zero(&to, 4);	// pad
 	membuf_store(&to, ptregs->bta);
