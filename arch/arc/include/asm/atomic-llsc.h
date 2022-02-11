@@ -3,6 +3,12 @@
 #ifndef _ASM_ARC_ATOMIC_LLSC_H
 #define _ASM_ARC_ATOMIC_LLSC_H
 
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#define ATOMIC_CONSTR	"+ATOMC"
+#else
+#define ATOMIC_CONSTR	"+ATO"
+#endif
+
 #define arch_atomic_set(v, i) WRITE_ONCE(((v)->counter), (i))
 
 #define ATOMIC_OP(op, asm_op)					\
@@ -11,14 +17,14 @@ static inline void arch_atomic_##op(int i, atomic_t *v)			\
 	unsigned int val;						\
 									\
 	__asm__ __volatile__(						\
-	"1:	llock   %[val], [%[ctr]]		\n"		\
+	"1:	llock   %[val], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[val], %[i]	\n"		\
-	"	scond   %[val], [%[ctr]]		\n"		\
+	"	scond   %[val], %[ctr]			\n"		\
 	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val) /* Early clobber to prevent reg reuse */	\
-	: [ctr]	"r"	(&v->counter), /* Not "m": llock only supports reg direct addr mode */	\
-	  [i]	"ir"	(i)						\
-	: "cc");							\
+	: [val]	"=&r"	(val), /* Early clobber to prevent reg reuse */	\
+	  [ctr] ATOMIC_CONSTR (v->counter)				\
+	: [i]	"ir"	(i)						\
+	: "cc", "memory");						\
 }									\
 
 #define ATOMIC_OP_RETURN(op, asm_op)				\
@@ -27,14 +33,14 @@ static inline int arch_atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 	unsigned int val;						\
 									\
 	__asm__ __volatile__(						\
-	"1:	llock   %[val], [%[ctr]]		\n"		\
+	"1:	llock   %[val], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[val], %[i]	\n"		\
-	"	scond   %[val], [%[ctr]]		\n"		\
+	"	scond   %[val], %[ctr]			\n"		\
 	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val)						\
-	: [ctr]	"r"	(&v->counter),					\
-	  [i]	"ir"	(i)						\
-	: "cc");							\
+	: [val]	"=&r"	(val),						\
+	  [ctr] ATOMIC_CONSTR (v->counter)				\
+	: [i]	"ir"	(i)						\
+	: "cc", "memory");						\
 									\
 	return val;							\
 }
@@ -48,15 +54,15 @@ static inline int arch_atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
 	unsigned int val, orig;						\
 									\
 	__asm__ __volatile__(						\
-	"1:	llock   %[orig], [%[ctr]]		\n"		\
+	"1:	llock   %[orig], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[orig], %[i]	\n"		\
-	"	scond   %[val], [%[ctr]]		\n"		\
+	"	scond   %[val], %[ctr]			\n"		\
 	"	bnz     1b				\n"		\
 	: [val]	"=&r"	(val),						\
-	  [orig] "=&r" (orig)						\
-	: [ctr]	"r"	(&v->counter),					\
-	  [i]	"ir"	(i)						\
-	: "cc");							\
+	  [orig] "=&r" (orig),						\
+	  [ctr] ATOMIC_CONSTR (v->counter)				\
+	: [i]	"ir"	(i)						\
+	: "cc", "memory");						\
 									\
 	return orig;							\
 }
