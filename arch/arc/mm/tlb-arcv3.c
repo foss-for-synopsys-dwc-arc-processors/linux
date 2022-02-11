@@ -157,21 +157,29 @@ void activate_mm(struct mm_struct *prev_mm, struct mm_struct *next_mm)
 	switch_mm(prev_mm, next_mm, NULL);
 }
 
-void deactivate_mm(struct task_struct *tsk, struct mm_struct *mm)
-{
-	/*
-	 * set the kernel page tables to allow kernel to run
-	 * since task paging tree will be nuked right after
-	 */
-	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
-}
-
 int arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
 {
 	int map = arc_map_kernel_in_mm(mm);
 	BUG_ON(map);
 
 	return 0;
+}
+
+void arch_exit_mmap(struct mm_struct *mm)
+{
+	/*
+	 * mmput() -> exit_mmap() -> arch_exit_mmap() is called during
+	 * execve(old_mm) as well as exit().
+	 * Only for exit() is the fallback pgd needed
+	 */
+	if (current->mm != NULL)
+		return;
+
+	/*
+	 * set the kernel page tables to allow kernel to run
+	 * since task paging tree will be nuked right after
+	 */
+	write_aux_64(ARC_REG_MMU_RTP0, __pa(swapper_pg_dir));
 }
 
 noinline void local_flush_tlb_all(void)
