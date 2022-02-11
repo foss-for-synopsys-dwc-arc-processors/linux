@@ -16,7 +16,7 @@
 #define ARC_REG_FP_BCR		0x6B	/* ARCompact: Single-Precision FPU */
 #define ARC_REG_DPFP_BCR	0x6C	/* ARCompact: Dbl Precision FPU */
 #define ARC_REG_ERP_BUILD	0xc7	/* ARCv2 Error protection Build: ECC/Parity */
-#define ARC_REG_FP_V2_BCR	0xc8	/* ARCv2 FPU */
+#define ARC_REG_FP_V2_BCR	0xc8	/* ARCv2/ARCv3 FPU */
 #define ARC_REG_SLC_BCR		0xce
 #define ARC_REG_DCCM_BUILD	0x74	/* DCCM size (common) */
 #define ARC_REG_AP_BCR		0x76
@@ -321,6 +321,11 @@ struct bcr_fp_arcv2 {
 #else
 	unsigned int ver:8, sp:1, pad1:7, dp:1, pad2:15;
 #endif
+};
+
+struct bcr_fp_arcv3 {
+	unsigned int ver:8, hp:1, sp:1, dp:1, ds:1, vf:1, wv:1, pad1:2,
+                     fp_regs:3, pad2:5, dd:1, pad3:7;
 };
 
 struct bcr_actionpoint {

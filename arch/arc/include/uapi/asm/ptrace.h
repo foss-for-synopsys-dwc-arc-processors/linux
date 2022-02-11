@@ -53,6 +53,10 @@ struct user_regs_arcv2 {
 	unsigned long r30, r58, r59;
 };
 
+struct user_regs_arcv3 {
+	unsigned long fpr[32];
+};
+
 #endif /* !__ASSEMBLY__ */
 
 #endif /* _UAPI__ASM_ARC_PTRACE_H */

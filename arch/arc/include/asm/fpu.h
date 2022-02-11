@@ -37,6 +37,10 @@ struct arc_fpu {
 
 struct arc_fpu {
 	unsigned int ctrl, status;
+#ifdef CONFIG_ISA_ARCV3
+#define ARCV3_NUM_FP_REGS      32
+       unsigned long f[ARCV3_NUM_FP_REGS];
+#endif
 };
 
 extern void fpu_init_task(struct pt_regs *regs);

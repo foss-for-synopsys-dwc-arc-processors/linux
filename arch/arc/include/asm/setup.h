@@ -27,7 +27,8 @@ void __init setup_arch_memory(void);
 long __init arc_get_mem_sz(void);
 
 /* Helpers used in arc_*_mumbojumbo routines */
-#define IS_AVAIL1(v, s)		((v) ? s : "")
+#define IS_AVAIL1(v, s)		((v) ? (s) : "")
+#define IS_AVAIL12(v, s, s2)	((v) ? (s) : (s2))
 #define IS_DISABLED_RUN(v)	((v) ? "" : "(disabled) ")
 #define IS_USED_RUN(v)		((v) ? "" : "(not used) ")
 #define IS_USED_CFG(cfg)	IS_USED_RUN(IS_ENABLED(cfg))

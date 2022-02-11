@@ -297,6 +297,7 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 	const char *cpu_nm, *isa_nm;
 	struct bcr_isa_cfg_arcv3 isa;
 	struct bcr_uarch_build uarch;
+	struct bcr_fp_arcv3 fpu;
 	char mpy_nm[32] = "";
 
 	arc64 = (info->arcver & 0x70) == 0x70;
@@ -339,6 +340,19 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 		       IS_AVAIL2(isa.unalign, "unalign ", CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS),
 		       mpy_nm,
 		       IS_AVAIL2(isa.div64, "div64 ", CONFIG_ARC_HAS_DIV_REM));
+
+	READ_BCR(ARC_REG_FP_V2_BCR, fpu);
+
+	if (fpu.ver == 4) {
+		n += scnprintf(buf + n, len - n, "FPU	\t: %d regs%s%s%s%s%s%s\n",
+			       1 << fpu.fp_regs,
+			       IS_AVAIL1(fpu.hp, " hp"),
+			       IS_AVAIL1(fpu.sp, " sp"),
+			       IS_AVAIL1(fpu.dp, " dp"),
+			       IS_AVAIL1(fpu.ds, " div_sqr"),
+			       IS_AVAIL12(fpu.wv, " wide-vec", IS_AVAIL1(fpu.vf, " vec")),
+			       IS_AVAIL1(fpu.dd, " demand_driven_s/r"));
+	}
 #endif
 	return n;
 }

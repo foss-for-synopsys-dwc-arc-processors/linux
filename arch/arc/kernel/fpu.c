@@ -66,6 +66,98 @@ void fpu_init_task(struct pt_regs *regs)
 	write_aux_reg(ARC_REG_FPU_STATUS, fwe);
 }
 
+#ifdef CONFIG_ISA_ARCV3
+static void arcv3_fp_st(struct arc_fpu *fpu)
+{
+	unsigned long *fpr = &fpu->f[0];
+
+	__asm__ __volatile__(
+		"fst64  f0, [r0]	\r\n"
+		"fst64  f1, [r0,   8]	\r\n"
+		"fst64  f2, [r0,  16]	\r\n"
+		"fst64  f3, [r0,  24]	\r\n"
+		"fst64  f4, [r0,  32]	\r\n"
+		"fst64  f5, [r0,  40]	\r\n"
+		"fst64  f6, [r0,  48]	\r\n"
+		"fst64  f7, [r0,  56]	\r\n"
+		"fst64  f8, [r0,  64]	\r\n"
+		"fst64  f9, [r0,  72]	\r\n"
+		"fst64 f10, [r0,  80]	\r\n"
+		"fst64 f11, [r0,  88]	\r\n"
+		"fst64 f12, [r0,  96]	\r\n"
+		"fst64 f13, [r0, 104]	\r\n"
+		"fst64 f14, [r0, 112] 	\r\n"
+		"fst64 f15, [r0, 120]	\r\n"
+		"fst64 f16, [r0, 128]	\r\n"
+		"fst64 f17, [r0, 136]	\r\n"
+		"fst64 f18, [r0, 144]	\r\n"
+		"fst64 f19, [r0, 152]	\r\n"
+		"fst64 f20, [r0, 160]	\r\n"
+		"fst64 f21, [r0, 168]	\r\n"
+		"fst64 f22, [r0, 176]	\r\n"
+		"fst64 f23, [r0, 184] 	\r\n"
+		"fst64 f24, [r0, 192]	\r\n"
+		"fst64 f25, [r0, 200]	\r\n"
+		"fst64 f26, [r0, 208]	\r\n"
+		"fst64 f27, [r0, 216]	\r\n"
+		"fst64 f28, [r0, 224]	\r\n"
+		"fst64 f29, [r0, 232]	\r\n"
+		"fst64 f30, [r0, 240]	\r\n"
+		"fst64 f31, [r0, 248]	\r\n"
+		: :"r" (fpr));
+
+#ifndef CONFIG_64BIT
+#error "32-bit FP support missing"
+#endif
+}
+
+static void arcv3_fp_ld(struct arc_fpu *fpu)
+{
+	unsigned long *fpr = &fpu->f[0];
+
+	__asm__ __volatile__(
+		"fld64  f0, [r0]	\r\n"
+		"fld64  f1, [r0,   8]	\r\n"
+		"fld64  f2, [r0,  16]	\r\n"
+		"fld64  f3, [r0,  24]	\r\n"
+		"fld64  f4, [r0,  32]	\r\n"
+		"fld64  f5, [r0,  40]	\r\n"
+		"fld64  f6, [r0,  48]	\r\n"
+		"fld64  f7, [r0,  56]	\r\n"
+		"fld64  f8, [r0,  64]	\r\n"
+		"fld64  f9, [r0,  72]	\r\n"
+		"fld64 f10, [r0,  80]	\r\n"
+		"fld64 f11, [r0,  88]	\r\n"
+		"fld64 f12, [r0,  96]	\r\n"
+		"fld64 f13, [r0, 104]	\r\n"
+		"fld64 f14, [r0, 112] 	\r\n"
+		"fld64 f15, [r0, 120]	\r\n"
+		"fld64 f16, [r0, 128]	\r\n"
+		"fld64 f17, [r0, 136]	\r\n"
+		"fld64 f18, [r0, 144]	\r\n"
+		"fld64 f19, [r0, 152]	\r\n"
+		"fld64 f20, [r0, 160]	\r\n"
+		"fld64 f21, [r0, 168]	\r\n"
+		"fld64 f22, [r0, 176]	\r\n"
+		"fld64 f23, [r0, 184] 	\r\n"
+		"fld64 f24, [r0, 192]	\r\n"
+		"fld64 f25, [r0, 200]	\r\n"
+		"fld64 f26, [r0, 208]	\r\n"
+		"fld64 f27, [r0, 216]	\r\n"
+		"fld64 f28, [r0, 224]	\r\n"
+		"fld64 f29, [r0, 232]	\r\n"
+		"fld64 f30, [r0, 240]	\r\n"
+		"fld64 f31, [r0, 248]	\r\n"
+		: :"r" (fpr));
+}
+
+#else
+
+#define arcv3_fp_st(fpu)
+#define arcv3_fp_ld(fpu)
+
+#endif
+
 void fpu_save_restore(struct task_struct *prev, struct task_struct *next)
 {
 	struct arc_fpu *save = &prev->thread.fpu;
@@ -77,6 +169,9 @@ void fpu_save_restore(struct task_struct *prev, struct task_struct *next)
 
 	write_aux_reg(ARC_REG_FPU_CTRL, restore->ctrl);
 	write_aux_reg(ARC_REG_FPU_STATUS, (fwe | restore->status));
+
+	arcv3_fp_st(save);
+	arcv3_fp_ld(restore);
 }
 
 #endif
