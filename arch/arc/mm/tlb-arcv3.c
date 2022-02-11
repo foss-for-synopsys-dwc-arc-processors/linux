@@ -115,6 +115,9 @@ void arc_mmu_init(void)
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
 
+	if (CONFIG_PGTABLE_LEVELS != 4)
+		panic("CONFIG_PGTABLE_LEVELS !=4 not supported\n");
+
 	ttbc.t0sz = 16;
 	ttbc.t1sz = 16;	/* Not relevant since kernel linked under 4GB hits T0SZ */
 	ttbc.t0sh = __SHR_INNER;
