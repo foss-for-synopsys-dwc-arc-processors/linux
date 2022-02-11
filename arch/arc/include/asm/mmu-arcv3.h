@@ -35,7 +35,7 @@ static void inline mmu_setup_asid(struct mm_struct *mm, unsigned long asid)
 #endif
 }
 
-static void inline mmu_setup_pgd(struct mm_struct *mm, pgd_t *pgd)
+static void inline mmu_setup_pgd(struct mm_struct *mm, void *pgd)
 {
 	/*
 	 * Only called by switch_mm() which apriori calls get_new_mmu_context()
