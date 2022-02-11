@@ -258,7 +258,7 @@ void flush_dcache_page(struct page *page)
 void ptw_flush(void *xp)
 {
 #ifdef CONFIG_ARC_PTW_UNCACHED
-        write_aux_64(ARC_REG_DC_IVDL, (unsigned long)xp);
+        write_aux_64(ARC_REG_DC_IVDL, __pa(xp));
 #endif
 }
 

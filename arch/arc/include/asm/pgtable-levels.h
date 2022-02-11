@@ -143,7 +143,7 @@ extern void ptw_flush(void *pxx);
 /*
  * 1st level paging: pgd
  */
-#define pgd_index(addr)		((addr) >> PGDIR_SHIFT)
+#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
 #define pgd_offset(mm, addr)	(((mm)->pgd) + pgd_index(addr))
 #define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
 #define pgd_ERROR(e) \
@@ -157,7 +157,7 @@ extern void ptw_flush(void *pxx);
 #define p4d_bad(x)		((p4d_val(x) & ~PAGE_MASK))
 #define p4d_present(x)		(p4d_val(x))
 #define p4d_clear(xp)		do { p4d_val(*(xp)) = 0; ptw_flush(xp); } while (0)
-#define p4d_pgtable(p4d)	((pud_t *)(p4d_val(p4d) & PAGE_MASK))
+#define p4d_pgtable(p4d)	((pud_t *)(__va(p4d_val(p4d) & PAGE_MASK)))
 #define p4d_page(p4d)		virt_to_page(p4d_pgtable(p4d))
 #define set_p4d(p4dp, p4d)	do { *(p4dp) = p4d; ptw_flush(p4dp); } while (0)
 
@@ -179,7 +179,7 @@ extern void ptw_flush(void *pxx);
 #define pud_bad(x)		((pud_val(x) & ~PAGE_MASK))
 #define pud_present(x)		(pud_val(x))
 #define pud_clear(xp)		do { pud_val(*(xp)) = 0; ptw_flush(xp); } while (0)
-#define pud_pgtable(pud)	((pmd_t *)(pud_val(pud) & PAGE_MASK))
+#define pud_pgtable(pud)	((pmd_t *)(__va(pud_val(pud) & PAGE_MASK)))
 #define pud_page(pud)		virt_to_page(pud_pgtable(pud))
 #define set_pud(pudp, pud)	do { *(pudp) = pud; ptw_flush(pudp); } while (0)
 #define pfn_pud(pfn,prot)	__pud(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
@@ -207,7 +207,7 @@ extern void ptw_flush(void *pxx);
 #define pmd_bad(x)		((pmd_val(x) & ~PAGE_MASK))
 #define pmd_present(x)		(pmd_val(x))
 #define pmd_clear(xp)		do { pmd_val(*(xp)) = 0; ptw_flush(xp); } while (0)
-#define pmd_page_vaddr(pmd)	(pmd_val(pmd) & PAGE_MASK)
+#define pmd_page_vaddr(pmd)	(__va(pmd_val(pmd) & PAGE_MASK))
 #define pmd_page(pmd)		virt_to_page(pmd_page_vaddr(pmd))
 #define set_pmd(pmdp, pmd)	do { *(pmdp) = pmd; ptw_flush(pmdp); } while (0)
 #define pmd_pgtable(pmd)	((pgtable_t) pmd_page_vaddr(pmd))

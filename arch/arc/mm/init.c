@@ -116,8 +116,8 @@ void __init setup_arch_memory(void)
 	 * the crash
 	 */
 
-	memblock_reserve(CONFIG_LINUX_LINK_BASE,
-			 __pa(_end) - CONFIG_LINUX_LINK_BASE);
+	memblock_reserve(__pa(CONFIG_LINUX_LINK_BASE),
+			 __pa(_end) - __pa(CONFIG_LINUX_LINK_BASE));
 
 #ifdef CONFIG_BLK_DEV_INITRD
 	if (phys_initrd_size) {
