@@ -275,3 +275,14 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 void flush_thread(void)
 {
 }
+
+int elf_check_arch(const struct elfhdr *x)
+{
+	if (x->e_machine != ELF_ARCH) {
+		pr_err("ELF is not built for %s ISA\n", ISA_NAME);
+		return 0;
+	}
+
+	return 1;
+}
+EXPORT_SYMBOL(elf_check_arch);
