@@ -115,7 +115,7 @@ libs-y		+= arch/arc/lib/ $(LIBGCC)
 
 boot		:= arch/arc/boot
 
-boot_targets := uImage.bin uImage.gz uImage.lzma
+boot_targets := uImage.bin uImage.gz uImage.lzma loader
 
 PHONY += $(boot_targets)
 $(boot_targets): vmlinux

@@ -6,11 +6,17 @@
 
 OBJCOPYFLAGS= -O binary -R .note -R .note.gnu.build-id -R .comment -S
 
-LINUX_START_TEXT = $$($(READELF) -h vmlinux | \
-			grep "Entry point address" | grep -o 0x.*)
+LINUX_ENTRY_VIRT = 0x$(shell $(NM) vmlinux | awk '$$NF == "res_service" {print $$1}')
+
+ifeq ($(CONFIG_64BIT),y)
+$(obj)/uImage*: $(obj)/loader
+LINUX_ENTRY_PHY = 0x$(shell $(NM) $(obj)/loader | awk '$$NF == "_entry_point" {print $$1}')
+else
+LINUX_ENTRY_PHY = $(LINUX_ENTRY_VIRT)
+endif
 
 UIMAGE_LOADADDR    = $(CONFIG_LINUX_LINK_BASE)
-UIMAGE_ENTRYADDR   = $(LINUX_START_TEXT)
+UIMAGE_ENTRYADDR   = $(LINUX_ENTRY_PHY)
 
 targets += vmlinux.bin
 targets += vmlinux.bin.gz
@@ -18,6 +24,7 @@ targets += vmlinux.bin.lzma
 targets += uImage.bin
 targets += uImage.gz
 targets += uImage.lzma
+targets += loader
 
 $(obj)/vmlinux.bin: vmlinux FORCE
 	$(call if_changed,objcopy)
@@ -36,3 +43,8 @@ $(obj)/uImage.gz: $(obj)/vmlinux.bin.gz FORCE
 
 $(obj)/uImage.lzma: $(obj)/vmlinux.bin.lzma FORCE
 	$(call if_changed,uimage,lzma)
+
+$(obj)/loader.o: $(src)/loader.S $(obj)/vmlinux.bin
+
+$(obj)/loader: $(obj)/loader.o $(obj)/vmlinux.bin $(obj)/loader.lds FORCE
+	$(Q)$(LD)  --defsym=_entry_point_virt=$(LINUX_ENTRY_VIRT) -T $(obj)/loader.lds -o $@ $(obj)/loader.o
