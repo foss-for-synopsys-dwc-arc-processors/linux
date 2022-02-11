@@ -67,31 +67,71 @@ static inline int arch_atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
 	return orig;							\
 }
 
-#define arch_atomic_fetch_add_relaxed		arch_atomic_fetch_add_relaxed
-#define arch_atomic_fetch_sub_relaxed		arch_atomic_fetch_sub_relaxed
+#ifdef CONFIG_ARC_HAS_ATLD
+#define ATOMIC_FETCH_ATLD_OP(op, asm_op)				\
+static inline int arch_atomic_fetch_atld_##op##_relaxed(int i, atomic_t *v)	\
+{									\
+	unsigned int orig = i;						\
+									\
+	__asm__ __volatile__(						\
+	"	atld."#asm_op" %[orig], %[ctr]		\n"		\
+	: [orig] "+r"(orig),						\
+	  [ctr] "+ATOMC" (v->counter)				\
+	:								\
+	: "memory");							\
+									\
+	return orig;							\
+}
+#endif
 
-#define arch_atomic_fetch_and_relaxed		arch_atomic_fetch_and_relaxed
+#define arch_atomic_fetch_sub_relaxed		arch_atomic_fetch_sub_relaxed
 #define arch_atomic_fetch_andnot_relaxed	arch_atomic_fetch_andnot_relaxed
-#define arch_atomic_fetch_or_relaxed		arch_atomic_fetch_or_relaxed
-#define arch_atomic_fetch_xor_relaxed		arch_atomic_fetch_xor_relaxed
 
 #define ATOMIC_OPS(op, asm_op)					\
 	ATOMIC_OP(op, asm_op)					\
-	ATOMIC_OP_RETURN(op, asm_op)				\
-	ATOMIC_FETCH_OP(op, asm_op)
+	ATOMIC_OP_RETURN(op, asm_op)
 
 ATOMIC_OPS(add, add)
 ATOMIC_OPS(sub, sub)
 
 #undef ATOMIC_OPS
 #define ATOMIC_OPS(op, asm_op)					\
-	ATOMIC_OP(op, asm_op)					\
-	ATOMIC_FETCH_OP(op, asm_op)
+	ATOMIC_OP(op, asm_op)
 
 ATOMIC_OPS(and, and)
 ATOMIC_OPS(andnot, bic)
 ATOMIC_OPS(or, or)
 ATOMIC_OPS(xor, xor)
+
+#ifdef CONFIG_ARC_HAS_ATLD
+
+#define arch_atomic_fetch_add_relaxed	arch_atomic_fetch_atld_add_relaxed
+#define arch_atomic_fetch_and_relaxed	arch_atomic_fetch_atld_and_relaxed
+#define arch_atomic_fetch_or_relaxed	arch_atomic_fetch_atld_or_relaxed
+#define arch_atomic_fetch_xor_relaxed	arch_atomic_fetch_atld_xor_relaxed
+
+	ATOMIC_FETCH_ATLD_OP(add, add)
+	ATOMIC_FETCH_ATLD_OP(and, and)
+	ATOMIC_FETCH_ATLD_OP(xor, xor)
+	ATOMIC_FETCH_ATLD_OP(or, or)
+
+	ATOMIC_FETCH_OP(sub, sub)
+	ATOMIC_FETCH_OP(andnot, bic)
+#else
+
+#define arch_atomic_fetch_add_relaxed	arch_atomic_fetch_add_relaxed
+#define arch_atomic_fetch_and_relaxed	arch_atomic_fetch_and_relaxed
+#define arch_atomic_fetch_or_relaxed	arch_atomic_fetch_or_relaxed
+#define arch_atomic_fetch_xor_relaxed	arch_atomic_fetch_xor_relaxed
+
+	ATOMIC_FETCH_OP(add, add)
+	ATOMIC_FETCH_OP(and, and)
+	ATOMIC_FETCH_OP(xor, xor)
+	ATOMIC_FETCH_OP(or, or)
+
+	ATOMIC_FETCH_OP(sub, sub)
+	ATOMIC_FETCH_OP(andnot, bic)
+#endif
 
 #define arch_atomic_andnot		arch_atomic_andnot
 
