@@ -19,7 +19,7 @@ volatile int arc_debug_tlb_flush_mm_nuke = 0;
 int arc_mmu_mumbojumbo(int c, char *buf, int len)
 {
 	unsigned int lookups, pg_sz_k, ntlb, u_dtlb, u_itlb;
-	char *variant_nm[] = { "MMU32", "MMU48", "MMU52" };
+	char *variant_nm[] = { "MMU32", "MMU48", "MMU48", "MMU48", "MMU52" };
 	struct bcr_mmu_6 mmu6;
 	int n = 0;
 
@@ -33,7 +33,14 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	}
 
 	lookups = 4;	/* 4 levels */
-	pg_sz_k = 4;	/* 4KB */
+	if (mmu6.variant == 1) {
+		pg_sz_k = 4;	/* 4KB */
+	} else if (mmu6.variant == 2) {
+		pg_sz_k = 16;	/* 16KB */
+	} else {
+		panic("Only MMU48 4K/16K supported currently\n");
+		return 0;
+	}
 
 	u_dtlb = 2 << mmu6.u_dtlb;  /* 8, 16 */
 	u_itlb = 2 << mmu6.u_itlb;  /* 4, 8, 16 */
@@ -53,6 +60,7 @@ int arc_mmu_mumbojumbo(int c, char *buf, int len)
 	return n;
 }
 
+#if defined(CONFIG_ARC_PAGE_SIZE_4K)
 /*
  * Map the kernel code/data into page tables for a given @mm
  *
@@ -94,11 +102,55 @@ int arc_map_kernel_in_mm(struct mm_struct *mm)
 	return 0;
 }
 
+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
+int noinline arc_map_kernel_in_mm(struct mm_struct *mm)
+{
+	unsigned long addr = (unsigned long) PAGE_OFFSET, end = 0xFFFFFFFF;
+	pgd_t *pgd;
+	p4d_t *p4d;
+	pud_t *pud;
+	pmd_t *pmd;
+
+	pgd = pgd_offset(mm, addr);
+	if (pgd_none(*pgd) || !pgd_present(*pgd))
+		return 1;
+
+	p4d = p4d_offset(pgd, addr);
+	if (p4d_none(*p4d) || !p4d_present(*p4d))
+		return 1;
+
+	pud = pud_offset(p4d, addr);
+	if (pud_none(*pud) || !pud_present(*pud))
+		return 1;
+
+	do {
+		pgprot_t prot = PAGE_KERNEL_BLK;
+		if (addr >= 0xf0000000)
+			prot = pgprot_noncached(PAGE_KERNEL_BLK);
+
+		pmd = pmd_offset(pud, addr);
+		if (!pmd_none(*pmd) || pmd_present(*pmd))
+			return 1;
+
+		set_pmd(pmd, pfn_pmd(PFN_DOWN(addr), prot));
+		addr = pmd_addr_end(addr, end);
+	}
+	while (addr != end);
+
+	return 0;
+}
+#endif
+
 void arc_paging_init(void)
 {
 	unsigned int idx = pgd_index(PAGE_OFFSET);
 	swapper_pg_dir[idx] = pfn_pgd(PFN_DOWN((phys_addr_t)swapper_pud), PAGE_TABLE);
 	ptw_flush(&swapper_pg_dir[idx]);
+#ifdef CONFIG_ARC_PAGE_SIZE_16K
+	idx = pud_index(PAGE_OFFSET);
+	swapper_pud[idx] = pfn_pud(PFN_DOWN((phys_addr_t)swapper_pmd), PAGE_TABLE);
+	ptw_flush(&swapper_pud[idx]);
+#endif
 
 	arc_map_kernel_in_mm(&init_mm);
 

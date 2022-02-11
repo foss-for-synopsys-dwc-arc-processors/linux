@@ -56,18 +56,31 @@
  * Page Descriptors for all variants are 64-bits
  */
 
+#if defined(CONFIG_ARC_PAGE_SIZE_4K)
 /* MMU48 (4K page) : <9> : <9>  : <9>  : <9>  : <12> */
 
 #define PGDIR_SHIFT		39
 #define PUD_SHIFT		30
 #define PMD_SHIFT		21
-
 #define ARC_VADDR_BITS		48
+
+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
+/* MMU48 (16K page) : <1> : <11> : <11> : <11> : <14> */
+
+#define PGDIR_SHIFT		47
+#define PUD_SHIFT		36
+#define PMD_SHIFT		25
+#define ARC_VADDR_BITS		48
+
+#else
+
+#error "Unsupported PAGE_SIZE"
+
+#endif
 
 /*
  * TBD:
  * MMU32 (4K page) :       <2>  : <9>  : <9>  : <12>
- * MMU48 (16K page): <1> : <11> : <11> : <11> : <14>
  */
 
 #else /* CONFIG_PGTABLE_LEVELS != 2 */

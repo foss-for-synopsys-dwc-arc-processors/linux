@@ -19,6 +19,10 @@
 
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pud_t swapper_pud[PTRS_PER_PUD] __page_aligned_bss;
+#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_ARC_PAGE_SIZE_16K)
+/* MMUv48-16K supports block descriptor only for 3rd level */
+pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
+#endif
 
 char empty_zero_page[PAGE_SIZE] __aligned(PAGE_SIZE);
 EXPORT_SYMBOL(empty_zero_page);
