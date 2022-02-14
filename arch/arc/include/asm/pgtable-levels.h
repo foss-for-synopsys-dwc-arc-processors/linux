@@ -177,7 +177,8 @@ extern void ptw_flush(void *pxx);
 #define pgd_offset(mm, addr)	(((mm)->pgd) + pgd_index(addr))
 #define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
 #define pgd_ERROR(e) \
-	pr_crit("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
+	pr_crit("%s:%d: bad pgd %016llx.\n", __FILE__, __LINE__, \
+		(unsigned long long) pgd_val(e))
 #define pfn_pgd(pfn, prot)	__pgd(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
 
 #if CONFIG_PGTABLE_LEVELS > 3
@@ -195,7 +196,8 @@ extern void ptw_flush(void *pxx);
  * 2nd level paging: pud
  */
 #define pud_ERROR(e) \
-	pr_crit("%s:%d: bad pud %08lx.\n", __FILE__, __LINE__, pud_val(e))
+	pr_crit("%s:%d: bad pud %016llx.\n", __FILE__, __LINE__, \
+		(unsigned long long) pud_val(e))
 
 #endif
 
@@ -218,7 +220,8 @@ extern void ptw_flush(void *pxx);
  * 3rd level paging: pmd
  */
 #define pmd_ERROR(e) \
-	pr_crit("%s:%d: bad pmd %08lx.\n", __FILE__, __LINE__, pmd_val(e))
+	pr_crit("%s:%d: bad pmd %016llx.\n", __FILE__, __LINE__, \
+		(unsigned long long) pmd_val(e))
 
 #define pmd_pfn(pmd)		((pmd_val(pmd) & PMD_MASK) >> PAGE_SHIFT)
 #define pfn_pmd(pfn,prot)	__pmd(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
@@ -246,7 +249,8 @@ extern void ptw_flush(void *pxx);
  * 4th level paging: pte
  */
 #define pte_ERROR(e) \
-	pr_crit("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, pte_val(e))
+	pr_crit("%s:%d: bad pte %016llx.\n", __FILE__, __LINE__, \
+		(unsigned long long) pte_val(e))
 
 #define pte_none(x)		(!pte_val(x))
 #define pte_present(x)		(pte_val(x) & _PAGE_PRESENT)

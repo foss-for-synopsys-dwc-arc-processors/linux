@@ -11,6 +11,7 @@
 #define _UAPI__ASM_ARC_PAGE_H
 
 #include <linux/const.h>
+#include <linux/types.h>
 
 /* PAGE_SHIFT determines the page size */
 #if defined(CONFIG_ARC_PAGE_SIZE_4K)
