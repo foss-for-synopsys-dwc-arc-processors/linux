@@ -72,7 +72,7 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #endif /* !__ASSEMBLY__ */
 
 
-#ifdef CONFIG_64BIT
+#if defined(CONFIG_ARC_MMU_V6_48) || defined(CONFIG_ARC_MMU_V6_52)
 /*
  * Default System Memory Map on ARC (assuming 4k pages)
  *
@@ -90,9 +90,32 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #define TASK_SIZE		0x60000000
 #define USER_KERNEL_GUTTER	0
 
+#define FIXADDR_START		(PAGE_OFFSET + PUD_SIZE)
+
 #define VMALLOC_START	(PAGE_OFFSET + 0x100000000000UL)
 #define VMALLOC_SIZE	(CONFIG_ARC_KVADDR_SIZE << 20)
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
+
+#elif defined(CONFIG_ARC_MMU_V6_32)
+/*
+ * Default System Memory Map on ARC
+ *
+ * ---------------------------- (lower 2G, Translated) -------------------------
+ * 0x0000_0000		0x5FFF_FFFF	(user vaddr: TASK_SIZE)
+ *
+ * PAGE_OFFSET ---------------- (Upper 2G, Untranslated) -----------------------
+ * 0x8000_0000		0xBFFF_FFFF	(kernel direct mapped)
+ * 0xC000_0000		0xFFFF_FFFF	(vmalloc + fixmap)
+ * -----------------------------------------------------------------------------
+ */
+#define TASK_SIZE		0x60000000
+#define USER_KERNEL_GUTTER	0
+
+#define VMALLOC_START	(PAGE_OFFSET + PUD_SIZE)
+#define VMALLOC_SIZE	(CONFIG_ARC_KVADDR_SIZE << 20)
+#define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
+
+#define FIXADDR_START	(VMALLOC_START + VMALLOC_SIZE)
 
 #else
 
@@ -118,7 +141,9 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #define VMALLOC_SIZE	((CONFIG_ARC_KVADDR_SIZE << 20) - PMD_SIZE * 4)
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
-#endif /* CONFIG_64BIT */
+#define FIXADDR_START	(PAGE_OFFSET - FIXMAP_SIZE - PKMAP_SIZE)
+
+#endif /* CONFIG_ARC_MMU_V6_* */
 
 #define STACK_TOP       TASK_SIZE
 #define STACK_TOP_MAX   STACK_TOP
