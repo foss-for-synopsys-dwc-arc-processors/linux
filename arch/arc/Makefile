@@ -20,13 +20,18 @@ endif
 
 tune-mcpu-def-$(CONFIG_ISA_ARCOMPACT)	:= -mcpu=arc700
 tune-mcpu-def-$(CONFIG_ISA_ARCV2)	:= -mcpu=hs38
-#TODO add -mcpu=hs6x when supported by compiler
+ifdef CONFIG_64BIT
+tune-mcpu-def-$(CONFIG_ISA_ARCV3)	:= -mcpu=hs6x
+else
+tune-mcpu-def-$(CONFIG_ISA_ARCV3)	:= -mcpu=hs5x
+ldflags-$(CONFIG_ISA_ARCV3)		+= -marc64elf32
+endif
 
 cflags-y	+= -fno-common -pipe -fno-builtin -D__linux__
 ifndef CONFIG_ISA_ARCV3
 cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls
 else
-cflags-y	+= -mcmodel=large
+cflags-$(CONFIG_64BIT)		+= 	-mcmodel=large
 cflags-$(CONFIG_ARC_HAS_LL128)	+= 	-m128
 endif
 cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
