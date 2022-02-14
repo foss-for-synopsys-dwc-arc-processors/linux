@@ -130,6 +130,14 @@
 	bbit1l \d, \s, \lbl
 .endm
 
+.macro MAXR d, s, v
+	maxl \d, \s, \v
+.endm
+
+.macro MINR d, s, v
+	minl \d, \s, \v
+.endm
+
 /*
  * Abstraction for 64-bit load/store
  *  - ARC64 Baseline STL/LDL instructions

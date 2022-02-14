@@ -35,7 +35,7 @@ EXPORT_SYMBOL_GPL(smp_atomic_ops_lock);
 
 struct plat_smp_ops  __weak plat_smp_ops;
 
-/* XXX: per cpu ? Only needed once in early seconday boot */
+/* XXX: per cpu ? Only needed once in early secondary boot */
 struct task_struct *secondary_idle_tsk;
 
 /* Called from start_kernel */
@@ -118,7 +118,7 @@ void __init smp_cpus_done(unsigned int max_cpus)
  * This is implemented using a flag in memory, which Non-masters spin-wait on.
  * Master sets it to cpu-id of core to "ungate" it.
  */
-static volatile int wake_flag;
+volatile int arc_platform_wake_flag;
 
 #ifdef CONFIG_ISA_ARCOMPACT
 
@@ -132,23 +132,12 @@ static volatile int wake_flag;
 
 #endif
 
+/* SA arc_platform_smp_wait_to_boot() implemented in assembly in head.s */
 static void arc_default_smp_cpu_kick(int cpu, unsigned long pc)
 {
 	BUG_ON(cpu == 0);
 
-	__boot_write(wake_flag, cpu);
-}
-
-void arc_platform_smp_wait_to_boot(int cpu)
-{
-	/* for halt-on-reset, we've waited already */
-	if (IS_ENABLED(CONFIG_ARC_SMP_HALT_ON_RESET))
-		return;
-
-	while (__boot_read(wake_flag) != cpu)
-		;
-
-	__boot_write(wake_flag, 0);
+	__boot_write(arc_platform_wake_flag, cpu);
 }
 
 const char *arc_platform_smp_cpuinfo(void)
