@@ -3,7 +3,7 @@
 #ifndef _ASM_ARC_ATOMIC_LLSC_H
 #define _ASM_ARC_ATOMIC_LLSC_H
 
-#if defined(CONFIG_ISA_ARCV3) && defined(CONFIG_64BIT)
+#if defined(CONFIG_ISA_ARCV3)
 #define ATOMIC_CONSTR	"+ATOMC"
 #else
 #define ATOMIC_CONSTR	"+ATO"
