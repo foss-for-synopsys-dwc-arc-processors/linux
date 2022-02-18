@@ -48,7 +48,7 @@
 
 #define _PAGE_TABLE		(_PAGE_VALID | _PAGE_LINK)
 
-#define MEMATTR_NORMAL		0x69
+#define MEMATTR_NORMAL		0x79
 #define MEMATTR_UNCACHED	0x01
 #define MEMATTR_VOLATILE	0x00 /* Uncached + No Early Write Ack + Strict Ordering */
 
