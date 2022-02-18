@@ -5,7 +5,41 @@
 #ifndef __ASM_ARC_PAGE_H
 #define __ASM_ARC_PAGE_H
 
-#include <uapi/asm/page.h>
+#include <linux/const.h>
+#include <linux/types.h>
+
+/* PAGE_SHIFT determines the page size */
+#if defined(CONFIG_ARC_PAGE_SIZE_4K)
+#define PAGE_SHIFT 12
+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
+#define PAGE_SHIFT 14
+#elif defined(CONFIG_ARC_PAGE_SIZE_64K)
+#define PAGE_SHIFT 16
+#else
+/*
+ * Default 8k
+ * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
+ * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
+ * using the correct uClibc header and in their build our autoconf.h is
+ * not available
+ */
+#define PAGE_SHIFT 13
+#endif
+
+#define PAGE_SIZE	_BITUL(PAGE_SHIFT)	/* Default 8K */
+
+/*
+ * TODO: Only one kernel-user split for each MMU currently supported.
+ */
+#if defined(CONFIG_ARC_MMU_V6_48)
+#define PAGE_OFFSET	_AC(0xffff000000000000, UL)
+#elif defined(CONFIG_ARC_MMU_V6_52)
+#define PAGE_OFFSET	_AC(0xfff0000000000000, UL)
+#else
+#define PAGE_OFFSET	_AC(0x80000000, UL)	/* Kernel starts at 2G onwrds */
+#endif
+
+#define PAGE_MASK	(~(PAGE_SIZE-1))
 
 #ifdef CONFIG_ARC_HAS_PAE40
 
