@@ -5,11 +5,17 @@
 
 KBUILD_DEFCONFIG := haps_hs_smp_defconfig
 
+ifdef cross_compiling
 ifeq ($(CROSS_COMPILE),)
 ifdef CONFIG_ISA_ARCV3
+ifdef CONFIG_64BIT
 CROSS_COMPILE := $(call cc-cross-prefix, arc64-elf- arc64-linux-gnu- arc64-linux- arc64-unknown-linux-gnu-)
 else
+CROSS_COMPILE := $(call cc-cross-prefix, arc64-elf- arc32-linux-gnu- arc32-linux- arc32-unknown-linux-gnu-)
+endif
+else
 CROSS_COMPILE := $(call cc-cross-prefix, arc-elf32- arc-linux- arceb-linux-)
+endif
 endif
 endif
 
@@ -30,29 +36,32 @@ tune-mcpu-def-$(CONFIG_ISA_ARCV3)	:= -mcpu=hs5x
 ldflags-$(CONFIG_ISA_ARCV3)		+= -marc64elf32
 endif
 
-cflags-y	+= -fno-common -pipe -fno-builtin -D__linux__
-ifndef CONFIG_ISA_ARCV3
-cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls
-else
-cflags-$(CONFIG_64BIT)		+= 	-mcmodel=large
-cflags-$(CONFIG_ARC_HAS_LL128)	+= 	-m128
-endif
-cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
-
-ifeq ($(CONFIG_ARC_TUNE_MCPU),"")
-cflags-y				+= $(tune-mcpu-def-y)
-else
 tune-mcpu				:= $(shell echo $(CONFIG_ARC_TUNE_MCPU))
-ifneq ($(call cc-option,$(tune-mcpu)),)
-cflags-y				+= $(tune-mcpu)
-else
+ifneq ($(tune-mcpu),)
+ifeq ($(call cc-option,$(tune-mcpu)),)
 # The flag provided by 'CONFIG_ARC_TUNE_MCPU' option isn't known by this compiler
 # (probably the compiler is too old). Use ISA default mcpu flag instead as a safe option.
 $(warning ** WARNING ** CONFIG_ARC_TUNE_MCPU flag '$(tune-mcpu)' is unknown, fallback to '$(tune-mcpu-def-y)')
-cflags-y				+= $(tune-mcpu-def-y)
+tune-mcpu				:= $(tune-mcpu-def-y)
 endif
+else
+tune-mcpu				:= $(tune-mcpu-def-y)
 endif
 
+cflags-y				+= $(tune-mcpu)
+
+cflags-y	+= -fno-common -pipe -fno-builtin -D__linux__
+
+ifneq ($(filter y,$(CONFIG_ISA_ARCOMPACT)  $(CONFIG_ISA_ARCV2)),)
+cflags-y	+= -fsection-anchors -mno-sdata -mmedium-calls
+endif
+
+ifdef CONFIG_ISA_ARCV3
+cflags-$(CONFIG_64BIT)		+= 	-mcmodel=large
+cflags-$(CONFIG_ARC_HAS_LL128)	+= 	-m128
+endif
+
+cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
 
 ifdef CONFIG_ARC_CURR_IN_REG
 # For a global register definition, make sure it gets passed to every file
