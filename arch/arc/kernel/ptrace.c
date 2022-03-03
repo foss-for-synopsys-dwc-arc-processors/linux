@@ -25,16 +25,16 @@ static int genregs_get(struct task_struct *target,
 	const struct callee_regs *cregs = task_callee_regs(target);
 	unsigned long stop_pc_val;
 
-	membuf_zero(&to, 4);	// pad
+	membuf_zero(&to, REGSZ);	// pad
 	membuf_store(&to, ptregs->bta);
 #ifndef CONFIG_ARC_LACKS_ZOL
 	membuf_store(&to, ptregs->lp_start);
 	membuf_store(&to, ptregs->lp_end);
 	membuf_store(&to, ptregs->lp_count);
 #else
-	membuf_zero(&to, 4);	// ptregs->lp_start
-	membuf_zero(&to, 4);	// ptregs->lp_end
-	membuf_zero(&to, 4);	// ptregs->lp_count
+	membuf_zero(&to, REGSZ);	// ptregs->lp_start
+	membuf_zero(&to, REGSZ);	// ptregs->lp_end
+	membuf_zero(&to, REGSZ);	// ptregs->lp_count
 #endif
 	membuf_store(&to, ptregs->status32);
 	membuf_store(&to, ptregs->ret);
@@ -55,7 +55,7 @@ static int genregs_get(struct task_struct *target,
 	membuf_store(&to, ptregs->r1);
 	membuf_store(&to, ptregs->r0);
 	membuf_store(&to, ptregs->sp);
-	membuf_zero(&to, 4);	// pad2
+	membuf_zero(&to, REGSZ);	// pad2
 	membuf_store(&to, cregs->r25);
 	membuf_store(&to, cregs->r24);
 	membuf_store(&to, cregs->r23);
