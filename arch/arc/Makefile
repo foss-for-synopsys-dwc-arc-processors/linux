@@ -86,7 +86,7 @@ else
 cflags-y				+= -mno-div-rem
 endif
 
-ifdef CONFIG_ISA_ARCV2
+ifneq ($(filter y,$(CONFIG_ISA_ARCV2)  $(CONFIG_ISA_ARCV3)),)
 
 ifdef CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS
 cflags-y				+= -munaligned-access
