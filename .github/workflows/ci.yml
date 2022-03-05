@@ -1,0 +1,195 @@
+name: CI
+
+on:
+  push:
+    branches: [arc64-upstream-prepare]
+  pull_request:
+    branches: [arc64-upstream-prepare]
+
+  workflow_dispatch:
+
+env:
+  toolchain_ver: 2022.09-rc2
+  toolchain_url: https://github.com/foss-for-synopsys-dwc-arc-processors/arc-gnu-toolchain/releases/download/$toolchain_ver
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        targets:
+          - cpu: arc700
+            toolchain: arc-elf
+            defconfig: nsim_700_defconfig
+          - cpu: hs4x
+            toolchain: arc-glibc
+            defconfig: haps_hs_defconfig
+          - cpu: hs4x-pae40
+            toolchain: arc-glibc
+            defconfig: haps_hs_defconfig
+          - cpu: hs5x
+            toolchain: arc32-glibc
+            defconfig: haps_hs5x_defconfig
+          - cpu: hs5x-hw-atomic64
+            toolchain: arc32-glibc
+            defconfig: haps_hs5x_defconfig
+          - cpu: hs6x
+            toolchain: arc64-glibc
+            defconfig: haps_arc64_defconfig
+          - cpu: hs6x-mmu48-16k
+            toolchain: arc64-glibc
+            defconfig: haps_arc64_defconfig
+          - cpu: hs6x-mmu48-64k
+            toolchain: arc64-glibc
+            defconfig: haps_arc64_defconfig
+          - cpu: hs6x-mmu52
+            toolchain: arc64-glibc
+            defconfig: haps_arc64_defconfig
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout sources
+        with:
+          fetch-depth: 2
+
+      - uses: actions/checkout@v2
+        name: Checkout arc-kernel-ci
+        with:
+          repository: "foss-for-synopsys-dwc-arc-processors/arc-kernel-ci"
+          path: ${{ github.workspace }}/arc-kernel-ci
+
+      - name: Install apt dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get install -y --no-install-recommends \
+            bc \
+            bison \
+            flex \
+            gawk \
+            gcc \
+            libelf-dev \
+            libncurses5-dev \
+            libssl-dev \
+            make
+
+      - name: Download toolchain
+        run: |
+          echo "Toolchain version:" ${{ env.toolchain_ver }}
+          echo "Toolchain base URL:" ${{ env.toolchain_url }}
+          curl -L -o toolchain.tar.gz ${{ env.toolchain_url }}/${{ matrix.targets.toolchain }}-${{ env.toolchain_ver }}.tar.gz
+          mkdir -p ${{ github.workspace }}/toolchain
+          tar -xzf toolchain.tar.gz --strip 1 -C ${{ github.workspace }}/toolchain
+
+      - name: Build linux kernel for ${{ matrix.targets.cpu }}
+        run: |
+          toolchain_prefix="${{ matrix.targets.toolchain }}"
+          case "$toolchain_prefix" in
+          arc-elf)
+            toolchain_prefix="${toolchain_prefix/elf/elf32}"
+            ;;
+          *glibc)
+            toolchain_prefix="${toolchain_prefix/glibc/linux-gnu}"
+            ;;
+          esac
+
+          export ARCH=arc
+          export CROSS_COMPILE="${{ github.workspace }}/toolchain/bin/${toolchain_prefix}-"
+
+          make ${{ matrix.targets.defconfig }}
+
+          # Select extra options applied for all configurations
+          ./scripts/config --enable CONFIG_ATOMIC64_SELFTEST
+
+          # Select rootfs
+          case "${{ matrix.targets.cpu }}" in
+          arc700*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.arc700"
+            ;;
+          hs4x*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs4x"
+            ;;
+          hs5x*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs5x"
+            ;;
+          hs6x*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs6x"
+            ;;
+          *)
+            echo "Unable to find rootfs for '${{ matrix.targets.cpu }}'" >&2
+            exit 1
+            ;;
+          esac
+          ./scripts/config --set-str CONFIG_INITRAMFS_SOURCE "$rootfs_path"
+
+          # Other options if needed
+          case "${{ matrix.targets.cpu }}" in
+          hs4x-pae40)
+            ./scripts/config --enable CONFIG_ARC_HAS_PAE40
+            ;;
+          hs5x-hw-atomic64)
+            ./scripts/config --enable CONFIG_ARC_HAS_LL64
+            ;;
+          hs6x-mmu48-16k)
+            ./scripts/config --disable ARC_PAGE_SIZE_4K
+            ./scripts/config --enable ARC_PAGE_SIZE_16K
+            ;;
+          hs6x-mmu48-64k)
+            ./scripts/config --disable ARC_PAGE_SIZE_4K
+            ./scripts/config --enable ARC_PAGE_SIZE_64K
+            ;;
+          hs6x-mmu52)
+            ./scripts/config --disable ARC_MMU_V6_48
+            ./scripts/config --disable ARC_PAGE_SIZE_4K
+            ./scripts/config --enable ARC_MMU_V6_52
+            ./scripts/config --enable ARC_PAGE_SIZE_64K
+            ;;
+          esac
+
+          if [[ "${{ matrix.targets.cpu }}" =~ ^(hs5x|hs6x) ]]; then
+            image_name="loader"
+            image_path=${{ github.workspace }}/arch/arc/boot/loader
+          else
+            image_name="vmlinux"
+            image_path="${{ github.workspace }}/vmlinux"
+          fi
+
+          make -j $(nproc) ${image_name}
+          cp $image_path vmlinux-${{ matrix.targets.cpu }}
+        shell: bash
+
+      - name: Upload ${{ matrix.targets.cpu }} vmlinux
+        uses: actions/upload-artifact@v2
+        with:
+          name: vmlinux-${{ matrix.targets.cpu }}
+          path: vmlinux-${{ matrix.targets.cpu }}
+          retention-days: 5
+
+  test:
+    needs: [build]
+    runs-on: nsim
+    strategy:
+      matrix:
+        targets: [arc700, hs4x, hs4x-pae40, hs5x, hs5x-hw-atomic64, hs6x, hs6x-mmu48-16k, hs6x-mmu48-64k, hs6x-mmu52]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout arc-kernel-ci
+        with:
+          repository: "foss-for-synopsys-dwc-arc-processors/arc-kernel-ci"
+
+      - name: Install pip requirements
+        run: |
+          pip3 install -r requirements.txt
+
+      - name: Download ${{ matrix.targets }} vmlinux
+        uses: actions/download-artifact@v2
+        with:
+          name: vmlinux-${{ matrix.targets }}
+
+      - name: Run nSIM boot test on ${{ matrix.targets }}
+        run: |
+          ./boot-nsim-image.py \
+            ${{ github.workspace }}/vmlinux-${{ matrix.targets }} \
+            ${{ github.workspace }}/nsim/${{ matrix.targets }}.props
