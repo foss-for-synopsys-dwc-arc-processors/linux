@@ -118,7 +118,8 @@ static inline int cache_is_vipt_aliasing(void)
 do {									\
 	memcpy(dst, src, len);						\
 	if (vma->vm_flags & VM_EXEC)					\
-		__sync_icache_dcache(dst, vaddr, len);	                \
+		__sync_icache_dcache(page_to_phys(page) + 		\
+				     (vaddr & ~PAGE_MASK), vaddr, len);	\
 } while (0)
 
 #define copy_from_user_page(vma, page, vaddr, dst, src, len)		\
