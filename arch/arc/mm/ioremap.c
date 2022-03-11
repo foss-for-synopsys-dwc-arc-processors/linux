@@ -81,7 +81,7 @@ void __iomem *ioremap(phys_addr_t paddr, unsigned long size)
 	 * The cast to u32 is fine as this region can only be inside 4GB
 	 */
 	if (arc_uncached_addr_space(paddr))
-		return (void __iomem *)paddr;
+		return (void __iomem *)(unsigned long __force)paddr;
 
 	return ioremap_prot_internal(paddr, size,
 				     pgprot_noncached(PAGE_KERNEL));
@@ -110,7 +110,7 @@ EXPORT_SYMBOL(ioremap_prot);
 void iounmap(const void __iomem *addr)
 {
 	/* weird double cast to handle phys_addr_t > 32 bits */
-	if (arc_uncached_addr_space((phys_addr_t)addr))
+	if (arc_uncached_addr_space((unsigned long __force)addr))
 		return;
 
 	vfree((void *)(PAGE_MASK & (unsigned long __force)addr));
