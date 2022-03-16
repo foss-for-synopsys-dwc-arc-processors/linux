@@ -136,6 +136,18 @@
 #define ARC_VADDR_BITS		32
 #endif
 
+#if defined(CONFIG_ARC_HAS_PAE40)
+#define ARC_PADDR_BITS		40
+#elif defined(CONFIG_ARC_MMU_V6_52)
+/*
+ * FIXME: Only 48-bit phy addresses supported for MMUv52 for now.
+ * Bits 51:48 of address are mapped to 15:12 of entry.
+ */
+#define ARC_PADDR_BITS		48
+#else
+#define ARC_PADDR_BITS		ARC_VADDR_BITS
+#endif
+
 #define PGDIR_SIZE		BIT(PGDIR_SHIFT)
 #define PGDIR_MASK		(~(PGDIR_SIZE - 1))
 #define PTRS_PER_PGD		BIT(ARC_VADDR_BITS - PGDIR_SHIFT)
@@ -258,15 +270,7 @@ extern void ptw_flush(void *pxx);
 #define pte_page(pte)		pfn_to_page(pte_pfn(pte))
 #define set_pte(ptep, pte)	do { (*(ptep)) = (pte); ptw_flush(ptep); } while (0)
 
-#ifdef CONFIG_ARC_MMU_V6_52
-/*
- * FIXME: Only 48-bit phy addresses supported for MMUv52 for now.
- * Bits 51:48 of address are mapped to 15:12 of entry.
- */
-#define pte_pfn(pte)		((pte_val(pte) >> PAGE_SHIFT) & ((1UL << (48 - PAGE_SHIFT)) - 1))
-#else
-#define pte_pfn(pte)		((pte_val(pte) >> PAGE_SHIFT) & ((1UL << (ARC_VADDR_BITS - PAGE_SHIFT)) - 1))
-#endif
+#define pte_pfn(pte)		((pte_val(pte) >> PAGE_SHIFT) & ((1UL << (ARC_PADDR_BITS - PAGE_SHIFT)) - 1))
 
 #define pfn_pte(pfn, prot)	__pte(__pfn_to_phys(pfn) | pgprot_val(prot))
 #define mk_pte(page, prot)	pfn_pte(page_to_pfn(page), prot)
