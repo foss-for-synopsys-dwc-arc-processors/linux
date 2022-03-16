@@ -12,7 +12,12 @@
 #include <asm/kmap_size.h>
 #include <asm/fixmap.h>
 
-#define KM_TYPE_NR		((FIXADDR_SIZE >> PAGE_SHIFT)/NR_CPUS)
+
+#define PKMAP_BASE	(FIXADDR_START + FIXADDR_SIZE)
+
+#define FIX_KMAP_SLOTS		(KM_MAX_IDX * NR_CPUS)
+#define FIX_KMAP_BEGIN		(0UL)
+#define FIX_KMAP_END		((FIX_KMAP_BEGIN + FIX_KMAP_SLOTS) - 1)
 
 /*
  * This should be converted to the asm-generic version, but of course this
@@ -22,7 +27,6 @@
 #define __virt_to_fix(x)	(((FIXADDR_TOP - ((x) & PAGE_MASK))) >> PAGE_SHIFT)
 
 /* start after fixmap area */
-#define PKMAP_BASE		(FIXADDR_START + FIXADDR_SIZE)
 #define PKMAP_SIZE		PGDIR_SIZE
 #define LAST_PKMAP		(PKMAP_SIZE >> PAGE_SHIFT)
 #define LAST_PKMAP_MASK		(LAST_PKMAP - 1)

@@ -34,7 +34,7 @@ extern void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys,
 #else
 
 #define FIXADDR_SIZE		PGDIR_SIZE
-#define FIXMAP_ADDR(nr)		(FIXMAP_BASE + ((nr) << PAGE_SHIFT))
+#define FIXADDR_TOP             (FIXADDR_START + (FIX_KMAP_END << PAGE_SHIFT))
 
 #endif /* CONFIG_ISA_ARCV3 */
 
