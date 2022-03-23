@@ -73,7 +73,8 @@
 /* TBD: kernel is RWX by default, split it to code/data */
 #define _PAGE_KERNEL	(_PAGE_TABLE        |			\
 			 /* writable */				\
-			 _PAGE_NOTEXEC_U    | 	/* exec k */	\
+			 _PAGE_NOTEXEC_U    |			\
+			 _PAGE_NOTEXEC_K    |			\
 			 /* AP kernel only  |      global */	\
 			 _PAGE_ACCESSED     |			\
 			 _PAGE_SHARED_INNER |			\
@@ -82,7 +83,12 @@
 #define PAGE_NONE	__pgprot(_PAGE_BASE)	/* TBD */
 #define PAGE_TABLE	__pgprot(_PAGE_TABLE)
 #define PAGE_KERNEL	__pgprot(_PAGE_KERNEL)
-#define PAGE_KERNEL_BLK	__pgprot(_PAGE_KERNEL & ~_PAGE_LINK)
+#define PAGE_KERNEL_RW	__pgprot(_PAGE_KERNEL)
+#define PAGE_KERNEL_RWX	__pgprot(_PAGE_KERNEL & ~_PAGE_NOTEXEC_K)
+
+#define PAGE_KERNEL_BLK		__pgprot(PAGE_KERNEL & ~_PAGE_LINK)
+#define PAGE_KERNEL_BLK_RW	__pgprot(PAGE_KERNEL_RW & ~_PAGE_LINK)
+#define PAGE_KERNEL_BLK_RWX	__pgprot(PAGE_KERNEL_RWX & ~_PAGE_LINK)
 
 #define PAGE_R		__pgprot(_PAGE_BASE)
 #define PAGE_RW		__pgprot(_PAGE_RW)

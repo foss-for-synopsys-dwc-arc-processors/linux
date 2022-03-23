@@ -91,13 +91,11 @@
 ;       All registers are clobbered.
 .macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp
 
-; FIXME: we need asserts about kernel size <= allocated size
-; FIXME: we need a better way to generalize this
 #if defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_4K)
 
 ; Two-level page table, PGD + PUD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
-#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_BLK_RWX
 #define BUILD_PMD_ENTRY
 #define ENTRY_SIZE	PUD_SIZE
 #define ENTRY_LABEL	.Lbuild_pud_entry\@
@@ -105,18 +103,18 @@
 #elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_16K)
 
 ; Three-level page table, PGD + PUD + PMD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
-#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
-#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK_RWX
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
 
 #elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_64K) || defined(CONFIG_ARC_MMU_V6_52) || defined(CONFIG_ARC_MMU_V6_32)
 
 ; Two-level page table, PGD + PMD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_RWX
 #define BUILD_PUD_ENTRY
-#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK_RWX
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
 
