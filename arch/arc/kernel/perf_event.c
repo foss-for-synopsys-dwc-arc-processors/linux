@@ -585,10 +585,13 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 
 	union cc_name {
 		struct {
-#ifdef CONFIG_ISA_ARCV3
+#ifdef CONFIG_64BIT
 			u64 word0, word1;
 #else
 			u32 word0, word1;
+#ifdef CONFIG_ISA_ARCV3
+			u32 word2, word3;
+#endif
 #endif
 			char sentinel;
 		} indiv;
@@ -643,6 +646,10 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 #else
 		cc_name.indiv.word0 = le32_to_cpu(read_aux_reg(ARC_REG_CC_NAME0));
 		cc_name.indiv.word1 = le32_to_cpu(read_aux_reg(ARC_REG_CC_NAME1));
+#ifdef CONFIG_ISA_ARCV3
+		cc_name.indiv.word2 = le32_to_cpu(read_aux_reg(ARC_REG_CC_NAME2));
+		cc_name.indiv.word3 = le32_to_cpu(read_aux_reg(ARC_REG_CC_NAME3));
+#endif
 #endif
 		arc_pmu_map_hw_event(i, cc_name.str);
 		arc_pmu_add_raw_event_attr(i, cc_name.str);
