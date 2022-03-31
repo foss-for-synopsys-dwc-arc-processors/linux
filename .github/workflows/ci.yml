@@ -21,6 +21,9 @@ jobs:
           - cpu: hs4x
             toolchain: arc
             defconfig: haps_hs_defconfig
+          - cpu: hs4x-pae40
+            toolchain: arc
+            defconfig: haps_hs_defconfig
           - cpu: hs5x
             toolchain: arc32
             defconfig: haps_hs5x_defconfig
@@ -69,7 +72,28 @@ jobs:
           export CROSS_COMPILE=${{ github.workspace }}/toolchain/bin/${{ matrix.targets.toolchain }}-linux-gnu-
 
           make ${{ matrix.targets.defconfig }}
-          ./scripts/config --set-str CONFIG_INITRAMFS_SOURCE ${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.${{ matrix.targets.cpu }}
+
+          case "${{ matrix.targets.cpu }}" in
+          hs4x*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs4x"
+            ;;
+          hs5x*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs5x"
+            ;;
+          hs6x*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs6x"
+            ;;
+          *)
+            echo "Unable to find rootfs for '${{ matrix.targets.cpu }}'" >&2
+            exit 1
+            ;;
+          esac
+
+          ./scripts/config --set-str CONFIG_INITRAMFS_SOURCE "$rootfs_path"
+
+          if [[ "${{ matrix.targets.cpu }}" == "hs4x-pae40" ]]; then
+            ./scripts/config --enable CONFIG_ARC_HAS_PAE40
+          fi
 
           if [[ "${{ matrix.targets.cpu }}" =~ ^(hs5x|hs6x)$ ]]; then
             image_name="loader"
@@ -95,7 +119,7 @@ jobs:
     runs-on: nsim
     strategy:
       matrix:
-        targets: [hs4x, hs5x, hs6x]
+        targets: [hs4x, hs4x-pae40, hs5x, hs6x]
       fail-fast: false
 
     steps:
