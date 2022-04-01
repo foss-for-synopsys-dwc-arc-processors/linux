@@ -14,7 +14,7 @@ if [ "${pahole_ver}" -ge "118" ] && [ "${pahole_ver}" -le "121" ]; then
 	extra_paholeopt="${extra_paholeopt} --skip_encoding_btf_vars"
 fi
 if [ "${pahole_ver}" -ge "121" ]; then
-	extra_paholeopt="${extra_paholeopt} --btf_gen_floats"
+	extra_paholeopt="${extra_paholeopt}"
 fi
 if [ "${pahole_ver}" -ge "122" ]; then
 	extra_paholeopt="${extra_paholeopt} -j"
