@@ -553,7 +553,7 @@ void __init handle_uboot_args(void)
 
 	/* see if U-boot passed an external Device Tree blob */
 	if (uboot_tag == UBOOT_TAG_DTB) {
-		machine_desc = setup_machine_fdt((void *)uboot_arg);
+		machine_desc = setup_machine_fdt(__va(uboot_arg));
 
 		/* external Device Tree blob is invalid - use embedded one */
 		use_embedded_dtb = !machine_desc;
@@ -577,7 +577,7 @@ ignore_uboot_args:
 	if (append_cmdline) {
 		/* Ensure a whitespace between the 2 cmdlines */
 		strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
-		strlcat(boot_command_line, uboot_arg, COMMAND_LINE_SIZE);
+		strlcat(boot_command_line, __va(uboot_arg), COMMAND_LINE_SIZE);
 	}
 }
 

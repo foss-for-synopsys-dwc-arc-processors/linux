@@ -96,6 +96,12 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #define VMALLOC_SIZE	(CONFIG_ARC_KVADDR_SIZE << 20)
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
+/*
+ * How much memory to map before dtb parsing and paging init.
+ * 1Gb is selected to fit in one PUD for any ARCv3 MMU configurations.
+ */
+#define EARLY_MAP_SIZE	(1 << 30)
+
 #elif defined(CONFIG_ARC_MMU_V6_32)
 /*
  * Default System Memory Map on ARC
@@ -116,6 +122,12 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
 #define FIXADDR_START	(VMALLOC_START + VMALLOC_SIZE)
+
+/*
+ * How much memory to map before dtb parsing and paging init.
+ * 1Gb is selected to fit in one PUD for any ARCv3 MMU configurations.
+ */
+#define EARLY_MAP_SIZE	(1 << 30)
 
 #else
 

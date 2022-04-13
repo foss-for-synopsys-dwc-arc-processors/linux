@@ -160,6 +160,10 @@ void __init early_fixmap_init(void)
 	BUILD_BUG_ON(pmd_index(FIXADDR_START) != \
 		     pmd_index(FIXADDR_START + FIXADDR_SIZE));
 
+	/* FIXADDR space must not overlap early mapping. */
+	BUILD_BUG_ON(FIXADDR_START >= PAGE_OFFSET && \
+		     FIXADDR_START < PAGE_OFFSET + EARLY_MAP_SIZE);
+
 	addr = FIXADDR_START;
 
 	pgd = (pgd_t *) __va(arc_mmu_rtp_get_addr(1));
@@ -298,6 +302,15 @@ void arc_paging_init(void)
 void arc_mmu_init(void)
 {
 	u64 memattr;
+
+	/*
+	 * Make sure that early mapping does not need more then one struct
+	 * per level (pgd/pud/pmd).
+	 */
+	/* It is always true when PAGE_OFFSET is aligned to pmd. */
+	BUILD_BUG_ON(pmd_index(PAGE_OFFSET) != 0);
+	/* And size of early mapping is lower then PUD. */
+	BUILD_BUG_ON(EARLY_MAP_SIZE > PUD_SIZE);
 
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));

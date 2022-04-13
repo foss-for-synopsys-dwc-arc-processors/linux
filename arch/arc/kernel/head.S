@@ -212,8 +212,8 @@
 	MOVI    r3, PAGE_OFFSET
 	; phy_addr <- CONFIG_LINUX_LINK_BASE
 	MOVI	r4, CONFIG_LINUX_LINK_BASE
-	; link_end <- _end , see vmlinux.ld.S
-	MOVA	r5, _end
+	; link_end <- EARLY_MAP_SIZE , see processor.h
+	MOVI	r5, (PAGE_OFFSET + EARLY_MAP_SIZE)
 
 	; pgd <- __pa(tbl_pg_dir)
 	MOVA	r6, \tbl_pg_dir
