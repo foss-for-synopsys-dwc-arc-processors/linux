@@ -30,6 +30,15 @@ jobs:
           - cpu: hs6x
             toolchain: arc64
             defconfig: haps_arc64_defconfig
+          - cpu: hs6x-mmu48-16k
+            toolchain: arc64
+            defconfig: haps_arc64_defconfig
+          - cpu: hs6x-mmu48-64k
+            toolchain: arc64
+            defconfig: haps_arc64_defconfig
+          - cpu: hs6x-mmu52
+            toolchain: arc64
+            defconfig: haps_arc64_defconfig
       fail-fast: false
 
     steps:
@@ -73,6 +82,7 @@ jobs:
 
           make ${{ matrix.targets.defconfig }}
 
+          # Select rootfs
           case "${{ matrix.targets.cpu }}" in
           hs4x*)
             rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs4x"
@@ -88,14 +98,30 @@ jobs:
             exit 1
             ;;
           esac
-
           ./scripts/config --set-str CONFIG_INITRAMFS_SOURCE "$rootfs_path"
 
-          if [[ "${{ matrix.targets.cpu }}" == "hs4x-pae40" ]]; then
+          # Other options if needed
+          case "${{ matrix.targets.cpu }}" in
+          hs4x-pae40)
             ./scripts/config --enable CONFIG_ARC_HAS_PAE40
-          fi
+            ;;
+          hs6x-mmu48-16k)
+            ./scripts/config --disable ARC_PAGE_SIZE_4K
+            ./scripts/config --enable ARC_PAGE_SIZE_16K
+            ;;
+          hs6x-mmu48-64k)
+            ./scripts/config --disable ARC_PAGE_SIZE_4K
+            ./scripts/config --enable ARC_PAGE_SIZE_64K
+            ;;
+          hs6x-mmu52)
+            ./scripts/config --disable ARC_MMU_V6_48
+            ./scripts/config --disable ARC_PAGE_SIZE_4K
+            ./scripts/config --enable ARC_MMU_V6_52
+            ./scripts/config --enable ARC_PAGE_SIZE_64K
+            ;;
+          esac
 
-          if [[ "${{ matrix.targets.cpu }}" =~ ^(hs5x|hs6x)$ ]]; then
+          if [[ "${{ matrix.targets.cpu }}" =~ ^(hs5x|hs6x) ]]; then
             image_name="loader"
             image_path=${{ github.workspace }}/arch/arc/boot/loader
           else
@@ -119,7 +145,7 @@ jobs:
     runs-on: nsim
     strategy:
       matrix:
-        targets: [hs4x, hs4x-pae40, hs5x, hs6x]
+        targets: [hs4x, hs4x-pae40, hs5x, hs6x, hs6x-mmu48-16k, hs6x-mmu48-64k, hs6x-mmu52]
       fail-fast: false
 
     steps:
