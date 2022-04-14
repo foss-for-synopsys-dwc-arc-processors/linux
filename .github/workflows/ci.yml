@@ -18,26 +18,29 @@ jobs:
     strategy:
       matrix:
         targets:
+          - cpu: arc700
+            toolchain: arc-elf
+            defconfig: nsim_700_defconfig
           - cpu: hs4x
-            toolchain: arc
+            toolchain: arc-glibc
             defconfig: haps_hs_defconfig
           - cpu: hs4x-pae40
-            toolchain: arc
+            toolchain: arc-glibc
             defconfig: haps_hs_defconfig
           - cpu: hs5x
-            toolchain: arc32
+            toolchain: arc32-glibc
             defconfig: haps_hs5x_defconfig
           - cpu: hs6x
-            toolchain: arc64
+            toolchain: arc64-glibc
             defconfig: haps_arc64_defconfig
           - cpu: hs6x-mmu48-16k
-            toolchain: arc64
+            toolchain: arc64-glibc
             defconfig: haps_arc64_defconfig
           - cpu: hs6x-mmu48-64k
-            toolchain: arc64
+            toolchain: arc64-glibc
             defconfig: haps_arc64_defconfig
           - cpu: hs6x-mmu52
-            toolchain: arc64
+            toolchain: arc64-glibc
             defconfig: haps_arc64_defconfig
       fail-fast: false
 
@@ -71,19 +74,32 @@ jobs:
         run: |
           echo "Toolchain version:" ${{ env.toolchain_ver }}
           echo "Toolchain base URL:" ${{ env.toolchain_url }}
-          curl -L -o toolchain.tar.gz ${{ env.toolchain_url }}/${{ matrix.targets.toolchain }}-glibc-${{ env.toolchain_ver }}.tar.gz
+          curl -L -o toolchain.tar.gz ${{ env.toolchain_url }}/${{ matrix.targets.toolchain }}-${{ env.toolchain_ver }}.tar.gz
           mkdir -p ${{ github.workspace }}/toolchain
           tar -xzf toolchain.tar.gz --strip 1 -C ${{ github.workspace }}/toolchain
 
       - name: Build linux kernel for ${{ matrix.targets.cpu }}
         run: |
+          toolchain_prefix="${{ matrix.targets.toolchain }}"
+          case "$toolchain_prefix" in
+          arc-elf)
+            toolchain_prefix="${toolchain_prefix/elf/elf32}"
+            ;;
+          *glibc)
+            toolchain_prefix="${toolchain_prefix/glibc/linux-gnu}"
+            ;;
+          esac
+
           export ARCH=arc
-          export CROSS_COMPILE=${{ github.workspace }}/toolchain/bin/${{ matrix.targets.toolchain }}-linux-gnu-
+          export CROSS_COMPILE="${{ github.workspace }}/toolchain/bin/${toolchain_prefix}-"
 
           make ${{ matrix.targets.defconfig }}
 
           # Select rootfs
           case "${{ matrix.targets.cpu }}" in
+          arc700*)
+            rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.arc700"
+            ;;
           hs4x*)
             rootfs_path="${{ github.workspace }}/arc-kernel-ci/cpio/rootfs.cpio.hs4x"
             ;;
@@ -145,7 +161,7 @@ jobs:
     runs-on: nsim
     strategy:
       matrix:
-        targets: [hs4x, hs4x-pae40, hs5x, hs6x, hs6x-mmu48-16k, hs6x-mmu48-64k, hs6x-mmu52]
+        targets: [arc700, hs4x, hs4x-pae40, hs5x, hs6x, hs6x-mmu48-16k, hs6x-mmu48-64k, hs6x-mmu52]
       fail-fast: false
 
     steps:
