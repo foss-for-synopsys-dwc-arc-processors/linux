@@ -493,11 +493,11 @@ ENTRY(stext)
 	;    r2 = pointer to uboot provided cmdline or external DTB in mem
 	; These are handled later in handle_uboot_args()
 	MOVA	r4, @uboot_tag
-	STR	r0, r4
+	st	r0, [r4]
 	MOVA	r4, @uboot_magic
-	STR	r1, r4
+	st	r1, [r4]
 	MOVA	r4, @uboot_arg
-	STR	r2, r4
+	st	r2, [r4]
 
 	; setup "current" tsk and optionally cache it in dedicated r25
 	MOVA	r9, @init_task
