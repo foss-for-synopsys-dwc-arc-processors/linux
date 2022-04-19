@@ -37,8 +37,8 @@
 unsigned int intr_to_DE_cnt;
 
 /* Part of U-boot ABI: see head.S */
-int __initdata uboot_tag;
-int __initdata uboot_magic;
+u32 __initdata uboot_tag;
+u32 __initdata uboot_magic;
 char __initdata *uboot_arg;
 
 const struct machine_desc *machine_desc;
@@ -546,7 +546,7 @@ void __init handle_uboot_args(void)
 	}
 
 	if (uboot_tag != UBOOT_TAG_NONE &&
-            uboot_arg_invalid((unsigned long)uboot_arg)) {
+            uboot_arg_invalid((unsigned long)__va(uboot_arg))) {
 		pr_warn(IGNORE_ARGS "invalid uboot arg: '%px'\n", uboot_arg);
 		goto ignore_uboot_args;
 	}
