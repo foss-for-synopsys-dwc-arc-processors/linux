@@ -74,7 +74,6 @@
 #define _PAGE_KERNEL	(_PAGE_TABLE        |			\
 			 /* writable */				\
 			 _PAGE_NOTEXEC_U    |			\
-			 _PAGE_NOTEXEC_K    |			\
 			 /* AP kernel only  |      global */	\
 			 _PAGE_ACCESSED     |			\
 			 _PAGE_SHARED_INNER |			\
