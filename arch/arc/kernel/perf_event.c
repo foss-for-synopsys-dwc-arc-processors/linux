@@ -806,9 +806,13 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
 
 			arc_pmu->irq = irq;
 
+			get_cpu_ptr(&arc_pmu_cpu);
+
 			/* intc map function ensures irq_set_percpu_devid() called */
 			ret = request_percpu_irq(irq, arc_pmu_intr, "ARC perf counters",
 						 this_cpu_ptr(&arc_pmu_cpu));
+
+			put_cpu_ptr(&arc_pmu_cpu);
 
 			if (!ret)
 				on_each_cpu(arc_cpu_pmu_irq_init, &irq, 1);
