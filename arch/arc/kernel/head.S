@@ -282,10 +282,10 @@
 .Lfirst_virt_addr\@:
 	; flush caches
 	mov	r4, 0x1
-#ifdef CONFIG_ARC_HAS_ICACHE
+#ifdef CONFIG_ARC_HAS_DCACHE
 	sr	r4, [ARC_REG_DC_IVDC]
 #endif
-#ifdef CONFIG_ARC_HAS_DCACHE
+#ifdef CONFIG_ARC_HAS_ICACHE
 	sr	r4, [ARC_REG_IC_IVIC]
 #endif
 	mov	r4, 0x0
