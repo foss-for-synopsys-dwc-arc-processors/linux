@@ -369,6 +369,8 @@ static inline void __before_dc_op(const int op)
 	 */
 	if (op == OP_INV) {
 		val &= ~DC_CTRL_INV_MODE_FLUSH;
+	} else {
+		val |= DC_CTRL_INV_MODE_FLUSH;
 	}
 
 #ifdef USE_RGN_FLSH
@@ -400,7 +402,7 @@ static inline void __after_dc_op(const int op)
 			;
 
 		/* Switch back to default Invalidate mode */
-		if (op == OP_INV)
+		if (op == OP_FLUSH)
 			write_aux_reg(ctl, reg | DC_CTRL_INV_MODE_FLUSH);
 	}
 }
