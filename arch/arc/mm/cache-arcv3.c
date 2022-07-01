@@ -120,6 +120,8 @@ static inline void __dc_op_before(const int op)
 
 	if (op == OP_INV) {
 		val &= ~DC_CTRL_INV_MODE_FLUSH;
+	} else {
+		val |= DC_CTRL_INV_MODE_FLUSH;
 	}
 
 	/*
