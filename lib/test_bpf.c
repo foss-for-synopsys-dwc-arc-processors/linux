@@ -8918,7 +8918,7 @@ static struct bpf_test tests[] = {
 		.stack_depth = 40,
 	},
 	/* BPF_STX | BPF_ATOMIC | BPF_W/DW */
-	{
+	/*{
 		"STX_XADD_W: X + 1 + 1 + 1 + ...",
 		{ },
 		INTERNAL,
@@ -8933,7 +8933,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 4134 } },
 		.fill_helper = bpf_fill_stxdw,
-	},
+	},*/
 	/*
 	 * Exhaustive tests of atomic operation variants.
 	 * Individual tests are expanded from template macros for all
@@ -9018,102 +9018,102 @@ static struct bpf_test tests[] = {
 	.stack_depth = 40,                                              \
 }
 	/* BPF_ATOMIC | BPF_W: BPF_ADD */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_ADD, +, 0x12, 0xab, 0xbd),
 	/* BPF_ATOMIC | BPF_W: BPF_ADD | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
 	/* BPF_ATOMIC | BPF_DW: BPF_ADD */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_ADD, +, 0x12, 0xab, 0xbd),
 	/* BPF_ATOMIC | BPF_DW: BPF_ADD | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_ADD | BPF_FETCH, +, 0x12, 0xab, 0xbd),
 	/* BPF_ATOMIC | BPF_W: BPF_AND */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_AND, &, 0x12, 0xab, 0x02),
 	/* BPF_ATOMIC | BPF_W: BPF_AND | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
 	/* BPF_ATOMIC | BPF_DW: BPF_AND */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_AND, &, 0x12, 0xab, 0x02),
 	/* BPF_ATOMIC | BPF_DW: BPF_AND | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_AND | BPF_FETCH, &, 0x12, 0xab, 0x02),
 	/* BPF_ATOMIC | BPF_W: BPF_OR */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_OR, |, 0x12, 0xab, 0xbb),
 	/* BPF_ATOMIC | BPF_W: BPF_OR | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
 	/* BPF_ATOMIC | BPF_DW: BPF_OR */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_OR, |, 0x12, 0xab, 0xbb),
 	/* BPF_ATOMIC | BPF_DW: BPF_OR | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_OR | BPF_FETCH, |, 0x12, 0xab, 0xbb),
 	/* BPF_ATOMIC | BPF_W: BPF_XOR */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_XOR, ^, 0x12, 0xab, 0xb9),
 	/* BPF_ATOMIC | BPF_W: BPF_XOR | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
 	/* BPF_ATOMIC | BPF_DW: BPF_XOR */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_XOR, ^, 0x12, 0xab, 0xb9),
 	/* BPF_ATOMIC | BPF_DW: BPF_XOR | BPF_FETCH */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_XOR | BPF_FETCH, ^, 0x12, 0xab, 0xb9),
 	/* BPF_ATOMIC | BPF_W: BPF_XCHG */
-	BPF_ATOMIC_OP_TEST1(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
-	BPF_ATOMIC_OP_TEST2(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
-	BPF_ATOMIC_OP_TEST3(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
-	BPF_ATOMIC_OP_TEST4(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST1(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST2(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST3(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST4(BPF_W, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
 	/* BPF_ATOMIC | BPF_DW: BPF_XCHG */
-	BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
-	BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
-	BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
-	BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST1(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST2(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST3(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
+	//BPF_ATOMIC_OP_TEST4(BPF_DW, BPF_XCHG, xchg, 0x12, 0xab, 0xab),
 #undef BPF_ATOMIC_POISON
 #undef BPF_ATOMIC_OP_TEST1
 #undef BPF_ATOMIC_OP_TEST2
 #undef BPF_ATOMIC_OP_TEST3
 #undef BPF_ATOMIC_OP_TEST4
 	/* BPF_ATOMIC | BPF_W, BPF_CMPXCHG */
-	{
+	/*{
 		"BPF_ATOMIC | BPF_W, BPF_CMPXCHG: Test successful return",
 		.u.insns_int = {
 			BPF_ST_MEM(BPF_W, R10, -40, 0x01234567),
@@ -9186,9 +9186,9 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 0x89abcdef } },
 		.stack_depth = 40,
-	},
+	},*/
 	/* BPF_ATOMIC | BPF_DW, BPF_CMPXCHG */
-	{
+	/*{
 		"BPF_ATOMIC | BPF_DW, BPF_CMPXCHG: Test successful return",
 		.u.insns_int = {
 			BPF_LD_IMM64(R1, 0x0123456789abcdefULL),
@@ -9277,7 +9277,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 0 } },
 		.stack_depth = 40,
-	},
+	},*/
 	/* BPF_JMP32 | BPF_JEQ | BPF_K */
 	{
 		"JMP32_JEQ_K: Small immediate",
@@ -12074,27 +12074,27 @@ static struct bpf_test tests[] = {
 		.stack_depth = 8,				\
 	}
 	/* 64-bit atomic operations, register clobbering */
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_ADD),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_AND),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_OR),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_XOR),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_ADD | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_AND | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_OR | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_XOR | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_XCHG),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_CMPXCHG),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_ADD),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_AND),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_OR),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_XOR),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_ADD | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_AND | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_OR | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_XOR | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_XCHG),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_DW, BPF_CMPXCHG),
 	/* 32-bit atomic operations, register clobbering */
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_ADD),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_AND),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_OR),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_XOR),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_ADD | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_AND | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_OR | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_XOR | BPF_FETCH),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_XCHG),
-	BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_CMPXCHG),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_ADD),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_AND),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_OR),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_XOR),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_ADD | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_AND | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_OR | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_XOR | BPF_FETCH),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_XCHG),
+	//BPF_TEST_CLOBBER_ATOMIC(BPF_W, BPF_CMPXCHG),
 #undef BPF_TEST_CLOBBER_ATOMIC
 	/* Checking that ALU32 src is not zero extended in place */
 #define BPF_ALU32_SRC_ZEXT(op)					\
@@ -12145,13 +12145,13 @@ static struct bpf_test tests[] = {
 		{ { 0, 0 } },						\
 		.stack_depth = 8,					\
 	}
-	BPF_ATOMIC32_SRC_ZEXT(ADD),
-	BPF_ATOMIC32_SRC_ZEXT(AND),
-	BPF_ATOMIC32_SRC_ZEXT(OR),
-	BPF_ATOMIC32_SRC_ZEXT(XOR),
+	//BPF_ATOMIC32_SRC_ZEXT(ADD),
+	//BPF_ATOMIC32_SRC_ZEXT(AND),
+	//BPF_ATOMIC32_SRC_ZEXT(OR),
+	//BPF_ATOMIC32_SRC_ZEXT(XOR),
 #undef BPF_ATOMIC32_SRC_ZEXT
 	/* Checking that CMPXCHG32 src is not zero extended in place */
-	{
+	/*{
 		"ATOMIC_W_CMPXCHG: src preserved in zext",
 		.u.insns_int = {
 			BPF_LD_IMM64(R1, 0x0123456789acbdefULL),
@@ -12170,7 +12170,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 0 } },
 		.stack_depth = 8,
-	},
+	},*/
 	/* Checking that JMP32 immediate src is not zero extended in place */
 #define BPF_JMP32_IMM_ZEXT(op)					\
 	{							\
@@ -13149,7 +13149,7 @@ static struct bpf_test tests[] = {
 		.fill_helper = bpf_fill_ld_imm64_pos_neg,
 	},
 	/* 64-bit ATOMIC register combinations */
-	{
+	/*{
 		"ATOMIC_DW_ADD: register combinations",
 		{ },
 		INTERNAL,
@@ -13238,9 +13238,9 @@ static struct bpf_test tests[] = {
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_atomic64_cmpxchg_reg_pairs,
 		.stack_depth = 8,
-	},
+	},*/
 	/* 32-bit ATOMIC register combinations */
-	{
+	/*{
 		"ATOMIC_W_ADD: register combinations",
 		{ },
 		INTERNAL,
@@ -13329,9 +13329,9 @@ static struct bpf_test tests[] = {
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_atomic32_cmpxchg_reg_pairs,
 		.stack_depth = 8,
-	},
+	},*/
 	/* 64-bit ATOMIC magnitudes */
-	{
+	/*{
 		"ATOMIC_DW_ADD: all operand magnitudes",
 		{ },
 		INTERNAL | FLAG_NO_DATA,
@@ -13430,9 +13430,9 @@ static struct bpf_test tests[] = {
 		.fill_helper = bpf_fill_cmpxchg64,
 		.stack_depth = 8,
 		.nr_testruns = NR_PATTERN_RUNS,
-	},
+	},*/
 	/* 64-bit atomic magnitudes */
-	{
+	/*{
 		"ATOMIC_W_ADD: all operand magnitudes",
 		{ },
 		INTERNAL | FLAG_NO_DATA,
@@ -13531,7 +13531,7 @@ static struct bpf_test tests[] = {
 		.fill_helper = bpf_fill_cmpxchg32,
 		.stack_depth = 8,
 		.nr_testruns = NR_PATTERN_RUNS,
-	},
+	},*/
 	/* JMP immediate magnitudes */
 	{
 		"JMP_JSET_K: all immediate value magnitudes",
