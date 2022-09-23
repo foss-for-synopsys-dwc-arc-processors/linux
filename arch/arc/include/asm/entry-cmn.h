@@ -180,7 +180,11 @@
 	STR	r10, sp, PT_sp		; pt_regs->sp
 
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
+#ifdef CONFIG_ARC_CPU_HS6X
+	STR	r58, sp, PT_r58		; r59 is reserved for ARC64
+#else
 	STR2	r58, r59, sp, PT_r58
+#endif
 #endif
 
 #ifdef CONFIG_ARC_CURR_IN_REG
@@ -216,7 +220,11 @@
 	DSP_RESTORE_REGFILE_IRQ
 
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
+#ifdef CONFIG_ARC_CPU_HS6X
+	LDR	r58, sp, PT_r58
+#else
 	LDR2	r58, r59, sp, PT_r58
+#endif
 #endif
 .endm
 

@@ -72,9 +72,14 @@ static int save_arcv2_regs(struct sigcontext *mctx, struct pt_regs *regs)
 #endif
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
 	v2abi.r58 = regs->r58;
+#ifndef CONFIG_ARC_CPU_HS6X
 	v2abi.r59 = regs->r59;
+#endif
 #else
-	v2abi.r58 = v2abi.r59 = 0;
+	v2abi.r58 = 0;
+#ifndef CONFIG_ARC_CPU_HS6X
+	v2abi.r59 = 0;
+#endif
 #endif
 	err = __copy_to_user(&mctx->v2abi, &v2abi, sizeof(v2abi));
 #endif
@@ -94,7 +99,9 @@ static int restore_arcv2_regs(struct sigcontext *mctx, struct pt_regs *regs)
 #endif
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
 	regs->r58 = v2abi.r58;
+#ifndef CONFIG_ARC_CPU_HS6X
 	regs->r59 = v2abi.r59;
+#endif
 #endif
 #endif
 	return err;

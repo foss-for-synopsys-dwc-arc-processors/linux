@@ -74,7 +74,9 @@ int main(void)
 #endif
 #ifdef CONFIG_ARC_HAS_ACCL_REGS
 	OFFSET(PT_r58, pt_regs, r58);
+#ifndef CONFIG_ARC_CPU_HS6X
 	OFFSET(PT_r59, pt_regs, r59);
+#endif
 #endif
 #ifdef CONFIG_ARC_DSP_SAVE_RESTORE_REGS
 	OFFSET(PT_DSP_CTRL, pt_regs, DSP_CTRL);

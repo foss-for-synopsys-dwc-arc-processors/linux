@@ -104,7 +104,12 @@ struct callee_regs {
 struct pt_regs {
 
 	unsigned long orig_r0;
-	unsigned long r58, r59;
+#ifdef CONFIG_ARC_HAS_ACCL_REGS
+	unsigned long r58;
+#ifndef CONFIG_ARC_CPU_HS6X
+	unsigned long r59;
+#endif
+#endif
 	ecr_reg ecr;
 	unsigned long bta;
 	unsigned long fp;
