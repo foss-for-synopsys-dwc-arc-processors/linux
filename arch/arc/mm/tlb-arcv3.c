@@ -160,10 +160,6 @@ void __init early_fixmap_init(void)
 	BUILD_BUG_ON(pmd_index(FIXADDR_START) != \
 		     pmd_index(FIXADDR_START + FIXADDR_SIZE));
 
-	/* FIXADDR space must not overlap early mapping. */
-	BUILD_BUG_ON(FIXADDR_START >= PAGE_OFFSET && \
-		     FIXADDR_START < PAGE_OFFSET + EARLY_MAP_SIZE);
-
 	addr = FIXADDR_START;
 
 	pgd = (pgd_t *) __va(arc_mmu_rtp_get_addr(1));
@@ -240,26 +236,26 @@ void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
 int arc_map_kernel_in_mm(struct mm_struct *mm)
 {
 	unsigned long addr = PAGE_OFFSET;
-	unsigned long end = PAGE_OFFSET + PUD_SIZE;
+	unsigned long end = PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE;
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
 	pmd_t *pmd;
 
-	pgd = pgd_offset(mm, addr);
-	if (pgd_none(*pgd) || !pgd_present(*pgd))
-		return 1;
-
-	p4d = p4d_offset(pgd, addr);
-	if (p4d_none(*p4d) || !p4d_present(*p4d))
-		return 1;
-
-	pud = pud_offset(p4d, addr);
-	if (pud_none(*pud) || !pud_present(*pud))
-		return 1;
-
 	do {
 		pgprot_t prot = PAGE_KERNEL_BLK;
+
+		pgd = pgd_offset(mm, addr);
+		if (pgd_none(*pgd) || !pgd_present(*pgd))
+			return 1;
+
+		p4d = p4d_offset(pgd, addr);
+		if (p4d_none(*p4d) || !p4d_present(*p4d))
+			return 1;
+
+		pud = pud_offset(p4d, addr);
+		if (pud_none(*pud) || !pud_present(*pud))
+			return 1;
 
 		pmd = pmd_offset(pud, addr);
 		if (!pmd_none(*pmd) || pmd_present(*pmd))
@@ -285,12 +281,25 @@ void arc_paging_init(void)
 	idx = pud_index(PAGE_OFFSET);
 	swapper_pud[idx] = pfn_pud(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pud[idx]);
+
+	if(CONFIG_LINUX_MAP_SIZE > 0x40000000) { //Mapping from 1Gb..2Gb
+		idx = pud_index(PAGE_OFFSET + 0x40000000);
+		swapper_pud[idx] = pfn_pud(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
+		ptw_flush(&swapper_pud[idx]);
+	}
+
 #elif CONFIG_PGTABLE_LEVELS == 3
 	unsigned int idx;
 
 	idx = pgd_index(PAGE_OFFSET);
 	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pg_dir[idx]);
+
+	if(CONFIG_LINUX_MAP_SIZE > 0x40000000) { //Mapping from 1Gb..2Gb
+		idx = pgd_index(PAGE_OFFSET + 0x40000000);
+		swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
+		ptw_flush(&swapper_pg_dir[idx]);
+	}
 #endif
 
 	arc_map_kernel_in_mm(&init_mm);
@@ -309,8 +318,6 @@ void arc_mmu_init(void)
 	 */
 	/* It is always true when PAGE_OFFSET is aligned to pmd. */
 	BUILD_BUG_ON(pmd_index(PAGE_OFFSET) != 0);
-	/* And size of early mapping is lower then PUD. */
-	BUILD_BUG_ON(EARLY_MAP_SIZE > PUD_SIZE);
 
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));

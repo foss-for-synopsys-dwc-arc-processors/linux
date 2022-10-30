@@ -582,6 +582,20 @@ config LINUX_RAM_BASE
 	  cases (such as HSDK), Linux can't be linked at start of DDR, hence
 	  this option.
 	  This needs to match memory start address specified in Device Tree
+	  LINUX_RAM_BASE needs to match LINUX_RAM_BASE in dts file.
+
+config LINUX_MAP_SIZE
+        hex "Map size"
+        default "0x40000000"
+        help
+	  0x40000000 - 1Gb is the default size. You can cahnge it to
+	  0x80000000 - 2Gb to increase kernel space size.
+	  Don't setup it more than 0x6000000 for HS5x when ARC_KVADDR_SIZE==256.
+	  Don't setup it more than 0x5000000 for HS5x when ARC_KVADDR_SIZE==512.
+	  Don't setup it more than 0x80000000 for HS6x.
+	  LINUX_MAP_SIZE needs to match LINUX_RAM_SIZE in dts file.
+	  If you don't know what the above means, leave this setting default.
+	  ARC_KVADDR_SIZE also impacts to LINUX_MAP_SIZE
 
 config HIGHMEM
 	bool "High Memory Support"

@@ -89,18 +89,20 @@
 ;
 ; Out:
 ;       All registers are clobbered.
-.macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp
+.macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp, val, foo
 
 ; FIXME: we need asserts about kernel size <= allocated size
 ; FIXME: we need a better way to generalize this
 #if defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_4K)
 
-; Two-level page table, PGD + PUD
+; Three-level page table, PGD + PUD + PMD
 #define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
-#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_BLK
-#define BUILD_PMD_ENTRY
-#define ENTRY_SIZE	PUD_SIZE
-#define ENTRY_LABEL	.Lbuild_pud_entry\@
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define ENTRY_SIZE	PMD_SIZE
+#define ENTRY_LABEL	.Lbuild_pmd_entry\@
+#define NEXT_SIZE	PUD_SIZE
+#define ENTRY_LABEL_NEXT	.Lbuild_pud_entry\@
 
 #elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_16K)
 
@@ -110,6 +112,8 @@
 #define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
+#define NEXT_SIZE	PUD_SIZE
+#define ENTRY_LABEL_NEXT	.Lbuild_pud_entry\@
 
 #elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_64K) || defined(CONFIG_ARC_MMU_V6_52) || defined(CONFIG_ARC_MMU_V6_32)
 
@@ -119,8 +123,13 @@
 #define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
+#define NEXT_SIZE	PGDIR_SIZE
+#define ENTRY_LABEL_NEXT	.Lbuild_pgd_entry\@
 
 #endif
+
+	ADDR	\val, \link_addr, NEXT_SIZE
+	MOVR	\foo, \pmd
 
 .Lbuild_pgd_entry\@:
 	BUILD_PGD_ENTRY
@@ -136,15 +145,26 @@
 	ADDR	\link_addr, \link_addr, ENTRY_SIZE
 
 	; All link addresses are in
-	CMPR	\link_end, \link_addr
-	ble	.Lbuild_end\@
+	CMPR	\link_addr, \link_end
+	bge		.Lbuild_end\@
+	CMPR	\link_addr, \val
+	bge.d	.Linc\@
+	ADDR	\foo, \foo, 0x8
 	b	ENTRY_LABEL
+
+.Linc\@:
+	MOVR	\pmd, \foo
+	ADDR	\val, \foo, NEXT_SIZE
+	b 		ENTRY_LABEL_NEXT
+
 .Lbuild_end\@:
 #undef BUILD_PGD_ENTRY
 #undef BUILD_PUD_ENTRY
 #undef BUILD_PMD_ENTRY
 #undef ENTRY_SIZE
 #undef ENTRY_LABEL
+#undef NEXT_SIZE
+#undef ENTRY_LABEL_NEXT
 .endm
 
 ; Create page table with 1:1 mapping in given table pointers.
@@ -196,7 +216,7 @@
 	SUBR	r8, r8, r10
 	ADDR	r8, r8, r11
 
-	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10
+	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10, r11, r12
 .endm
 
 ; Create page table with virt to phy mapping in given addresses.
@@ -212,8 +232,8 @@
 	MOVI    r3, PAGE_OFFSET
 	; phy_addr <- CONFIG_LINUX_LINK_BASE
 	MOVI	r4, CONFIG_LINUX_LINK_BASE
-	; link_end <- EARLY_MAP_SIZE , see processor.h
-	MOVI	r5, (PAGE_OFFSET + EARLY_MAP_SIZE)
+	; link_end <- CONFIG_LINUX_MAP_SIZE , see processor.h
+	MOVI	r5, (PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE)
 
 	; pgd <- __pa(tbl_pg_dir)
 	MOVA	r6, \tbl_pg_dir
@@ -230,7 +250,7 @@
 	SUBR	r8, r8, r3
 	ADDR	r8, r8, r4
 
-	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10
+	BUILD_PAGE_TABLE r3, r4, r5, r6, r7, r8, r9, r10, r11, r12
 .endm
 
 ; Enable MMU and jump into virtual address space.
