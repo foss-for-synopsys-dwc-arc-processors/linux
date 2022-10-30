@@ -19,13 +19,13 @@
 
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned_bss;
 pud_t swapper_pud[PTRS_PER_PUD] __page_aligned_bss;
-pmd_t swapper_pmd[PTRS_PER_PMD] __page_aligned_bss;
+pmd_t swapper_pmd[2*PTRS_PER_PMD] __page_aligned_bss; // BUG_ON! swapper_pmd[PTRS_PER_PMD] __page_aligned_bss
 
 #if defined(CONFIG_ISA_ARCV3)
 /* Used for early memory map in head.S for ARCv3 */
 pgd_t early_pg_dir[PTRS_PER_PGD] __initdata __aligned(PAGE_SIZE);
 pud_t early_pud[PTRS_PER_PUD] __initdata __aligned(PAGE_SIZE);
-pmd_t early_pmd[PTRS_PER_PMD] __initdata __aligned(PAGE_SIZE);
+pmd_t early_pmd[2*PTRS_PER_PMD] __initdata __aligned(PAGE_SIZE); // BUG_ON! early_pmd[PTRS_PER_PMD] __aligned(PAGE_SIZE)
 #endif
 
 char empty_zero_page[PAGE_SIZE] __aligned(PAGE_SIZE);

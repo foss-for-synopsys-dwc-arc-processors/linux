@@ -90,17 +90,11 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #define TASK_SIZE		0x60000000
 #define USER_KERNEL_GUTTER	0
 
-#define FIXADDR_START		(PAGE_OFFSET + PUD_SIZE)
-
 #define VMALLOC_START	(PAGE_OFFSET + 0x100000000000UL)
 #define VMALLOC_SIZE	(CONFIG_ARC_KVADDR_SIZE << 20)
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
-/*
- * How much memory to map before dtb parsing and paging init.
- * 1Gb is selected to fit in one PUD for any ARCv3 MMU configurations.
- */
-#define EARLY_MAP_SIZE	(1 << 30)
+#define FIXADDR_START	(PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE)
 
 #elif defined(CONFIG_ARC_MMU_V6_32)
 /*
@@ -117,17 +111,11 @@ extern unsigned long __get_wchan(struct task_struct *p);
 #define TASK_SIZE		0x60000000
 #define USER_KERNEL_GUTTER	0
 
-#define VMALLOC_START	(PAGE_OFFSET + PUD_SIZE)
+#define VMALLOC_START	(PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE)
 #define VMALLOC_SIZE	(CONFIG_ARC_KVADDR_SIZE << 20)
 #define VMALLOC_END	(VMALLOC_START + VMALLOC_SIZE)
 
-#define FIXADDR_START	(VMALLOC_START + VMALLOC_SIZE)
-
-/*
- * How much memory to map before dtb parsing and paging init.
- * 1Gb is selected to fit in one PUD for any ARCv3 MMU configurations.
- */
-#define EARLY_MAP_SIZE	(1 << 30)
+#define FIXADDR_START	(0xFF000000)
 
 #else
 
