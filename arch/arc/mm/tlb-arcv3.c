@@ -191,6 +191,7 @@ void early_fixmap_shutdown(void)
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
+	pmd_t *pmd;
 
 	addr = FIXADDR_START;
 
@@ -206,6 +207,11 @@ void early_fixmap_shutdown(void)
 	pud = pud_offset(p4d, addr);
 	if (pud_none(*pud) || !pud_present(*pud))
 		set_pud(pud, pfn_pud(virt_to_pfn(fixmap_pmd), PAGE_TABLE));
+
+	pmd = pmd_offset(pud, addr);
+	if (pmd_none(*pmd) || !pmd_present(*pmd))
+		set_pmd(pmd, pfn_pmd(virt_to_pfn(fixmap_pte), PAGE_TABLE));
+	ptw_flush(pmd);
 }
 
 void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
@@ -282,11 +288,9 @@ void arc_paging_init(void)
 	swapper_pud[idx] = pfn_pud(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pud[idx]);
 
-	if(CONFIG_LINUX_MAP_SIZE > 0x40000000) { //Mapping from 1Gb..2Gb
-		idx = pud_index(PAGE_OFFSET + 0x40000000);
-		swapper_pud[idx] = pfn_pud(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
-		ptw_flush(&swapper_pud[idx]);
-	}
+	idx = pud_index(PAGE_OFFSET + 0x40000000);
+	swapper_pud[idx] = pfn_pud(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
+	ptw_flush(&swapper_pud[idx]);
 
 #elif CONFIG_PGTABLE_LEVELS == 3
 	unsigned int idx;
@@ -295,17 +299,17 @@ void arc_paging_init(void)
 	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(swapper_pmd), PAGE_TABLE);
 	ptw_flush(&swapper_pg_dir[idx]);
 
-	if(CONFIG_LINUX_MAP_SIZE > 0x40000000) { //Mapping from 1Gb..2Gb
-		idx = pgd_index(PAGE_OFFSET + 0x40000000);
-		swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
-		ptw_flush(&swapper_pg_dir[idx]);
-	}
+	idx = pgd_index(PAGE_OFFSET + 0x40000000);
+	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
+	ptw_flush(&swapper_pg_dir[idx]);
+
 #endif
 
 	arc_map_kernel_in_mm(&init_mm);
 
 	arc_mmu_rtp_set(0, 0, 0);
 	arc_mmu_rtp_set(1, __pa(swapper_pg_dir), 0);
+	local_flush_tlb_all();
 }
 
 void arc_mmu_init(void)
