@@ -77,7 +77,7 @@ extern unsigned long __get_wchan(struct task_struct *p);
  * Default System Memory Map on ARC (assuming 4k pages)
  *
  * ---------------------------- (Userspace, Translated) -------------------------
- * 0x0000_0000			0x5FFF_FFFF	(user vaddr: TASK_SIZE)
+ * 0x0000_0000			0xFFFE_FFFF	(user vaddr: TASK_SIZE)
  *
  * PAGE_OFFSET ---------------- (Kernelspace, Translated) -----------------------
  * 0xffff_0000_0000_0000	0xffff_0000_3fff_ffff (kernel: PUD_SIZE)
@@ -87,7 +87,7 @@ extern unsigned long __get_wchan(struct task_struct *p);
 					CONFIG_ARC_KVADDR_SIZE << 20)
  * -----------------------------------------------------------------------------
  */
-#define TASK_SIZE		0x60000000
+#define TASK_SIZE		0xFFFF0000
 #define USER_KERNEL_GUTTER	0
 
 #define VMALLOC_START	(PAGE_OFFSET + 0x100000000000UL)
@@ -152,6 +152,7 @@ extern unsigned long __get_wchan(struct task_struct *p);
 /* This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */
-#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
+#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE / 3))
+
 
 #endif /* __ASM_ARC_PROCESSOR_H */
