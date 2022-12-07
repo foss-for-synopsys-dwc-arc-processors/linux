@@ -499,8 +499,8 @@ void setup_processor(void)
 	arc_chk_core_config(&info);
 
 	arc_init_IRQ();
-	/* No ned to setup MMU for secondary CPU for ARCv3. */
-	if (!IS_ENABLED(CONFIG_ISA_ARCV3) || c == 0)
+	/* ARCv3 MMU must be initialized after setup_arch_memory. */
+	if (!IS_ENABLED(CONFIG_ISA_ARCV3))
 		arc_mmu_init();
 	arc_cache_init();
 }
@@ -603,6 +603,8 @@ void __init setup_arch(char **cmdline_p)
 
 	setup_processor();
 	setup_arch_memory();
+	if (IS_ENABLED(CONFIG_ISA_ARCV3))
+		arc_mmu_init();
 
 	/* copy flat DT out of .init and then unflatten it */
 	unflatten_and_copy_device_tree();

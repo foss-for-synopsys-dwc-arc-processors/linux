@@ -91,14 +91,12 @@
 ;       All registers are clobbered.
 .macro BUILD_PAGE_TABLE, link_addr, phy_addr, link_end, pgd, pud, pmd, cur, tmp, val, foo
 
-; FIXME: we need asserts about kernel size <= allocated size
-; FIXME: we need a better way to generalize this
 #if defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_4K)
 
 ; Three-level page table, PGD + PUD + PMD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
-#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
-#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK_RWX
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
 #define NEXT_SIZE	PUD_SIZE
@@ -107,9 +105,9 @@
 #elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_16K)
 
 ; Three-level page table, PGD + PUD + PMD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
-#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL
-#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pud, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PUD_ENTRY BUILD_PAGE_TABLE_ENTRY \pud, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PUD, PUD_SHIFT, PAGE_KERNEL_RWX
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK_RWX
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
 #define NEXT_SIZE	PUD_SIZE
@@ -118,9 +116,9 @@
 #elif defined(CONFIG_ARC_MMU_V6_48) && defined(CONFIG_ARC_PAGE_SIZE_64K) || defined(CONFIG_ARC_MMU_V6_52) || defined(CONFIG_ARC_MMU_V6_32)
 
 ; Two-level page table, PGD + PMD
-#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL
+#define BUILD_PGD_ENTRY BUILD_PAGE_TABLE_ENTRY \pgd, \link_addr, \pmd, \cur, \tmp, PTRS_PER_PGD, PGDIR_SHIFT, PAGE_KERNEL_RWX
 #define BUILD_PUD_ENTRY
-#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK
+#define BUILD_PMD_ENTRY BUILD_PAGE_TABLE_ENTRY \pmd, \link_addr, \phy_addr, \cur, \tmp, PTRS_PER_PMD, PMD_SHIFT, PAGE_KERNEL_BLK_RWX
 #define ENTRY_SIZE	PMD_SIZE
 #define ENTRY_LABEL	.Lbuild_pmd_entry\@
 #define NEXT_SIZE	PGDIR_SIZE
@@ -128,7 +126,7 @@
 
 #endif
 
-	ADDR	\val, \link_addr, NEXT_SIZE
+	ADDR	\val, \link_addr, (NEXT_SIZE-1)
 	MOVR	\foo, \pmd
 
 .Lbuild_pgd_entry\@:
@@ -148,13 +146,13 @@
 	CMPR	\link_addr, \link_end
 	bge		.Lbuild_end\@
 	CMPR	\link_addr, \val
-	bge.d	.Linc\@
+	bgt.d	.Linc\@
 	ADDR	\foo, \foo, 0x8
 	b	ENTRY_LABEL
 
 .Linc\@:
 	MOVR	\pmd, \foo
-	ADDR	\val, \foo, NEXT_SIZE
+	ADDR	\val, \link_addr, (NEXT_SIZE-1)
 	b 		ENTRY_LABEL_NEXT
 
 .Lbuild_end\@:

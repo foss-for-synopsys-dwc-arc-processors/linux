@@ -56,14 +56,11 @@ SECTIONS
 	 *	decompress_inflate.c:gunzip( ) -> zlib_inflate_workspace( )
 	 */
 
+	. = ALIGN(PAGE_SIZE);
 	__init_begin = .;
+	__init_data_begin = .;
 
 	.init.ramfs : { INIT_RAM_FS }
-
-	. = ALIGN(PAGE_SIZE);
-
-	HEAD_TEXT_SECTION
-	INIT_TEXT_SECTION(L1_CACHE_BYTES)
 
 	/* INIT_DATA_SECTION open-coded: special INIT_RAM_FS handling */
 	.init.data : {
@@ -82,6 +79,14 @@ SECTIONS
 	PERCPU_SECTION(L1_CACHE_BYTES)
 
 	. = ALIGN(PAGE_SIZE);
+	__init_data_end = .;
+	__init_text_begin = .;
+
+	HEAD_TEXT_SECTION
+	INIT_TEXT_SECTION(L1_CACHE_BYTES)
+
+	. = ALIGN(PAGE_SIZE);
+	__init_text_end = .;
 	__init_end = .;
 
 	.text : {
@@ -98,6 +103,7 @@ SECTIONS
 		*(.gnu.warning)
 	}
 	EXCEPTION_TABLE(L1_CACHE_BYTES)
+	. = ALIGN(PAGE_SIZE);
 	_etext = .;
 
 	_sdata = .;
