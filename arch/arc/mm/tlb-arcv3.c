@@ -2,12 +2,14 @@
 
 #include <linux/mm.h>
 #include <linux/types.h>
+#include <linux/memblock.h>
 
 #include <asm/arcregs.h>
 #include <asm/mmu_context.h>
 #include <asm/mmu.h>
 #include <asm/setup.h>
 #include <asm/fixmap.h>
+#include <asm/pgalloc.h>
 
 /* A copy of the ASID from the PID reg is kept in asid_cache */
 DEFINE_PER_CPU(unsigned int, asid_cache) = MM_CTXT_FIRST_CYCLE;
@@ -230,89 +232,147 @@ void __set_fixmap(enum fixed_addresses idx, phys_addr_t phys, pgprot_t prot)
 	set_pte(pte, pfn_pte(PFN_DOWN(phys), prot));
 }
 
-/*
- * Map the kernel code/data into page tables for a given @mm
- *
- * Assumes
- *  - pgd, pud and pmd are already allocated
- *  - pud is wired up to pgd and pmd to pud
- *
- * TODO: assumes 4 levels, implement properly using p*d_addr_end loops
- */
-int arc_map_kernel_in_mm(struct mm_struct *mm)
+static phys_addr_t __init arc_map_early_alloc_page(void)
 {
-	unsigned long addr = PAGE_OFFSET;
-	unsigned long end = PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE;
+	phys_addr_t phys;
+
+	/* At early stage we have mapped PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE */
+	phys = memblock_phys_alloc_range(PAGE_SIZE, PAGE_SIZE, 0,
+					 __pa(PAGE_OFFSET + CONFIG_LINUX_MAP_SIZE));
+
+	memset(__va(phys), 0, PAGE_SIZE);
+
+	return phys;
+}
+
+static int __init arc_map_segment_in_mm(struct mm_struct *mm,
+					unsigned long start,
+					unsigned long end,
+					pgprot_t prot)
+{
+	unsigned long addr;
+	phys_addr_t phys;
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
 	pmd_t *pmd;
+	pte_t *pte;
 
+	BUG_ON(start & (PAGE_SIZE-1));
+	BUG_ON(end & (PAGE_SIZE-1));
+
+	/* TODO: Use bigger blocks if possible */
+	addr = start;
 	do {
-		pgprot_t prot = PAGE_KERNEL_BLK;
-
 		pgd = pgd_offset(mm, addr);
-		if (pgd_none(*pgd) || !pgd_present(*pgd))
+		if (pgd_none(*pgd)){
 			return 1;
+		}
 
 		p4d = p4d_offset(pgd, addr);
-		if (p4d_none(*p4d) || !p4d_present(*p4d))
-			return 1;
+		if (p4d_none(*p4d)) {
+			phys = arc_map_early_alloc_page();
+			p4d_populate(mm, p4d, __va(phys));
+		}
 
 		pud = pud_offset(p4d, addr);
-		if (pud_none(*pud) || !pud_present(*pud))
-			return 1;
+		if (pud_none(*pud)) {
+			phys = arc_map_early_alloc_page();
+			pud_populate(mm, pud, __va(phys));
+		}
 
 		pmd = pmd_offset(pud, addr);
-		if (!pmd_none(*pmd) || pmd_present(*pmd))
-			return 1;
+		if (pmd_none(*pmd)) {
+			phys = arc_map_early_alloc_page();
+			pmd_populate_kernel(mm, pmd, __va(phys));
+		}
 
-		set_pmd(pmd, pfn_pmd(virt_to_pfn(addr), prot));
-		addr = pmd_addr_end(addr, end);
-	}
-	while (addr != end);
+		pte = pte_offset_kernel(pmd, addr);
+
+		set_pte(pte, pfn_pte(virt_to_pfn(addr), prot));
+
+		addr += PAGE_SIZE;
+	} while (addr < end);
 
 	return 0;
 }
 
-void arc_paging_init(void)
+/*
+ * Map the kernel code/data into page tables for a given @mm
+ */
+int __init arc_map_kernel_in_mm(struct mm_struct *mm)
 {
-#if CONFIG_PGTABLE_LEVELS == 4
-	unsigned int idx;
+	extern char __init_text_begin[];
+	extern char __init_data_begin[];
+	extern char __init_text_end[];
+	extern char __init_data_end[];
 
-	idx = pgd_index(PAGE_OFFSET);
-	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(swapper_pud), PAGE_TABLE);
-	ptw_flush(&swapper_pg_dir[idx]);
+	arc_map_segment_in_mm(mm,
+			      PAGE_OFFSET,
+			      (unsigned long) __init_data_begin,
+			      PAGE_KERNEL_RWX);
+	arc_map_segment_in_mm(mm,
+			      (unsigned long) __init_data_begin,
+			      (unsigned long) __init_data_end,
+			      PAGE_KERNEL_RW);
+	arc_map_segment_in_mm(mm,
+			      (unsigned long) __init_text_begin,
+			      (unsigned long) __init_text_end,
+			      PAGE_KERNEL_RWX);
+	arc_map_segment_in_mm(mm,
+			      (unsigned long) _stext,
+			      (unsigned long) _etext,
+			      PAGE_KERNEL_RWX);
+	arc_map_segment_in_mm(mm,
+			      (unsigned long) _sdata,
+			      (unsigned long) _end,
+			      PAGE_KERNEL_RW);
 
-	idx = pud_index(PAGE_OFFSET);
-	swapper_pud[idx] = pfn_pud(virt_to_pfn(swapper_pmd), PAGE_TABLE);
-	ptw_flush(&swapper_pud[idx]);
+	return 0;
+}
 
-	idx = pud_index(PAGE_OFFSET + 0x40000000);
-	swapper_pud[idx] = pfn_pud(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
-	ptw_flush(&swapper_pud[idx]);
+int __init arc_map_memory_in_mm(struct mm_struct *mm)
+{
+	u64 i;
+	phys_addr_t start, end;
 
-#elif CONFIG_PGTABLE_LEVELS == 3
-	unsigned int idx;
+	/*
+	 * Kernel (__pa(PAGE_OFFSET) to __pa(_end) is already mapped by
+	 * arc_map_kernel_in_mm(), so map only >= __pa(_end).
+	 *
+	 * We expect that kernel is mapped to the start of physical memory,
+	 * so start >= __pa(PAGE_OFFSET).
+	 */
+	for_each_mem_range(i, &start, &end) {
+		if (start >= end)
+			break;
 
-	idx = pgd_index(PAGE_OFFSET);
-	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(swapper_pmd), PAGE_TABLE);
-	ptw_flush(&swapper_pg_dir[idx]);
+		if (end <= __pa(_end))
+			continue;
 
-	idx = pgd_index(PAGE_OFFSET + 0x40000000);
-	swapper_pg_dir[idx] = pfn_pgd(virt_to_pfn(&swapper_pmd[PTRS_PER_PMD]), PAGE_TABLE);
-	ptw_flush(&swapper_pg_dir[idx]);
+		if (start < __pa(_end))
+			start = __pa(_end);
 
-#endif
+		arc_map_segment_in_mm(mm,
+				      (unsigned long)__va(start),
+				      (unsigned long)__va(end),
+				      PAGE_KERNEL_RW);
+	}
 
+	return 0;
+}
+
+void __init arc_paging_init(void)
+{
 	arc_map_kernel_in_mm(&init_mm);
+	arc_map_memory_in_mm(&init_mm);
 
 	arc_mmu_rtp_set(0, 0, 0);
 	arc_mmu_rtp_set(1, __pa(swapper_pg_dir), 0);
 	local_flush_tlb_all();
 }
 
-void arc_mmu_init(void)
+void __init arc_mmu_init(void)
 {
 	u64 memattr;
 
@@ -328,8 +388,6 @@ void arc_mmu_init(void)
 
 	if ((unsigned long)_end - PAGE_OFFSET > PUD_SIZE)
 		panic("kernel doesn't fit in PUD (%lu Mb)\n", TO_MB(PUD_SIZE));
-
-	write_aux_reg(ARC_REG_MMU_TTBC, MMU_TTBC);
 
 	memattr = MEMATTR_NORMAL << (MEMATTR_IDX_NORMAL * 8);
 	memattr |= MEMATTR_UNCACHED << (MEMATTR_IDX_UNCACHED * 8);
