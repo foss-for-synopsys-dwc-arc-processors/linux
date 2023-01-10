@@ -14,6 +14,8 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 
+extern volatile unsigned int glb_clock_freq;
+
 /*
  * DOC: basic fixed-rate clock that cannot gate
  *
@@ -147,6 +149,8 @@ static struct clk_hw *_of_fixed_clk_setup(struct device_node *node)
 
 	if (of_property_read_u32(node, "clock-frequency", &rate))
 		return ERR_PTR(-EIO);
+
+	rate = glb_clock_freq; // Let it be changeable in MDB during boot process.
 
 	of_property_read_u32(node, "clock-accuracy", &accuracy);
 
