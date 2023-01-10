@@ -18,6 +18,8 @@
 
 #include "8250.h"
 
+extern volatile unsigned int glb_clock_freq;
+
 struct of_serial_info {
 	struct clk *clk;
 	struct reset_control *rst;
@@ -61,6 +63,9 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 
 		clk = clk_get_rate(info->clk);
 	}
+
+	clk = glb_clock_freq; // Let it be changeable in MDB during boot process.
+
 	/* If current-speed was set, then try not to change it. */
 	if (of_property_read_u32(np, "current-speed", &spd) == 0)
 		port->custom_divisor = clk / (16 * spd);

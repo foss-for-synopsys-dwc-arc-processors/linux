@@ -17,6 +17,8 @@
 
 static unsigned int __initdata arc_base_baud;
 
+volatile unsigned int glb_clock_freq = 50000000;
+
 unsigned int __init arc_early_base_baud(void)
 {
 	return arc_base_baud/16;
@@ -30,7 +32,7 @@ static void __init arc_set_early_base_baud(unsigned long dt_root)
 		 of_flat_dt_is_compatible(dt_root, "snps,hsdk"))
 		arc_base_baud = 33333333;	/* Fixed 33MHz clk (AXS10x & HSDK) */
 	else
-		arc_base_baud = 50000000;	/* Fixed default 50MHz */
+		arc_base_baud = glb_clock_freq;	/* Fixed default 50MHz */
 }
 #else
 #define arc_set_early_base_baud(dt_root)
