@@ -8,6 +8,12 @@
 #ifndef _ASM_ARC_ATOMIC64_ARCV2_H
 #define _ASM_ARC_ATOMIC64_ARCV2_H
 
+#if defined(CONFIG_ISA_ARCV3)
+#define ATOMIC_CONSTR	"+ATOMC"
+#else
+#define ATOMIC_CONSTR	"+ATO"
+#endif
+
 typedef struct {
 	s64 __aligned(8) counter;
 } atomic64_t;
@@ -58,7 +64,7 @@ static inline void arch_atomic64_##op(s64 a, atomic64_t *v)		\
 	"	" #op2 " %H0, %H0, %H2	\n"				\
 	"	scondd   %0, %1		\n"				\
 	"	bnz     1b		\n"				\
-	: "=&r"(val), "+ATO"(v->counter)					\
+	: "=&r"(val), ATOMIC_CONSTR(v->counter)				\
 	: "ir"(a)							\
 	: "cc", "memory");						\
 }									\
@@ -75,7 +81,7 @@ static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 	"	" #op2 " %H0, %H0, %H2	\n"				\
 	"	scondd   %0, %1		\n"				\
 	"	bnz     1b		\n"				\
-	: "=&r"(val), "+ATO"(v->counter)					\
+	: "=&r"(val), ATOMIC_CONSTR(v->counter)				\
 	: "ir"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
@@ -97,7 +103,7 @@ static inline s64 arch_atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 	"	" #op2 " %H1, %H0, %H3	\n"				\
 	"	scondd   %1, %2		\n"				\
 	"	bnz     1b		\n"				\
-	: "=&r"(orig), "=&r"(val), "+ATO"(v->counter)			\
+	: "=&r"(orig), "=&r"(val), ATOMIC_CONSTR(v->counter)		\
 	: "ir"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
@@ -151,7 +157,7 @@ arch_atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 	"	scondd  %3, %1		\n"
 	"	bnz     1b		\n"
 	"2:				\n"
-	: "=&r"(prev), "+ATO"(*ptr)
+	: "=&r"(prev), ATOMIC_CONSTR(*ptr)
 	: "ir"(expected), "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
@@ -171,7 +177,7 @@ static inline s64 arch_atomic64_xchg(atomic64_t *ptr, s64 new)
 	"	scondd  %2, %1		\n"
 	"	bnz     1b		\n"
 	"2:				\n"
-	: "=&r"(prev), "+ATO"(*ptr)
+	: "=&r"(prev), ATOMIC_CONSTR(*ptr)
 	: "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
@@ -202,7 +208,7 @@ static inline s64 arch_atomic64_dec_if_positive(atomic64_t *v)
 	"	scondd  %0, %1		\n"
 	"	bnz     1b		\n"
 	"2:				\n"
-	: "=&r"(val), "+ATO"(v->counter)
+	: "=&r"(val), ATOMIC_CONSTR(v->counter)
 	:
 	: "cc");	/* memory clobber comes from smp_mb() */
 
@@ -237,7 +243,7 @@ static inline s64 arch_atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
 	"	scondd  %1, %2		\n"
 	"	bnz     1b		\n"
 	"3:				\n"
-	: "=&r"(old), "=&r" (temp), "+ATO"(v->counter)
+	: "=&r"(old), "=&r" (temp), ATOMIC_CONSTR(v->counter)
 	: "r"(a), "r"(u)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
