@@ -48,12 +48,12 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         name: Checkout sources
         with:
           fetch-depth: 2
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         name: Checkout arc-kernel-ci
         with:
           repository: "foss-for-synopsys-dwc-arc-processors/arc-kernel-ci"
@@ -159,7 +159,7 @@ jobs:
         shell: bash
 
       - name: Upload ${{ matrix.targets.cpu }} vmlinux
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: vmlinux-${{ matrix.targets.cpu }}
           path: vmlinux-${{ matrix.targets.cpu }}
@@ -174,7 +174,7 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         name: Checkout arc-kernel-ci
         with:
           repository: "foss-for-synopsys-dwc-arc-processors/arc-kernel-ci"
@@ -184,7 +184,7 @@ jobs:
           pip3 install -r requirements.txt
 
       - name: Download ${{ matrix.targets }} vmlinux
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: vmlinux-${{ matrix.targets }}
 
