@@ -19,6 +19,19 @@ static inline void arc_write_me(unsigned short *addr, unsigned long value)
 	*(addr + 1) = (value & 0xffff);
 }
 
+static inline void arc_write_disp25h(unsigned short *addr, unsigned long value)
+{
+	unsigned short ins = *addr & ~0x7fe;
+
+	ins |= (value & 0x03ff) << 1;
+	*addr = ins;
+
+	ins = *(addr + 1) & ~0xffcf;
+	ins |= ((value >> 10) & 0x03ff) << 6;
+	ins |= ((value >> 20) & 0x000f) << 0;
+	*(addr + 1) = ins;
+}
+
 /*
  * This gets called before relocation loop in generic loader
  * Make a note of the section index of unwinding section
@@ -105,6 +118,9 @@ int apply_relocate_add(Elf_Shdr *sechdrs,
 			*((Elf_Addr *) location) = relocation;
 		else if (R_ARC_32_PCREL == relo_type)	/* ( S + A ) - PDATA ) */
 			*((Elf_Addr *) location) = relocation - location;
+		else if (R_ARC_S25H_PCREL == relo_type)	/* ( S + A ) - PDATA ) >> 1 */
+			arc_write_disp25h((unsigned short *)location, 
+						(relocation - location) >> 1);
 #ifdef CONFIG_64BIT
 		else if (R_ARC_64 == relo_type)		/* ( S + A ) */
 			*((Elf_Addr *) location) = relocation;
