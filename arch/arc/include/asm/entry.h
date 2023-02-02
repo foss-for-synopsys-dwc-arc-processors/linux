@@ -129,13 +129,11 @@
 #else   /* Uniprocessor implementation of macros */
 
 .macro  GET_CURR_TASK_ON_CPU    reg
-	MOVA \reg, @_current_task
-	LDR  \reg, \reg
+	LDR  \reg, @_current_task
 .endm
 
 .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
-	MOVA \tmp, @_current_task
-	STR  \tsk, \tmp
+	STR  \tsk, @_current_task
 #ifdef CONFIG_ARC_CURR_IN_REG
 	MOVR gp, \tsk
 #endif

@@ -96,8 +96,8 @@ ENTRY(EV_TLBProtV)
 
 	EXCEPTION_PROLOGUE
 
-	bl    do_page_fault
-	b    ret_from_exception
+	MOVR blink, ret_from_exception
+	b    do_page_fault
 
 END(EV_TLBProtV)
 
@@ -180,10 +180,9 @@ debug_marker_syscall:
 .Lintr_ret_to_delay_slot:
 debug_marker_ds:
 
-	MOVA	r3, @intr_to_DE_cnt
-	ld	r2, [r3]
+	ld	r2, [@intr_to_DE_cnt]
 	add	r2, r2, 1
-	st	r2, [r3]
+	st	r2, [@intr_to_DE_cnt]
 
 	; drop out of interrupt context (clear AUX_IRQ_ACT.active)
 	bmskn	r11, r10, 15

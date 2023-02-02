@@ -84,7 +84,7 @@
 	"	mov %0, %3\n"			\
 	"	# zero out dst ptr\n"		\
 	"	mov %1,  0\n"			\
-	"	b   2b\n"			\
+	"	j   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
 	"	.align  " REGSZASM "	\n"	\
@@ -118,7 +118,7 @@
 	"	# zero out dst ptr\n"		\
 	"	mov %1,  0\n"			\
 	"	mov %R1, 0\n"			\
-	"	b   2b\n"			\
+	"	j   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
 	"	.align 4\n"			\
@@ -150,7 +150,7 @@
 	"	.section .fixup, \"ax\"\n"	\
 	"	.align 4\n"			\
 	"3:	mov %0, %3\n"			\
-	"	b   2b\n"			\
+	"	j   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
 	"	.align  " REGSZASM "	\n"	\
@@ -180,7 +180,7 @@
 	"	.section .fixup, \"ax\"\n"	\
 	"	.align 4\n"			\
 	"3:	mov %0, %3\n"			\
-	"	b   2b\n"			\
+	"	j   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
 	"	.align 4\n"			\
@@ -221,7 +221,7 @@ raw_copy_from_user(void *to, const void __user *from, unsigned long n)
 		"2:	;nop				\n"
 		"	.section .fixup, \"ax\"		\n"
 		"	.align 4			\n"
-		"3:	b   2b				\n"
+		"3:	j   2b				\n"
 		"	.previous			\n"
 		"	.section __ex_table, \"a\"	\n"
 		"	.align 4			\n"
