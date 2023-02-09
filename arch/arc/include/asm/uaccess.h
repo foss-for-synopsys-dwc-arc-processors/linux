@@ -109,7 +109,7 @@
 #define __arc_get_user_one_64(dst, src, ret)	\
 	__asm__ __volatile__(                   \
 	"1:	ld   %1,[%2]\n"			\
-	"4:	ld  %R1,[%2, 4]\n"		\
+	"4:	ld  %H1,[%2, 4]\n"		\
 	"2:	;nop\n"				\
 	"	.section .fixup, \"ax\"\n"	\
 	"	.align 4\n"			\
@@ -117,7 +117,7 @@
 	"	mov %0, %3\n"			\
 	"	# zero out dst ptr\n"		\
 	"	mov %1,  0\n"			\
-	"	mov %R1, 0\n"			\
+	"	mov %H1, 0\n"			\
 	"	b   2b\n"			\
 	"	.previous\n"			\
 	"	.section __ex_table, \"a\"\n"	\
