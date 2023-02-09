@@ -4,6 +4,7 @@
  *   ASSUMES unaligned access
  */
 
+#include <asm-generic/export.h>
 #include <linux/linkage.h>
 #include <asm/assembler.h>
 
@@ -124,6 +125,7 @@ ENTRY_CFI(__clear_user)
 	sub    r0, r8, r0
 
 END_CFI(__clear_user)
+EXPORT_SYMBOL(__clear_user)
 
 ; Note that .fixup section is missing and that is not an omission
 ;
