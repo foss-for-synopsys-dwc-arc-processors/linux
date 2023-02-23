@@ -28,6 +28,8 @@ static int read_decode_cache_bcr_arcv3(int c, char *buf, int len)
 	if (cbcr.ver_maj == 0)
 		return n;
 
+	arc_cluster_mumbojumbo();
+
 	READ_BCR(ARC_REG_CLNR_BCR_0, cln0);
 
 	if (cln0.has_scm) {
