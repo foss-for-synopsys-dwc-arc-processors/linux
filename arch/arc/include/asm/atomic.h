@@ -16,7 +16,9 @@
 
 #define arch_atomic_read(v)  READ_ONCE((v)->counter)
 
-#ifdef CONFIG_ARC_HAS_LLSC
+#ifdef CONFIG_ARC_HAS_ATLD
+#include <asm/atomic-atld.h>
+#elif defined(CONFIG_ARC_HAS_LLSC)
 #include <asm/atomic-llsc.h>
 #else
 #include <asm/atomic-spinlock.h>
