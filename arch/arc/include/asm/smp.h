@@ -100,6 +100,10 @@ static inline const char *arc_platform_smp_cpuinfo(void)
 #ifndef CONFIG_ARC_HAS_LLSC
 
 #include <linux/irqflags.h>
+
+#define ATOMIC_OPS_FLAGS_VAR_DEF			\
+	unsigned long flags;
+
 #ifdef CONFIG_SMP
 
 #include <asm/spinlock.h>
@@ -122,6 +126,13 @@ extern arch_spinlock_t smp_atomic_ops_lock;
 #define atomic_ops_unlock(flags)	local_irq_restore(flags)
 
 #endif /* !CONFIG_SMP */
+
+#else	/* CONFIG_ARC_HAS_LLSC */
+
+#define ATOMIC_OPS_FLAGS_VAR_DEF
+
+#define atomic_ops_lock(flags)
+#define atomic_ops_unlock(flags)
 
 #endif	/* !CONFIG_ARC_HAS_LLSC */
 
