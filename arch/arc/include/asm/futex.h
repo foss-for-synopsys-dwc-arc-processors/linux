@@ -15,7 +15,33 @@
 #include <asm/assembler.h>
 #include <asm/errno.h>
 
-#ifdef CONFIG_ARC_HAS_LLSC
+#ifdef CONFIG_ARC_HAS_ATLD
+
+#define __futex_atomic_op(insn, ret, oldval, uaddr, oparg)\
+							\
+	smp_mb();					\
+	__asm__ __volatile__(				\
+	"	mov %1, %3			\n"	\
+	"1:					\n"	\
+		insn				"\n"	\
+	"	mov %0, 0			\n"	\
+	"2:					\n"	\
+	"	.section .fixup,\"ax\"		\n"	\
+	"	.align  4			\n"	\
+	"3:	mov %0, %4			\n"	\
+	"	b   2b				\n"	\
+	"	.previous			\n"	\
+	"	.section __ex_table,\"a\"	\n"	\
+	"	.align  " REGSZASM  "		\n"	\
+	" "	ARC_PTR " 1b, 3b		\n"	\
+	"	.previous			\n"	\
+							\
+	: "=&r" (ret), "=&r" (oldval)			\
+	: "r" (uaddr), "r" (oparg), "ir" (-EFAULT)	\
+	: "cc", "memory");				\
+	smp_mb()					\
+
+#elif defined(CONFIG_ARC_HAS_LLSC)
 
 #define __futex_atomic_op(insn, ret, oldval, uaddr, oparg)\
 							\
@@ -72,6 +98,22 @@
 
 #endif
 
+#ifdef CONFIG_ARC_HAS_ATLD
+#define ARC_OP_SET	"ex %1, [%2]"
+#define ARC_OP_ADD	"atld.add %1, [%2]"
+#define ARC_OP_OR	"atld.or %1, [%2]"
+#define ARC_OP_ANDN	"atld.and %1, [%2]"
+#define ARC_OP_XOR	"atld.xor %1, [%2]"
+#define ARC_OPARG_ANDN	~oparg
+#else	/* !CONFIG_ARC_HAS_ATLD */
+#define ARC_OP_SET	"mov %0, %3"
+#define ARC_OP_ADD	"add %0, %1, %3"
+#define ARC_OP_OR	"or %0, %1, %3"
+#define ARC_OP_ANDN	"bic %0, %1, %3"
+#define ARC_OP_XOR	"xor %0, %1, %3"
+#define ARC_OPARG_ANDN	oparg
+#endif
+
 static inline int arch_futex_atomic_op_inuser(int op, int oparg, int *oval,
 		u32 __user *uaddr)
 {
@@ -80,32 +122,32 @@ static inline int arch_futex_atomic_op_inuser(int op, int oparg, int *oval,
 	if (!access_ok(uaddr, sizeof(u32)))
 		return -EFAULT;
 
-#ifndef CONFIG_ARC_HAS_LLSC
+#if !defined(CONFIG_ARC_HAS_LLSC) && !defined(CONFIG_ARC_HAS_ATLD)
 	preempt_disable();	/* to guarantee atomic r-m-w of futex op */
 #endif
 
 	switch (op) {
 	case FUTEX_OP_SET:
-		__futex_atomic_op("mov %0, %3", ret, oldval, uaddr, oparg);
+		__futex_atomic_op(ARC_OP_SET, ret, oldval, uaddr, oparg);
 		break;
 	case FUTEX_OP_ADD:
 		/* oldval = *uaddr; *uaddr += oparg ; ret = *uaddr */
-		__futex_atomic_op("add %0, %1, %3", ret, oldval, uaddr, oparg);
+		__futex_atomic_op(ARC_OP_ADD, ret, oldval, uaddr, oparg);
 		break;
 	case FUTEX_OP_OR:
-		__futex_atomic_op("or  %0, %1, %3", ret, oldval, uaddr, oparg);
+		__futex_atomic_op(ARC_OP_OR, ret, oldval, uaddr, oparg);
 		break;
 	case FUTEX_OP_ANDN:
-		__futex_atomic_op("bic %0, %1, %3", ret, oldval, uaddr, oparg);
+		__futex_atomic_op(ARC_OP_ANDN, ret, oldval, uaddr, ARC_OPARG_ANDN);
 		break;
 	case FUTEX_OP_XOR:
-		__futex_atomic_op("xor %0, %1, %3", ret, oldval, uaddr, oparg);
+		__futex_atomic_op(ARC_OP_XOR, ret, oldval, uaddr, oparg);
 		break;
 	default:
 		ret = -ENOSYS;
 	}
 
-#ifndef CONFIG_ARC_HAS_LLSC
+#if !defined(CONFIG_ARC_HAS_LLSC) && !defined(CONFIG_ARC_HAS_ATLD)
 	preempt_enable();
 #endif
 
