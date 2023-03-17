@@ -299,21 +299,22 @@ static inline int arch_read_trylock(arch_rwlock_t *rw)
 {
 	int ret = 0;
 	unsigned long flags;
-
-	local_irq_save(flags);
-	arch_spin_lock(&(rw->lock_mutex));
+	int old = rw->counter;
 
 	/*
 	 * zero means writer holds the lock exclusively, deny Reader.
 	 * Otherwise grant lock to first/subseq reader
 	 */
-	if (rw->counter > 0) {
-		rw->counter--;
-		ret = 1;
+	if (old > 0) {
+		local_irq_save(flags);
+		arch_spin_lock(&(rw->lock_mutex));
+		if (rw->counter == old) {
+			rw->counter--;
+			ret = 1;
+		}
+		arch_spin_unlock(&(rw->lock_mutex));
+		local_irq_restore(flags);
 	}
-
-	arch_spin_unlock(&(rw->lock_mutex));
-	local_irq_restore(flags);
 
 	return ret;
 }
@@ -323,22 +324,19 @@ static inline int arch_write_trylock(arch_rwlock_t *rw)
 {
 	int ret = 0;
 	unsigned long flags;
+	int old = rw->counter;
 
-	local_irq_save(flags);
-	arch_spin_lock(&(rw->lock_mutex));
-
-	/*
-	 * If reader(s) hold lock (lock < __ARCH_RW_LOCK_UNLOCKED__),
-	 * deny writer. Otherwise if unlocked grant to writer
-	 * Hence the claim that Linux rwlocks are unfair to writers.
-	 * (can be starved for an indefinite time by readers).
-	 */
-	if (rw->counter == __ARCH_RW_LOCK_UNLOCKED__) {
-		rw->counter = 0;
-		ret = 1;
+	if (old == __ARCH_RW_LOCK_UNLOCKED__) {
+		local_irq_save(flags);
+		arch_spin_lock(&(rw->lock_mutex));
+		
+		if (rw->counter == old) {
+			rw->counter = 0;
+			ret = 1;
+		}
+		arch_spin_unlock(&(rw->lock_mutex));
+		local_irq_restore(flags);
 	}
-	arch_spin_unlock(&(rw->lock_mutex));
-	local_irq_restore(flags);
 
 	return ret;
 }
