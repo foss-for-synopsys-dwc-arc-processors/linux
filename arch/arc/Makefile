@@ -87,17 +87,23 @@ cflags-y				+= -mno-div-rem
 endif
 
 ifneq ($(filter y,$(CONFIG_ISA_ARCV2)  $(CONFIG_ISA_ARCV3)),)
-
 ifdef CONFIG_ARC_USE_UNALIGNED_MEM_ACCESS
 cflags-y				+= -munaligned-access
 else
 cflags-y				+= -mno-unaligned-access
 endif
+endif
 
+ifdef CONFIG_ISA_ARCV2
 ifndef CONFIG_ARC_HAS_LL64
 cflags-y				+= -mno-ll64
 endif
+endif
 
+ifdef CONFIG_ISA_ARCV3
+ifndef CONFIG_64BIT
+cflags-$(CONFIG_ARC_HAS_LL64)		+= -mll64
+endif
 endif
 
 cfi := $(call as-instr,.cfi_startproc\n.cfi_endproc,-DARC_DW2_UNWIND_AS_CFI)
