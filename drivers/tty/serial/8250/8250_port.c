@@ -2651,6 +2651,8 @@ static void serial8250_set_divisor(struct uart_port *port, unsigned int baud,
 		serial8250_do_set_divisor(port, baud, quot, quot_frac);
 }
 
+extern volatile unsigned int glb_uart_baud;
+
 static unsigned int serial8250_get_baud_rate(struct uart_port *port,
 					     struct ktermios *termios,
 					     struct ktermios *old)
@@ -2678,7 +2680,8 @@ static unsigned int serial8250_get_baud_rate(struct uart_port *port,
 	 * slower than nominal still match standard baud rates without
 	 * causing transmission errors.
 	 */
-	return uart_get_baud_rate(port, termios, old, min, max);
+	//return uart_get_baud_rate(port, termios, old, min, max);
+	return glb_uart_baud;  // For changing UART baud in MDB
 }
 
 /*
