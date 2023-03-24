@@ -15,7 +15,7 @@
 #include <asm/stacktrace.h>
 
 /* +1 one for null terminator */
-#ifdef CONFIG_ARCV3
+#ifdef CONFIG_ISA_ARCV3
 #define ARCPMU_EVENT_NAME_LEN	17
 #else
 #define ARCPMU_EVENT_NAME_LEN	9
