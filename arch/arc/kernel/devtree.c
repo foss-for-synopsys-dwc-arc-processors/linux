@@ -18,7 +18,7 @@
 static unsigned int __initdata arc_base_baud;
 
 //These two variables exist only for debugging perposes
-volatile unsigned int glb_clock_freq = 50000000;
+volatile unsigned int glb_clock_freq = 20000000;
 volatile unsigned int glb_uart_baud = 115200;
 
 unsigned int __init arc_early_base_baud(void)
