@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (C) 2016-2014 Synopsys, Inc. (www.synopsys.com)
+ * Copyright (C) 2023 Synopsys, Inc. (www.synopsys.com)
  */
 /dts-v1/;
 
@@ -8,11 +8,11 @@
 /include/ "skeleton_haps_idu.dtsi"
 
 / {
-	model = "snps,zebu_hs-smp";
+	model = "snps,zebu_hs5x-smp";
 	compatible = "snps,zebu_hs";
 
 	memory {
-		reg = <0x80000000 0x40000000>;	/* 1GB */
+		reg = <0x00000000 0x60000000>;	/* 1.5 GB */
 	};
 
 	chosen {
