@@ -136,6 +136,11 @@ static inline void __dc_op_before(const int op)
 	if (op & OP_INV)
 		val |= DC_CTRL_RGN_OP_INV;
 
+	// Set shareability attribute for DC operation: Inner-shareable.
+	// The same as for a page shareability attributes: __SHR_INNER.
+	val &= ~DC_CTRL_SH_ATTR_MASK;
+	val |= DC_CTRL_SH_ATTR_INNER;
+
 	write_aux_reg(ctl, val);
 }
 
