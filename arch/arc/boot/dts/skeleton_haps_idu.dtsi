@@ -62,5 +62,11 @@
 			#interrupt-cells = <1>;
 			interrupts = <20>;
 		};
+
+		arcpct2: cluster_pmu {
+			compatible = "snps,arcv3-cluster-pmu";
+			#interrupt-cells = <1>;
+			interrupts = <23>;
+		};
 	};
 };
