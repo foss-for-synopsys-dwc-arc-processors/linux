@@ -338,10 +338,7 @@ int __init arc_map_memory_in_mm(struct mm_struct *mm)
 
 	/*
 	 * Kernel (__pa(PAGE_OFFSET) to __pa(_end) is already mapped by
-	 * arc_map_kernel_in_mm(), so map only >= __pa(_end).
-	 *
-	 * We expect that kernel is mapped to the start of physical memory,
-	 * so start >= __pa(PAGE_OFFSET).
+	 * arc_map_kernel_in_mm(), so map addr < PAGE_OFFSET and addr >= __pa(_end).
 	 */
 	for_each_mem_range(i, &start, &end) {
 		if (start >= end)
@@ -349,6 +346,13 @@ int __init arc_map_memory_in_mm(struct mm_struct *mm)
 
 		if (end <= __pa(_end))
 			continue;
+
+		if(start < PAGE_OFFSET) {
+			arc_map_segment_in_mm(mm,
+				       (unsigned long)__va(start),
+				      PAGE_OFFSET,
+				      PAGE_KERNEL_RW);
+		}
 
 		if (start < __pa(_end))
 			start = __pa(_end);
@@ -380,8 +384,6 @@ void __init arc_mmu_init(void)
 	 * Make sure that early mapping does not need more then one struct
 	 * per level (pgd/pud/pmd).
 	 */
-	/* It is always true when PAGE_OFFSET is aligned to pmd. */
-	BUILD_BUG_ON(pmd_index(PAGE_OFFSET) != 0);
 
 	if (mmuinfo.pg_sz_k != TO_KB(PAGE_SIZE))
 		panic("MMU pg size != PAGE_SIZE (%luk)\n", TO_KB(PAGE_SIZE));
