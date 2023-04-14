@@ -289,6 +289,20 @@ enum {
 #define OPC_MPYDI	OPC_MPYD | OP_IMM
 
 /*
+ * The 4-byte encoding of "mpydu a,b,c".
+ * mpydu is the unsigned 32-bit multiplication with the lower 32-bit of
+ * the product in register "a" and the higher 32-bit in register "a+1".
+ *
+ * 0010_1bbb 0001_1001 0BBB_cccc ccaa_aaaa
+ *
+ * a:  aaaaaa		64-bit result in registers (R_a+1,R_a)
+ * b:  BBBbbb		the 1st input operand
+ * c:  cccccc		the 2nd input operand
+ */
+#define OPC_MPYDU	0x28190000
+#define OPC_MPYDUI	OPC_MPYDU | OP_IMM
+
+/*
  * The 4-byte encoding of "div a,b,c":
  *
  * 0010_1bbb 0000_0101 0BBB_cccc ccaa_aaaa
@@ -833,6 +847,25 @@ static u8 arc_mpyd_i(u8 *buf, u8 rd, s32 imm)
 	return INSN_len_normal + INSN_len_imm;
 }
 
+static u8 arc_mpydu_r(u8 *buf, u8 rd, u8 rs)
+{
+	if (emit) {
+		const u32 insn = OPC_MPYDU | OP_A(rd) | OP_B(rd) | OP_C(rs);
+		emit_4_bytes(buf, insn);
+	}
+	return INSN_len_normal;
+}
+
+static u8 arc_mpydu_i(u8 *buf, u8 rd, s32 imm)
+{
+	if (emit) {
+		const u32 insn = OPC_MPYDUI | OP_A(rd) | OP_B(rd);
+		emit_4_bytes(buf, insn);
+		emit_4_bytes(buf+INSN_len_normal, imm);
+	}
+	return INSN_len_normal + INSN_len_imm;
+}
+
 static u8 arc_divu_r(u8 *buf, u8 rd, u8 rs)
 {
 	if (emit) {
@@ -1313,7 +1346,7 @@ static u8 mul_r32_i32(u8 *buf, u8 rd, s32 imm)
  * --------
  * mpy       t0, B_hi, C_lo
  * mpy       t1, B_lo, C_hi
- * mpyd    B_lo, B_lo, C_lo
+ * mpydu   B_lo, B_lo, C_lo
  * add     B_hi, B_hi,   t0
  * add     B_hi, B_hi,   t1
  */
@@ -1329,7 +1362,7 @@ static u8 mul_r64(u8 *buf, u8 rd, u8 rs)
 
 	len  = arc_mpy_r(buf, t0, B_hi, C_lo);
 	len += arc_mpy_r(buf+len, t1, B_lo, C_hi);
-	len += arc_mpyd_r(buf+len, B_lo, C_lo);
+	len += arc_mpydu_r(buf+len, B_lo, C_lo);
 	len += arc_add_r(buf+len, B_hi, t0);
 	len += arc_add_r(buf+len, B_hi, t1);
 
