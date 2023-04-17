@@ -31,6 +31,7 @@
 #include <asm/fixmap.h>
 #include <asm/dsp-impl.h>
 #include <soc/arc/mcip.h>
+#include <asm/cluster.h>
 
 #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
 
@@ -602,6 +603,7 @@ void __init setup_arch(char **cmdline_p)
 
 	smp_init_cpus();
 
+	arc_cluster_mumbojumbo();
 	setup_processor();
 	setup_arch_memory();
 	if (IS_ENABLED(CONFIG_ISA_ARCV3))
