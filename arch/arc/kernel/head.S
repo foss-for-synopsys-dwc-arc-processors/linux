@@ -329,6 +329,18 @@
 	sr	@_int_vec_base_lds, [AUX_INTR_VEC_BASE]
 #endif
 
+#ifdef CONFIG_ARC_SMART_ENABLE
+.equ SMART_BUILD,    0xFF
+.equ SMART_CONTROL,  0x700
+		lr      r5, [SMART_BUILD]
+		and     r5, r5, 0xff
+		breq    r5, 0, 1f		; SmaRT doesn't exist
+		lr      r5, [SMART_CONTROL]
+		or      r5, r5, 1		; enable SmaRT
+		sr      r5, [SMART_CONTROL]
+1:
+#endif
+
 #ifdef CONFIG_ARC_HWPF
         lr      r5, [ARC_REG_HW_PF_CTRL]
         or      r5, r5, 1
