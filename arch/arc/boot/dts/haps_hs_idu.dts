@@ -18,4 +18,8 @@
 	chosen {
 		bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=ttyS0,115200n8 debug print-fatal-signals=1";
 	};
+
+	arcpct1: pct_slc {
+		compatible = "snps,arcv2-slc-pmu";
+	};
 };
