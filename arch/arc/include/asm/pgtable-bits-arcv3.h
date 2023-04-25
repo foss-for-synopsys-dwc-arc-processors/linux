@@ -86,6 +86,10 @@
 #define PAGE_KERNEL_RW	__pgprot(_PAGE_KERNEL)
 #define PAGE_KERNEL_RWX	__pgprot(_PAGE_KERNEL & ~_PAGE_NOTEXEC_K)
 
+/* Use arcitecture specific PAGE_KERNEL_* instead of generic fallbacks */
+#define PAGE_KERNEL_EXEC	__pgprot(_PAGE_KERNEL & ~_PAGE_NOTEXEC_K)
+#define PAGE_KERNEL_RO 		__pgprot(_PAGE_KERNEL | _PAGE_AP_READONLY)
+
 #define PAGE_KERNEL_BLK		__pgprot(_PAGE_KERNEL & ~_PAGE_LINK)
 #define PAGE_KERNEL_BLK_RW	__pgprot(_PAGE_KERNEL & ~_PAGE_LINK)
 #define PAGE_KERNEL_BLK_RWX	__pgprot(_PAGE_KERNEL & ~_PAGE_NOTEXEC_K & ~_PAGE_LINK)
