@@ -6,6 +6,15 @@
 
 void arc_cluster_mumbojumbo()
 {
+	struct bcr_clustv3_cfg cbcr;
+	struct bcr_cln_0_cfg cln0;
+
+	READ_BCR(ARC_REG_CLUSTER_BCR, cbcr);
+	if (cbcr.ver_maj == 0)
+		return;
+
+	READ_BCR(ARC_REG_CLNR_BCR_0, cln0);
+
 	/*
 	 * Region -> Base -> Size
 	 *
@@ -13,15 +22,20 @@ void arc_cluster_mumbojumbo()
 	 * Per 0 -> 0xFz -> 1Mb
 	 * SCM -> 0xFz+1MB -> 1Mb
 	 */
+	if (cln0.mst_noc) {
+		arc_cln_write_reg(ARC_CLN_MST_NOC_0_0_ADDR, 0x000); //0x800
+		arc_cln_write_reg(ARC_CLN_MST_NOC_0_0_SIZE, 0x800); //0x400
+	}
 
-	arc_cln_write_reg(ARC_CLN_MST_NOC_0_0_ADDR, 0x000); //0x800
-	arc_cln_write_reg(ARC_CLN_MST_NOC_0_0_SIZE, 0x800); //0x400
+	if (cln0.mst_per) {
+		arc_cln_write_reg(ARC_CLN_PER_0_BASE, 0xf00);
+		arc_cln_write_reg(ARC_CLN_PER_0_SIZE,   0x1);
+	}
 
-	arc_cln_write_reg(ARC_CLN_PER_0_BASE, 0xf00);
-	arc_cln_write_reg(ARC_CLN_PER_0_SIZE,   0x1);
-
-	arc_cln_write_reg(ARC_CLN_SHMEM_ADDR, 0xf01);
-	arc_cln_write_reg(ARC_CLN_SHMEM_SIZE,   0x1);
+	if (cln0.has_scm) {
+		arc_cln_write_reg(ARC_CLN_SHMEM_ADDR, 0xf01);
+		arc_cln_write_reg(ARC_CLN_SHMEM_SIZE,   0x1);
+	}
 }
 
 void arc_cluster_scm_enable()
