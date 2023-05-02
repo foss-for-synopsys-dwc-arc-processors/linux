@@ -16,6 +16,10 @@
 #define CF_I_INV	0x0002
 #define CF_D_FLUSH	0x0010
 #define CF_D_FLUSH_INV	0x0020
+#define CF_D_INV        0x0040
+#define CF_D_L1   0x10000   /* Operation with L1$ */
+#define CF_D_L2   0x20000   /* Operation with L2$ */
+#define CF_D_PHY  0x40000   /* cache_flush syscall operates with phy addresses */
 
 #define CF_DEFAULT	(CF_I_INV | CF_D_FLUSH)
 
