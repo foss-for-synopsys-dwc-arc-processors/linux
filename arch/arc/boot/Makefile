@@ -47,4 +47,4 @@ $(obj)/uImage.lzma: $(obj)/vmlinux.bin.lzma FORCE
 $(obj)/loader.o: $(src)/loader.S $(obj)/vmlinux.bin
 
 $(obj)/loader: $(obj)/loader.o $(obj)/vmlinux.bin $(obj)/loader.lds FORCE
-	$(Q)$(LD)  --defsym=_entry_point_virt=$(LINUX_ENTRY_VIRT) -T $(obj)/loader.lds -o $@ $(obj)/loader.o
+	$(Q)$(LD) $(KBUILD_LDFLAGS) --defsym=_entry_point_virt=$(LINUX_ENTRY_VIRT) -T $(obj)/loader.lds -o $@ $(obj)/loader.o
