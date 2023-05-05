@@ -55,7 +55,7 @@ static void arc_cluster_pmu_write_reg(unsigned int reg, void *data)
 {
 	unsigned long flags;
     unsigned int val = *(unsigned int *)data;
-	
+
 	spin_lock_irqsave(&cln_prot_op_spinlock, flags);
     WRITE_AUX(CLNR_ADDR, reg);
     WRITE_AUX(CLNR_DATA, val);
@@ -453,7 +453,7 @@ static int arc_cluster_pmu_event_init(struct perf_event *event)
 	struct hw_perf_event *hw = &event->hw;
 	struct cpct_n_config cfg;
 
-	if (WARN_ON_ONCE(event->attr.type != arc_cluster_pmu->pmu.type))
+	if (event->attr.type != arc_cluster_pmu->pmu.type)
 		return -ENOENT;
 
 	/* per-task mode not supported */
@@ -608,7 +608,7 @@ static int arc_cluster_pmu_fill_events(void)
  */
 static struct attribute_group arc_cluster_events_attr_gr = {
 	.name = "events",
-}; 
+};
 //------------------------------------------------------------
 static ssize_t arc_pmu_events_sysfs_show(struct device *dev,
 					 struct device_attribute *attr,
