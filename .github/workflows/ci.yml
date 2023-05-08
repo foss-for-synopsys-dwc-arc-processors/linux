@@ -30,6 +30,9 @@ jobs:
           - cpu: hs5x
             toolchain: arc32-glibc
             defconfig: haps_hs5x_defconfig
+          - cpu: hs5x-arc64-elf-build
+            toolchain: arc64-elf
+            defconfig: haps_hs5x_defconfig
           - cpu: hs5x-hw-atomic64
             toolchain: arc32-glibc
             defconfig: haps_hs5x_defconfig
@@ -170,7 +173,7 @@ jobs:
     runs-on: nsim
     strategy:
       matrix:
-        targets: [arc700, hs4x, hs4x-pae40, hs5x, hs5x-hw-atomic64, hs6x, hs6x-mmu48-16k, hs6x-mmu48-64k, hs6x-mmu52]
+        targets: [arc700, hs4x, hs4x-pae40, hs5x, hs5x-arc64-elf-build, hs5x-hw-atomic64, hs6x, hs6x-mmu48-16k, hs6x-mmu48-64k, hs6x-mmu52]
       fail-fast: false
 
     steps:
