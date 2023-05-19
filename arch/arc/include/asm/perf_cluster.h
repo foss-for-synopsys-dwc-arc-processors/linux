@@ -12,9 +12,6 @@
 #define BIT(x) (1 << (x))
 #endif
 
-#define CLNR_ADDR                   0x640
-#define CLNR_DATA                   0x641
-
 #define SCM_AUX_CPCT_BUILD          0xC00
 #define SCM_AUX_CPCT_CC_NUM         0xC03
 #define SCM_AUX_CPCT_CC_NAME0       0xC04

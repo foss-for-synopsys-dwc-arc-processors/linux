@@ -16,6 +16,7 @@
 #include <linux/percpu.h>
 #include <asm/arcregs.h>
 #include <asm/stacktrace.h>
+#include <asm/cluster.h>
 #include <asm/perf_cluster.h>
 
 
@@ -45,20 +46,20 @@ static void arc_cluster_pmu_read_reg(unsigned int reg, void *data)
 	unsigned int val;
 
 	spin_lock_irqsave(&cln_prot_op_spinlock, flags);
-    WRITE_AUX(CLNR_ADDR, reg);
-    READ_BCR(CLNR_DATA, val);
+	WRITE_AUX(ARC_REG_CLNR_ADDR, reg);
+	READ_BCR(ARC_REG_CLNR_DATA, val);
 	spin_unlock_irqrestore(&cln_prot_op_spinlock, flags);
-    *(unsigned int *)data = val;
+	*(unsigned int *)data = val;
 }
 
 static void arc_cluster_pmu_write_reg(unsigned int reg, void *data)
 {
 	unsigned long flags;
-    unsigned int val = *(unsigned int *)data;
+	unsigned int val = *(unsigned int *)data;
 
 	spin_lock_irqsave(&cln_prot_op_spinlock, flags);
-    WRITE_AUX(CLNR_ADDR, reg);
-    WRITE_AUX(CLNR_DATA, val);
+	WRITE_AUX(ARC_REG_CLNR_ADDR, reg);
+	WRITE_AUX(ARC_REG_CLNR_DATA, val);
 	spin_unlock_irqrestore(&cln_prot_op_spinlock, flags);
 }
 
@@ -702,9 +703,10 @@ static int arc_cluster_pmu_device_probe(struct platform_device *pdev)
 	int ii;
 	int has_interrupts = 0, irq = -1;
 	int counter_size;	/* in bits */
-    int ncounters;
-    int nevents;
+	int ncounters;
+	int nevents;
 	u32 int_reg;
+	struct bcr_clustv3_cfg cbcr;
 	struct arc_cluster_cpu __percpu *pcpu;
 	int ret;
 
@@ -713,22 +715,23 @@ static int arc_cluster_pmu_device_probe(struct platform_device *pdev)
 	return -ENODEV;
 #endif
 
-    if (!arc_cluster_pmu_is_present()){
-        pr_err("Error! Cluster PCT module is not presented in the system.\n");
-        return -ENODEV;
-    }
+	READ_BCR(ARC_REG_CLUSTER_BCR, cbcr);
+	if (!cbcr.ver_maj || !arc_cluster_pmu_is_present()){
+		pr_err("Cluster PCT module doesn't present in the system.\n");
+		return -ENODEV;
+	}
 
-    ncounters = arc_cluster_pmu_get_n_counters();
-    if (!ncounters) {
-        pr_err("Error! Cluster PCT module doesn't have counters.\n");
-        return -EINVAL;
-    }
+	ncounters = arc_cluster_pmu_get_n_counters();
+	if (!ncounters) {
+		pr_err("Cluster PCT module doesn't have counters.\n");
+		return -EINVAL;
+	}
 
 	nevents = arc_cluster_pmu_get_events_number();
-    if (!nevents) {
-        pr_err("Error! Cluster PCT module doesn't have countable conditions.\n");
-        return -EINVAL;
-    }
+	if (!nevents) {
+		pr_err("Cluster PCT module doesn't have countable conditions.\n");
+		return -EINVAL;
+	}
 
 	arc_cluster_pmu = devm_kzalloc(&pdev->dev, sizeof(struct arc_cluster_pmu), GFP_KERNEL);
 	if (!arc_cluster_pmu)
