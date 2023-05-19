@@ -8,17 +8,37 @@
 #include <linux/module.h>
 
 /* libgcc functions, not part of kernel sources */
-extern void __ashldi3(void);
-extern void __ashrdi3(void);
+
+#ifndef CONFIG_ISA_ARCV3
+/* Not required for ARCv3 */
 extern void __divsi3(void);
-extern void __divsf3(void);
-extern void __lshrdi3(void);
 extern void __modsi3(void);
-extern void __muldi3(void);
-extern void __ucmpdi2(void);
 extern void __udivsi3(void);
 extern void __umodsi3(void);
+
+EXPORT_SYMBOL(__divsi3);
+EXPORT_SYMBOL(__modsi3);
+EXPORT_SYMBOL(__udivsi3);
+EXPORT_SYMBOL(__umodsi3);
+#endif
+
+#ifndef CONFIG_64BIT
+/* Not required for 64-bit */
+extern void __ashldi3(void);
+extern void __ashrdi3(void);
+extern void __lshrdi3(void);
 extern void __cmpdi2(void);
+extern void __ucmpdi2(void);
+
+EXPORT_SYMBOL(__ashldi3);
+EXPORT_SYMBOL(__ashrdi3);
+EXPORT_SYMBOL(__lshrdi3);
+EXPORT_SYMBOL(__cmpdi2);
+EXPORT_SYMBOL(__ucmpdi2);
+#endif
+
+extern void __divsf3(void);
+extern void __muldi3(void);
 extern void __fixunsdfsi(void);
 extern void __muldf3(void);
 extern void __divdf3(void);
@@ -26,26 +46,14 @@ extern void __floatunsidf(void);
 extern void __floatunsisf(void);
 extern void __udivdi3(void);
 
-#ifndef CONFIG_ISA_ARCV3
-/* ARCv3 libgcc is primitive as of now */
-EXPORT_SYMBOL(__ashldi3);
-EXPORT_SYMBOL(__ashrdi3);
-EXPORT_SYMBOL(__divsi3);
 EXPORT_SYMBOL(__divsf3);
-EXPORT_SYMBOL(__lshrdi3);
-EXPORT_SYMBOL(__modsi3);
-EXPORT_SYMBOL(__ucmpdi2);
-EXPORT_SYMBOL(__udivsi3);
-EXPORT_SYMBOL(__umodsi3);
-EXPORT_SYMBOL(__cmpdi2);
+EXPORT_SYMBOL(__muldi3);
 EXPORT_SYMBOL(__fixunsdfsi);
 EXPORT_SYMBOL(__muldf3);
 EXPORT_SYMBOL(__divdf3);
 EXPORT_SYMBOL(__floatunsidf);
 EXPORT_SYMBOL(__floatunsisf);
 EXPORT_SYMBOL(__udivdi3);
-#endif
-EXPORT_SYMBOL(__muldi3);
 
 /* ARC optimised assembler routines */
 #ifndef CONFIG_ARC_LACKS_ZOL
