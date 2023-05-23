@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (C) 2023 Synopsys, Inc. (www.synopsys.com)
+ */
+/dts-v1/;
+
+/include/ "skeleton_hs_idu.dtsi"
+/include/ "skeleton_haps_idu.dtsi"
+
+/ {
+	model = "snps,zebu_hs6x-smp";
+	compatible = "snps,zebu_hs";
+
+	memory {
+		reg = <0x00000000 0x80000000>;	/* 2GB */
+	};
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=ttyS0,115200n8 debug print-fatal-signals=1";
+	};
+};
