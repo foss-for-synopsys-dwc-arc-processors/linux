@@ -5,7 +5,7 @@
 // Copyright (C) 2023 Synopsys, Inc. (www.synopsys.com)
 //
 // Note: use perf with a key "-a" means system-wide collection from all CPUs
-// 			to work with cluster PMU
+// to work with cluster PMU
 
 #include <linux/errno.h>
 #include <linux/interrupt.h>
@@ -66,7 +66,7 @@ static void arc_cluster_pmu_write_reg(unsigned int reg, void *data)
 /* read counter #idx; note that counter# != event# on ARC cluster! */
 static u64 arc_cluster_pmu_read_counter(int idx)
 {
-    struct cpct_snap snapL, snapH;
+	struct cpct_snap snapL, snapH;
 	struct cpct_n_config cfg;
 	u64 result;
 	int number;
@@ -78,15 +78,15 @@ static u64 arc_cluster_pmu_read_counter(int idx)
 	 * ARC cluster supports making 'snapshots' of the counters, so we don't
 	 * need to care about counters wrapping to 0 underneath our feet
 	 */
-    number = 8 * idx; // select counter, 0..31
+	number = 8 * idx; // select counter, 0..31
 
 	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_N_CONFIG + number, &cfg);
-    cfg.lsn = 1; /* take snapshot */
+	cfg.lsn = 1; /* take snapshot */
 	arc_cluster_pmu_write_reg(SCM_AUX_CPCT_N_CONFIG + number, &cfg);
 
 	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_N_SNAPH + number, &snapH);
-    arc_cluster_pmu_read_reg(SCM_AUX_CPCT_N_SNAPL + number, &snapL);
-    result = ((u64)snapH.snap << 32ULL) | (u64)snapL.snap;
+	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_N_SNAPL + number, &snapL);
+	result = ((u64)snapH.snap << 32ULL) | (u64)snapL.snap;
 	return result;
 }
 
@@ -519,86 +519,86 @@ static void arc_cluster_pmu_raw_free(struct device *dev)
 
 static int arc_cluster_pmu_is_present(void)
 {
-    struct cpct_build bld;
-    arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
-    return bld.ver;
+	struct cpct_build bld;
+	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
+	return bld.ver;
 }
 
 static int arc_cluster_pmu_get_n_counters(void)
 {
-    struct cpct_build bld;
-    arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
-    return bld.num_ctrs;
+	struct cpct_build bld;
+	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
+	return bld.num_ctrs;
 }
 
 static int arc_cluster_pmu_has_interrupt(void)
 {
-    struct cpct_build bld;
-    arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
-    return bld.i;
+	struct cpct_build bld;
+	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
+	return bld.i;
 }
 
 static int arc_cluster_pmu_get_cnt_bits(void)
 {
-    struct cpct_build bld;
-    arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
-    return 32 + 16 * bld.cs;
+	struct cpct_build bld;
+	arc_cluster_pmu_read_reg(SCM_AUX_CPCT_BUILD, &bld);
+	return 32 + 16 * bld.cs;
 }
 
 static int arc_cluster_pmu_get_events_number(void)
 {
-    int ii;
-    struct cpct_cc_num cc_num;
-    union cpct_cc_name name;
-    int n_actual_conditions = 0;
+	int ii;
+	struct cpct_cc_num cc_num;
+	union cpct_cc_name name;
+	int n_actual_conditions = 0;
 
-    name.cc[CPCT_NAME_SZ-1] = 0;
-    for (ii = 0; ii < MAX_CONDITIONS_NUMBER; ii++ ) {
-        cc_num.cc_num = ii;
-        cc_num.res = 0; /* recomended to write with 0 */
-        arc_cluster_pmu_write_reg(SCM_AUX_CPCT_CC_NUM, &cc_num);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME0, &name.uu[0]);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME1, &name.uu[1]);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME2, &name.uu[2]);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME3, &name.uu[3]);
-        if (strlen(name.cc) == 0) {
-            continue;
-        }
-        n_actual_conditions++;
-    }
-    return n_actual_conditions;
+	name.cc[CPCT_NAME_SZ-1] = 0;
+	for (ii = 0; ii < MAX_CONDITIONS_NUMBER; ii++ ) {
+		cc_num.cc_num = ii;
+		cc_num.res = 0; /* recomended to write with 0 */
+		arc_cluster_pmu_write_reg(SCM_AUX_CPCT_CC_NUM, &cc_num);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME0, &name.uu[0]);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME1, &name.uu[1]);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME2, &name.uu[2]);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME3, &name.uu[3]);
+		if (strlen(name.cc) == 0) {
+			continue;
+		}
+		n_actual_conditions++;
+	}
+	return n_actual_conditions;
 }
 
 static int arc_cluster_pmu_fill_events(void)
 {
-    int ii;
-    struct cpct_cc_num cc_num;
-    union cpct_cc_name name;
-    int n_actual_conditions = 0;
+	int ii;
+	struct cpct_cc_num cc_num;
+	union cpct_cc_name name;
+	int n_actual_conditions = 0;
 
-    name.cc[CPCT_NAME_SZ-1] = 0;
-    for (ii = 0; ii < MAX_CONDITIONS_NUMBER; ii++ ) {
-        cc_num.cc_num = ii;
-        cc_num.res = 0; /* recomended to write with 0 */
-        arc_cluster_pmu_write_reg(SCM_AUX_CPCT_CC_NUM, &cc_num);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME0, &name.uu[0]);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME1, &name.uu[1]);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME2, &name.uu[2]);
-        arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME3, &name.uu[3]);
-        if (strlen(name.cc) == 0) {
-            continue;
-        }
+	name.cc[CPCT_NAME_SZ-1] = 0;
+	for (ii = 0; ii < MAX_CONDITIONS_NUMBER; ii++ ) {
+		cc_num.cc_num = ii;
+		cc_num.res = 0; /* recomended to write with 0 */
+		arc_cluster_pmu_write_reg(SCM_AUX_CPCT_CC_NUM, &cc_num);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME0, &name.uu[0]);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME1, &name.uu[1]);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME2, &name.uu[2]);
+		arc_cluster_pmu_read_reg(SCM_AUX_CPCT_CC_NAME3, &name.uu[3]);
+		if (strlen(name.cc) == 0) {
+			continue;
+	}
 
 		arc_cluster_pmu->raw_entry[n_actual_conditions].cc_number = ii;
-        strcpy(arc_cluster_pmu->raw_entry[n_actual_conditions].name.cc, name.cc);
+	strcpy(arc_cluster_pmu->raw_entry[n_actual_conditions].name.cc, name.cc);
 
-        n_actual_conditions++;
+	n_actual_conditions++;
 		if (n_actual_conditions >= arc_cluster_pmu->n_events) {
 			break;
 		}
-    }
+	}
 
-    return n_actual_conditions;
+	return n_actual_conditions;
 }
 
 //------------------------------------------------------------
@@ -842,7 +842,7 @@ static struct platform_driver arc_cluster_pmu_driver = {
 		.name		= "ARCv3-cluster-PMU",
 		.of_match_table = of_match_ptr(arc_cluster_pmu_match),
 	},
-	.probe		= arc_cluster_pmu_device_probe,
+	.probe	= arc_cluster_pmu_device_probe,
 };
 
 module_platform_driver(arc_cluster_pmu_driver);
