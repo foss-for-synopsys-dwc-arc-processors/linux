@@ -83,7 +83,7 @@ static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 	"	bnz     1b		\n"				\
 	: "=&r"(val), ATOMIC_CONSTR(v->counter)				\
 	: "ir"(a)							\
-	: "cc");	/* memory clobber comes from smp_mb() */	\
+	: "cc", "memory");						\
 									\
 	return val;							\
 }
@@ -105,7 +105,7 @@ static inline s64 arch_atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 	"	bnz     1b		\n"				\
 	: "=&r"(orig), "=&r"(val), ATOMIC_CONSTR(v->counter)		\
 	: "ir"(a)							\
-	: "cc");	/* memory clobber comes from smp_mb() */	\
+	: "cc", "memory");						\
 									\
 	return orig;							\
 }
