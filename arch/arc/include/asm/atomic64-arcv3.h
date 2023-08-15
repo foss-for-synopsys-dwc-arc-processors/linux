@@ -84,7 +84,7 @@ static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 	  [ctr] "+ATOMC"(v->counter)					\
 	  SCOND_FAIL_RETRY_VARS						\
 	: [a] "r"(a)							\
-	: "cc");	/* memory clobber comes from smp_mb() */	\
+	: "cc", "memory");						\
 									\
 	return val;							\
 }
@@ -106,7 +106,7 @@ static inline s64 arch_atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 	  [ctr] "+ATOMC"(v->counter)					\
 	  SCOND_FAIL_RETRY_VARS						\
 	: [a] "r"(a)							\
-	: "cc");	/* memory clobber comes from smp_mb() */	\
+	: "cc", "memory");						\
 									\
 	return orig;							\
 }
