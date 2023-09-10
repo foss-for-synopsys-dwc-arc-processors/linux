@@ -12,10 +12,12 @@
 	compatible = "snps,zebu_hs";
 
 	memory {
-    	        reg = <0x20000000 0x10000000>;   /* 256 MB */ 
+		reg = <0x80000000 0x08000000>;  /* 128 MB */
 	};
 
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0x40000000,115200n8 console=ttyS0,115200n8 debug print-fatal-signals=1";
+		bootargs = "earlycon=uart8250,mmio32,0x40000000,115200n8 console=ttyS0,115200n8 debug print-fatal-signals=1 ";
+		stdout-path = "serial0:115200n8";
+		linux,stdout-path = "serial0:115200n8";
 	};
 };
