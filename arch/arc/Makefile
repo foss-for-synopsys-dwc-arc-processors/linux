@@ -61,6 +61,10 @@ cflags-$(CONFIG_64BIT)		+= 	-mcmodel=large
 cflags-$(CONFIG_ARC_HAS_LL128)	+= 	-m128
 endif
 
+ifdef CONFIG_FTRACE
+cflags-y	+= -fno-omit-frame-pointer
+endif
+
 cflags-y	+= -Wa,-I$(srctree)/arch/arc/include
 
 ifdef CONFIG_ARC_CURR_IN_REG

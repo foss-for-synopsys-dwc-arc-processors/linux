@@ -13,6 +13,23 @@ else
 obj-y	+= intc-arcv2.o
 endif
 
+ifdef CONFIG_FTRACE
+
+# Currently ftrace only works on arcv3 due to ABI
+ifdef CONFIG_ISA_ARCV3
+
+# ftrace cant be traced (infinite loop)
+CFLAGS_REMOVE_ftrace.o = -pg
+CFLAGS_REMOVE_mcount.o = -pg
+
+
+obj-$(CONFIG_FUNCTION_TRACER)  += mcount.o
+obj-$(CONFIG_FUNCTION_GRAPH_TRACER)    += ftrace.o
+
+endif
+
+endif
+
 obj-$(CONFIG_ISA_ARCOMPACT)		+= entry-compact.o
 obj-$(CONFIG_ISA_ARCV2)			+= entry-arcv2.o
 obj-$(CONFIG_ISA_ARCV3)			+= entry-arcv3.o
