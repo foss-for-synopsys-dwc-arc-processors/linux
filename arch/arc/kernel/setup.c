@@ -320,7 +320,7 @@ static int arcv3_mumbojumbo(int c, struct cpuinfo_arc *info, char *buf, int len)
 	if (arc64) {
 		struct bcr_mpy_arc64 mpy;
 
-		READ_BCR(ARC_REG_MPY_ARC64_BCR, mpy);
+		READ_BCR(ARC_REG_MPY_BCR, mpy);
 		if (mpy.ver)
 			scnprintf(mpy_nm, 32, "mpy%s ", mpy.is64x64 ? " [64x64]" : "");
 

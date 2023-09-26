@@ -24,7 +24,6 @@
 #define ARC_REG_XY_MEM_BCR	0x79
 #define ARC_REG_MAC_BCR		0x7a
 #define ARC_REG_MPY_BCR		0x7b
-#define ARC_REG_MPY_ARC64_BCR	0xc8
 #define ARC_REG_SWAP_BCR	0x7c
 #define ARC_REG_NORM_BCR	0x7d
 #define ARC_REG_MIXMAX_BCR	0x7e
