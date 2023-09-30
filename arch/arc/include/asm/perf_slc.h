@@ -47,7 +47,7 @@ struct slc_build {
 
 struct slc_aux_cache_config {
 #ifdef CONFIG_CPU_BIG_ENDIAN
-	u32 r:2, b:1, pm_num:5, pms:2, tag_time:4, tbank:3, data_time:4, dbank:3, ways:2 \
+	u32 r:2, b:1, pm_num:5, pms:2, tag_time:4, tbank:3, data_time:4, dbank:3, ways:2, \
         lsz:2, cache_sz:4;
 #else
 	u32 cache_sz:4, lsz:2, ways:2, dbank:3, data_time:4, tbank:3, tag_time:4, pms:2, \
