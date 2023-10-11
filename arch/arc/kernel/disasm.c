@@ -434,6 +434,8 @@ long __kprobes get_reg(int reg, struct pt_regs *regs,
 {
 	long *p;
 
+#ifdef CONFIG_ISA_ARCOMPACT
+
 	if (reg <= 12) {
 		p = &regs->r0;
 		return p[-reg];
@@ -441,7 +443,7 @@ long __kprobes get_reg(int reg, struct pt_regs *regs,
 
 	if (cregs && (reg <= 25)) {
 		p = &cregs->r13;
-		return p[13-reg];
+		return p[13 - reg];
 	}
 
 	if (reg == 26)
@@ -453,6 +455,52 @@ long __kprobes get_reg(int reg, struct pt_regs *regs,
 	if (reg == 31)
 		return regs->blink;
 
+#elif defined(CONFIG_ISA_ARCV2)
+
+	if (reg <= 11) {
+		p = &regs->r0;
+		return p[reg];
+	}
+
+	if (reg == 12)
+		return regs->r12;
+
+	if (cregs && (reg <= 25)) {
+		p = &cregs->r13;
+		return p[13 - reg];
+	}
+
+	if (reg == 26)
+		return regs->gp;
+	if (reg == 27)
+		return regs->fp;
+	if (reg == 28)
+		return regs->sp;
+	if (reg == 31)
+		return regs->blink;
+
+#else /* CONFIG_ISA_ARCV3 */
+
+	if (reg <= 13) {
+		p = &regs->r0;
+		return p[reg];
+	}
+
+	if (cregs && (reg <= 26)) {
+		p = &cregs->r14;
+		return p[reg - 14];
+	}
+
+	if (reg == 27)
+		return regs->fp;
+	if (reg == 28)
+		return regs->sp;
+	if (reg == 30)
+		return regs->gp;
+	if (reg == 31)
+		return regs->blink;
+
+#endif
 	return 0;
 }
 
@@ -460,6 +508,8 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
 		struct callee_regs *cregs)
 {
 	long *p;
+
+#ifdef CONFIG_ISA_ARCOMPACT
 
 	switch (reg) {
 	case 0 ... 12:
@@ -469,7 +519,7 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
 	case 13 ... 25:
 		if (cregs) {
 			p = &cregs->r13;
-			p[13-reg] = val;
+			p[13 - reg] = val;
 		}
 		break;
 	case 26:
@@ -487,6 +537,70 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
 	default:
 		break;
 	}
+
+#elif defined(CONFIG_ISA_ARCV2)
+
+	switch (reg) {
+	case 0 ... 11:
+		p = &regs->r0;
+		p[reg] = val;
+		break;
+	case 12:
+		regs->r12 = val;
+		break;
+	case 13 ... 25:
+		if (cregs) {
+			p = &cregs->r13;
+			p[13 - reg] = val;
+		}
+		break;
+	case 26:
+		regs->gp = val;
+		break;
+	case 27:
+		regs->fp = val;
+		break;
+	case 28:
+		regs->sp = val;
+		break;
+	case 31:
+		regs->blink = val;
+		break;
+	default:
+		break;
+	}
+
+#else /* CONFIG_ISA_ARCV3 */
+
+	switch (reg) {
+	case 0 ... 13:
+		p = &regs->r0;
+		p[reg] = val;
+		break;
+	case 14 ... 26:
+		if (cregs) {
+			p = &cregs->r14;
+			p[reg - 14] = val;
+		}
+		break;
+	case 27:
+		regs->fp = val;
+		break;
+	case 28:
+		regs->sp = val;
+		break;
+	case 30:
+		regs->gp = val;
+		break;
+	case 31:
+		regs->blink = val;
+		break;
+	default:
+		break;
+	}
+
+#endif
+
 }
 
 /*
