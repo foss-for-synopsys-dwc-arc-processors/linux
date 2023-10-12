@@ -2505,7 +2505,7 @@ u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func)
 	return len;
 }
 
-bool can_use_for_epilogue_jmp(int displacement)
+bool is_valid_far_jmp(int displacement)
 {
 	const bool aligned = ((displacement & 1) == 0);
 	return (aligned && IN_S25_RANGE(displacement));

@@ -555,7 +555,7 @@ static int handle_swap(u8 *buf, u8 rd, u8 size, u8 endian, u8 *len)
  * offset calculation, see the comments of bpf_offset_to_jit().
  */
 static int handle_jmp_epilogue(struct jit_context *ctx,
-			    const struct bpf_insn *insn, u8 *len)
+			       const struct bpf_insn *insn, u8 *len)
 {
 	int disp = 0;
 	u8  *buf = effective_jit_buf(&ctx->jit);
@@ -570,7 +570,7 @@ static int handle_jmp_epilogue(struct jit_context *ctx,
 	if (ctx->bpf2insn_valid)
 		disp = ctx->epilogue_offset - ctx->bpf2insn[idx];
 
-	if (!can_use_for_epilogue_jmp(disp)) {
+	if (!is_valid_far_jmp(disp)) {
 		pr_err("bpf-jit: jmp epilogue -> displacement isn't valid.\n");
 		return -EFAULT;
 	}

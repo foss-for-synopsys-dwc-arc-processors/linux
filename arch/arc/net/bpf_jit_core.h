@@ -101,7 +101,7 @@ extern u8 frame_return(u8 *buf);
 extern u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func);
 /* Jumps */
 extern u8 jmp_relative(u8 *buf, int displacement);
-extern bool can_use_for_epilogue_jmp(int displacement);
+extern bool is_valid_far_jmp(int displacement);
 /* Miscellaneous */
 extern u8 gen_swap(u8 *buf, u8 rd, u8 size, u8 endian);
 
