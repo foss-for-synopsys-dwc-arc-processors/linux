@@ -99,7 +99,27 @@ static inline int is_short_instr(unsigned long addr)
 {
 	uint16_t word = *((uint16_t *)addr);
 	int opcode = (word >> 11) & 0x1F;
+#ifdef CONFIG_ISA_ARCOMPACT
 	return (opcode >= 0x0B);
+#elif defined(CONFIG_ISA_ARCV2)
+	return (opcode >= 0x08);
+#else /* CONFIG_ISA_ARCV3 */
+	#ifdef CONFIG_64BIT
+		if (opcode < 8)
+			return 0;
+		else if (opcode == 0xB || opcode == 0xD || opcode == 0x1C)
+			return 0;
+		else
+			return 1;
+	#else
+		if (opcode < 8)
+			return 0;
+		else if (opcode == 0xD || opcode == 0x1C)
+			return 0;
+		else
+			return 1;
+	#endif
+#endif
 }
 
 void disasm_instr(unsigned long addr, struct disasm_state *state,

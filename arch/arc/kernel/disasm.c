@@ -48,7 +48,7 @@ void __kprobes disasm_instr(unsigned long addr, struct disasm_state *state,
 	state->major_opcode = (word1 >> 11) & 0x1F;
 
 	/* Check if the instruction is 32 bit or 16 bit instruction */
-	if (state->major_opcode < 0x0B) {
+	if (state->major_opcode < 0x0C) {
 		if (bytes_not_copied > 4)
 			goto fault;
 		state->instr_len = 4;

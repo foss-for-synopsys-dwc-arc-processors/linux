@@ -67,7 +67,7 @@ struct pt_regs {
 
 	unsigned long bta;	/* erbta */
 
-	unsigned long fp;
+	unsigned long fp;	/* r27 */
 	unsigned long r30;
 	unsigned long r12;
 	unsigned long gp;	/* r26 */
@@ -79,12 +79,12 @@ struct pt_regs {
 	unsigned long DSP_CTRL;
 #endif
 
-	unsigned long sp;	/* user/kernel sp depending on entry  */
+	unsigned long sp;	/* user/kernel sp depending on entry, r28  */
 
 	/*------- Below list auto saved by h/w -----------*/
 	unsigned long r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11;
 
-	unsigned long blink;
+	unsigned long blink;	/* r31 */
 
 #ifndef CONFIG_ARC_LACKS_ZOL
 	unsigned long lp_end, lp_start, lp_count;
@@ -112,13 +112,13 @@ struct pt_regs {
 #endif
 	ecr_reg ecr;
 	unsigned long bta;
-	unsigned long fp;
+	unsigned long fp;	/* r27 */
 	unsigned long gp;	/* r30 */
-	unsigned long sp;
+	unsigned long sp;	/* r28 */
 
 	/*------- Below list auto saved by h/w -----------*/
 	unsigned long r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13;
-	unsigned long blink;
+	unsigned long blink;	/* r31 */
 
 	unsigned long ret;
 	unsigned long status32;
