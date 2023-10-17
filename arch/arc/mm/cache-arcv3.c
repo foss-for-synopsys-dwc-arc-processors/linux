@@ -613,7 +613,19 @@ void flush_icache_range(unsigned long kvaddr, unsigned long kvend)
 {
 	unsigned int tot_sz = kvend - kvaddr;
 
-	BUG_ON((kvaddr < VMALLOC_START) || (kvend > VMALLOC_END));
+	WARN(kvaddr < TASK_SIZE, "%s() can't handle user vaddr", __func__);
+
+	/* Case: Kernel Phy addr (0x8000_0000 onwards) */
+	if (likely(kvaddr > PAGE_OFFSET)) {
+		/*
+		 * The 2nd arg despite being paddr will be used to index icache
+		 * This is OK since no alternate virtual mappings will exist
+		 * given the callers for this case: kprobe/kgdb in built-in
+		 * kernel code only.
+		 */
+		__sync_icache_dcache(kvaddr, kvaddr, kvend - kvaddr);
+		return;
+	}
 
 	while (tot_sz > 0) {
 		unsigned int off, sz;
