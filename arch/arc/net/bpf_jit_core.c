@@ -403,117 +403,27 @@ static int handle_epilogue(struct jit_context *ctx)
 	return 0;
 }
 
+/* Tell which number of the BPF instruction we are dealing with. */
 static inline s32 get_index_for_insn(const struct jit_context *ctx,
 				     const struct bpf_insn *insn)
 {
 	return (insn - ctx->prog->insnsi);
 }
 
-/*
- * The "offset" is interpreted as the "number" of BPF instructions
- * from the _next_ BPF instruction. e.g.:
- *
- *  4 means 4 instructions after  the next insn
- *  0 means 0 instructions after  the next insn -> fall through.
- * -1 means 1 instruction  before the next insn -> jmp to current insn.
- *
- *  Another way to look at this, "offset" is the number of instructions
- *  that exist between the current instruction and the target instruction.
- *
- *  It is worth noting that a "mov r,i64", which is 16-byte long, is
- *  treated as two instructions long, therefore "offset" needn't be
- *  treated specially for those. Everything is uniform.
- *
- *  Knowing the current BPF instruction and the target BPF instruction,
- *  we can obtain their JITed memory addresses, namely "jit_curr_addr"
- *  and "jit_targ_addr". The offset, a.k.a. displacement, for ARC's
- *  "b" (branch) instruction is the distance from the _current_ instruction
- *  (PC) to the target instruction. To be precise, it is the distance from
- *  PCL (PC aLigned) to the target address. PCL is the word-aligned
- *  copy of PC.
- */
-static int bpf_offset_to_jit(const struct jit_context *ctx,
-			     const struct bpf_insn *insn,
-			     u8 advance,
-			     s32 *jit_offset,
-			     bool use_far)
+/* Determine to which number of the BPF instruction we're jumping to. */
+static inline s32 get_target_index_for_insn(const struct jit_context *ctx,
+					    const struct bpf_insn *insn)
 {
-	u32 jit_curr_addr, jit_targ_addr, pcl;
-	const s32 idx = get_index_for_insn(ctx, insn);
-	const s16 bpf_offset = insn->off;
-	const s32 bpf_targ_idx = (idx+1) + bpf_offset;
-
-	if (idx < 0 || idx >= ctx->prog->len) {
-		pr_err("bpf-jit: offset calc. -> insn is not in prog.\n");
-		return -EINVAL;
-	}
-
-	if (bpf_targ_idx < 0 || bpf_targ_idx >= ctx->prog->len) {
-		pr_err("bpf-jit: bpf jump label is out of range.\n");
-		return -EINVAL;
-
-	}
-
-	/*
-	 * "len" reflects the number of bytes for possible "check" instructions
-	 * that are emitted. In that case, ARC's "b(ranch)" instruction is not
-	 * emitted at the begenning of "jit.buf + bpf2ins[idx]", but "advance"
-	 * bytes after that.
-	 */
-	jit_curr_addr = (u32) (ctx->jit.buf + ctx->bpf2insn[idx] + advance);
-	jit_targ_addr = (u32) (ctx->jit.buf + ctx->bpf2insn[bpf_targ_idx]);
-	pcl           = jit_curr_addr & ~3;
-	*jit_offset   = jit_targ_addr - pcl;
-
-	/* The S21 in "b" (branch) encoding must be 16-bit aligned. */
-	if (*jit_offset & 1) {
-		pr_err("bpf-jit: jit address is not 16-bit aligned.\n");
-		return -EFAULT;
-	}
-
-	if (( use_far && !IN_S25_RANGE(*jit_offset)) ||
-	    (!use_far && !IN_S21_RANGE(*jit_offset))) {
-		pr_err("bpf-jit: jit address is too far to jump to.\n");
-		return -EFAULT;
-	}
-
-	return 0;
+	return (get_index_for_insn(ctx,insn) + 1) + insn->off;
 }
 
-/*
- * Calculate the displacement needed to encode in "b" instruction to
- * jump to an instruction which is "bytes" away. See the comments of
- * bpf_offset_to_jit() for details.
- * Note: "s32 = (u32 + s32) - u32" is OK.
- */
-static int jit_offset_to_rel_insn(u32 curr_addr,
-				  s32 bytes,
-				  s32 *jit_offset,
-				  bool use_far)
-{
-	const u32 pcl = curr_addr & ~3;
-	*jit_offset = (curr_addr + bytes) - pcl;
-
-	/* The offset in "b" (branch) encoding must be 16-bit aligned. */
-	if (*jit_offset & 1) {
-		pr_err("bpf-jit: jit address is not 16-bit aligned.\n");
-		return -EFAULT;
-	}
-
-	if (( use_far && !IN_S25_RANGE(*jit_offset)) ||
-	    (!use_far && !IN_S21_RANGE(*jit_offset))) {
-		pr_err("bpf-jit: jit address is too far to jump to.\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
+/* Is there an immediate operand encoded in the "insn"? */
 static inline bool has_imm(const struct bpf_insn *insn)
 {
 	return BPF_SRC(insn->code) == BPF_K;
 }
 
+/* Is the last BPF instruction? */
 static inline bool is_last_insn(const struct bpf_prog *prog, u32 idx)
 {
 	return (idx == (prog->len - 1));
@@ -550,6 +460,219 @@ static int handle_swap(u8 *buf, u8 rd, u8 size, u8 endian, u8 *len)
 	return 0;
 }
 
+
+/*vvvvvv REVAMP JUMPS vvvvvv*/
+/* Checks if the (instruction) index is in valid range. */
+static inline bool check_insn_idx_valid(const struct jit_context *ctx,
+					const s32 idx)
+{
+	return (idx >= 0 && idx < ctx->prog->len);
+}
+
+/*
+ * Decouple the back-end from BPF by converting BPF conditions
+ * to internal enum.
+ */
+static int bpf_cond_to_arc(const u8 op)
+{
+	switch (op) {
+	case BPF_JA:	return ARC_CC_AL;
+	case BPF_JEQ:	return ARC_CC_EQ;
+	case BPF_JGT:	return ARC_CC_GT;
+	case BPF_JGE:	return ARC_CC_GE;
+	case BPF_JSET:	return ARC_CC_SET;
+	case BPF_JNE:	return ARC_CC_NE;
+	case BPF_JSGT:	return ARC_CC_SGT;
+	case BPF_JSGE:	return ARC_CC_SGE;
+	case BPF_JLT:	return ARC_CC_LT;
+	case BPF_JLE:	return ARC_CC_LE;
+	case BPF_JSLT:	return ARC_CC_SLT;
+	case BPF_JSLE:	return ARC_CC_SLE;
+	default:
+	}
+	pr_err("bpf-jit: can't hanlde condition 0x%02X\n", op);
+	return -EINVAL;
+}
+
+/*
+ * Check a few things for a supposedly "jump" instruction:
+ *
+ * 0. "insn" is a "jump" instruction, but not the "call/exit" variant.
+ * 1. The current "insn" index is in valid range.
+ * 2. The index of target instruction is in valid range.
+ */
+static int check_bpf_jump(const struct jit_context *ctx,
+			  const struct bpf_insn *insn)
+{
+	/* Must be a jmp(32) instruction that is not a "call/exit". */
+	if (!((BPF_OP(insn) == BPF_JMP || BPF_OP(insn) == BPF_JMP32) &&
+	      !(insn->code & BPF_CALL) && !(insn->code & BPF_EXIT))) {
+		pr_err("bpf-jit: not a jump instruction.\n");
+		return -EINVAL;
+	}
+
+	if (!check_insn_idx_valid(ctx, get_index_for_insn(ctx,ins))) {
+		pr_err("bpf-jit: offset calc. -> insn is not in prog.\n");
+		return -EINVAL;
+	}
+
+	if (!check_insn_idx_valid(ctx, get_target_index_for_insn(ctx, insn))) {
+		pr_err("bpf-jit: bpf jump label is out of range.\n");
+		return -EINVAL;
+	}
+}
+
+/*
+ * "insn" must be a jump instruction.
+ *
+ * Based on input "insn", consult "ctx->bpf2insn" to get the
+ * JIT address of the "current instruction".
+ */
+static u32 get_curr_jit_addr(const struct jit_context *ctx,
+			     const struct bpf_insn *insn)
+{
+#ifdef ARC_BPF_JIT_DEBUG
+	if (!ctx->bpf2insn_valid)
+		assert("get_curr_jit_addr(): no address available.");
+#endif
+	return ctx->bpf2insn[get_index_for_insn(ctx, insn)];
+}
+
+/*
+ * "insn" must be a jump instruction.
+ *
+ * Based on input "insn", consult "ctx->bpf2insn" to get the
+ * JIT address of the "target instruction" that "insn" would
+ * jump to.
+ */
+static u32 get_targ_jit_addr(const struct jit_context *ctx,
+			     const struct bpf_insn *insn)
+{
+	const s32 idx = get_index_for_insn(ctx, insn);
+#ifdef ARC_BPF_JIT_DEBUG
+	if (!ctx->bpf2insn_valid)
+		assert("get_targ_jit_addr(): no address available.");
+#endif
+	if (ctx->bpf2insn_valid)
+		return ctx->bpf2insn[insn->off + idx + 1];
+}
+
+/*
+ * This function will return 0 for a feasible jump.
+ *
+ * Consult the back-end to check if it finds it feasible to emit
+ * the necessary instructions based on "cond" and the displacement
+ * between the "from_addr" and the "to_addr".
+ *
+ * If the jit addresses are known (ctx->bpf2insn_valid is true):
+ *
+ *   from_addr = current jit address + likely move length
+ *   to_addr   = the target jit address
+ *
+ * The "likely_mov_len" is the length of "mov" instruction that
+ * might have been used to move the immediate values into temporary
+ * register(s).
+ */
+static int feasible_jit_jump(const struct jit_context *ctx,
+			     const struct bpf_insn *insn,
+			     u8 cond,
+			     bool b32,
+			     u8 likely_mov_len)
+{
+	int ret = 0;
+
+	/* Are there any addresses to check? */
+	if (ctx->bpf2insn_valid) {
+		const u32 from_addr =
+			get_curr_jit_addr(ctx, insn) + likely_mov_len;
+		const u32 to_addr = get_targ_jit_addr(ctx, insn);
+
+		if (b32) {
+			if (!check_jmp_32(from_addr, to_addr, cond))
+				ret = -EFAULT;
+		} else {
+			if (!check_jmp_64(from_addr, to_addr, cond))
+				ret = -EFAULT;
+		}
+
+		if (ret != 0)
+			pr_err("bpf-jit: the jit displacement is not OK.\n");
+	}
+
+	return ret;
+}
+
+/*
+ * This jump handler performs the followings:
+ *
+ * 1. Have the internal condition code
+ * 2. Determine the bitness of the operation (32 vs. 64)
+ * 3. Sanity check on BPF stream
+ * 4. Sanity check on what is supposed to be the displacement
+ * 5. And finally, emit the necessary instructions
+ *
+ * The last two steps are performed through the back-end.
+ * The value of steps 1 and 2 are necessary inputs for the back-end.
+ */
+static int handle_jumps(const struct jit_context *ctx,
+			const struct bpf_insn *insn,
+			u8 *len)
+{
+	u8 cond;
+	int ret = 0;
+	u8 *buf = effective_jit_buf(&ctx->jit);
+	const bool b32 = !!(insn->code & BPF_JMP32);
+	const u8 rd = insn->dst_reg;
+	u8 rs = insn->src_reg;
+	u8 targ_addr = 0;
+
+	*len = 0;
+
+	/* Map the BPF condition to internal enum. */
+	if ((ret = bpf_cond_to_arc(BPF_OP(insn->code))) < 0)
+		return ret;
+	else
+		cond = (u8) ret;
+
+	/* Sanity check on the BPF byte stream. */
+	if ((ret = check_bpf_jump(ctx, insn)) < 0)
+		return ret;
+
+	/*
+	 * Move the immediate into a temporary register _now_ for 2 reasons:
+	 *
+	 * 1. "check_jmp_{32,64}()" deal with operands in registers.
+	 *
+	 * 2. The "len" parameter will grow so that the current jit address
+	 *    (buf+*len) will have increased to a point where the necessary
+	 *    instructions can be inserted by "gen_jmp_{32,64}()".
+	 *    The "feasible_jit_jump()" will consider this possible move
+	 *    before consulting the back-end about the feasibility of the
+	 *    jump.
+	 */
+	if (has_imm(insn)) {
+		if (b32)
+			*len += mov_r32_i32(buf+*len, JIT_REG_TMP, insn->imm);
+		else
+			*len += mov_r64_i32(buf+*len, JIT_REG_TMP, insn->imm);
+		rs = JIT_REG_TMP;
+	}
+
+	/* Sanity check on the back-end side. */
+	if ((ret = feasible_jit_jump(ctx, insn, cond, b32, *len)) < 0)
+		return ret;
+
+	/* If we have come this far, then the translation can go OK. */
+	if (ctx->bpf2insn_valid)
+		targ_addr = get_targ_jit_addr(ctx, insn);
+	if (b32)
+		*len += gen_jmp_32(buf+*len, rd, rs, cond, targ_addr);
+	else
+		*len += gen_jmp_64(buf+*len, rd, rs, cond, targ_addr);
+
+	return ret;
+}
+
 /*
  * Jump to epilogue from the current location (insn). For details on
  * offset calculation, see the comments of bpf_offset_to_jit().
@@ -557,28 +680,27 @@ static int handle_swap(u8 *buf, u8 rd, u8 size, u8 endian, u8 *len)
 static int handle_jmp_epilogue(struct jit_context *ctx,
 			       const struct bpf_insn *insn, u8 *len)
 {
-	int disp = 0;
+	u32 epilogue_addr = 0;
 	u8  *buf = effective_jit_buf(&ctx->jit);
 	const s32 idx = get_index_for_insn(ctx, insn);
 
-	if (idx < 0 || idx >= ctx->prog->len) {
-		pr_err("bpf-jit: jmp epilogue -> insn is not in prog.\n");
-		return -EINVAL;
-	}
-
 	/* Only after the dry-run, ctx->bpf2insn holds meaningful values. */
-	if (ctx->bpf2insn_valid)
-		disp = ctx->epilogue_offset - ctx->bpf2insn[idx];
+	if (ctx->bpf2insn_valid) {
+		epilogue_addr = ctx->bpf2insn[ctx->epilogue_offset];
 
-	if (!is_valid_far_jmp(disp)) {
-		pr_err("bpf-jit: jmp epilogue -> displacement isn't valid.\n");
-		return -EFAULT;
+		if (!check_jmp_64(buf, epilogue_addr, ARC_CC_AL)) {
+			pr_err("bpf-jit: epilogue address is not valid.\n");
+			return -EINVAL;
+		}
 	}
 
-	*len = jmp_relative(buf, disp);
+	/* Jump to "targ" with no frills (rd and rs don't matter). */
+	*len = gen_jmp_64(buf, 0, 0, ARC_CC_AL, epilogue_addr);
 
 	return 0;
 }
+
+/*^^^^^^ REVAMP JUMPS ^^^^^^*/
 
 /*
  * Try to generate instructions for loading a 64-bit immediate.
@@ -878,12 +1000,12 @@ static int handle_insn(struct jit_context *ctx, u32 idx)
 		break;
 	case BPF_JMP | BPF_JEQ  | BPF_X:
 	case BPF_JMP | BPF_JEQ  | BPF_K:
-		if ((ret = gen_jeq_64(ctx, insn, &len)) < 0)
+		if ((ret = gen_j_eq_64(ctx, insn, true, &len)) < 0)
 			return ret;
 		break;
 	case BPF_JMP | BPF_JNE  | BPF_X:
 	case BPF_JMP | BPF_JNE  | BPF_K:
-		if ((ret = gen_jne_64(ctx, insn, &len)) < 0)
+		if ((ret = gen_j_eq_64(ctx, insn, false, &len)) < 0)
 			return ret;
 		break;
 	case BPF_JMP | BPF_JSET | BPF_X:
