@@ -69,7 +69,7 @@ static int genregs_get(struct task_struct *target,
 	membuf_store(&to, cregs->r15);
 	membuf_store(&to, cregs->r14);
 #ifdef CONFIG_ISA_ARCV3
-	membuf_store(&to, &ptregs->r13);
+	membuf_store(&to, ptregs->r13);
 #else
 	membuf_store(&to, cregs->r13);
 #endif
