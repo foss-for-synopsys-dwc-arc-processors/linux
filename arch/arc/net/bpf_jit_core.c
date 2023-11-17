@@ -5,10 +5,12 @@
 #include "bpf_jit_arcv2.h"
 #endif
 
+/* Determine the bitness of the target. */
+#define REG_BITS ((sizeof(long) < 8) ? 32 : 64)
+
 /* Sane initial values for the globals */
 bool emit         = false;
 bool zext_thyself = false;
-
 
 #ifdef ARC_BPF_JIT_DEBUG
 /* Dumps bytes in /var/log/messages at KERN_INFO level (4). */
@@ -382,7 +384,7 @@ static int handle_epilogue(struct jit_context *ctx)
 
 	gp_regs = ctx->arc_regs_clobbered & ~(BIT(ARC_R_BLINK) | BIT(ARC_R_FP));
 	while (gp_regs) {
-		u8 reg = 31 - __builtin_clz(gp_regs);
+		u8 reg = (REG_BITS - 1) - __builtin_clz(gp_regs);
 
 		len += pop_r(buf+len, reg);
 		gp_regs &= ~BIT(reg);
@@ -393,10 +395,10 @@ static int handle_epilogue(struct jit_context *ctx)
 		len += pop_r(buf+len, ARC_R_BLINK);
 
 	/* Assigning JIT's return reg to ABI's return reg. */
-	len += frame_assign_return(buf+len, BPF_REG_0);
+	len += assign_return(buf+len, BPF_REG_0);
 
 	/* At last, issue the "return". */
-	len += frame_return(buf+len);
+	len += call_return(buf+len);
 
 	jit_buffer_update(&ctx->jit, len);
 
@@ -473,25 +475,50 @@ static inline bool check_insn_idx_valid(const struct jit_context *ctx,
  * Decouple the back-end from BPF by converting BPF conditions
  * to internal enum.
  */
-static int bpf_cond_to_arc(const u8 op)
+static int bpf_cond_to_arc(const u8 op, u8 &arc_cc)
 {
 	switch (op) {
-	case BPF_JA:	return ARC_CC_AL;
-	case BPF_JEQ:	return ARC_CC_EQ;
-	case BPF_JGT:	return ARC_CC_GT;
-	case BPF_JGE:	return ARC_CC_GE;
-	case BPF_JSET:	return ARC_CC_SET;
-	case BPF_JNE:	return ARC_CC_NE;
-	case BPF_JSGT:	return ARC_CC_SGT;
-	case BPF_JSGE:	return ARC_CC_SGE;
-	case BPF_JLT:	return ARC_CC_LT;
-	case BPF_JLE:	return ARC_CC_LE;
-	case BPF_JSLT:	return ARC_CC_SLT;
-	case BPF_JSLE:	return ARC_CC_SLE;
+	case BPF_JA:
+		*arc_cc = ARC_CC_AL;
+		break;
+	case BPF_JEQ:
+		*arc_cc = ARC_CC_EQ;
+		break;
+	case BPF_JGT:
+		*arc_cc = ARC_CC_GT;
+		break;
+	case BPF_JGE:
+		*arc_cc = ARC_CC_GE;
+		break;
+	case BPF_JSET:
+		*arc_cc = ARC_CC_SET;
+		break;
+	case BPF_JNE:
+		*arc_cc = ARC_CC_NE;
+		break;
+	case BPF_JSGT:
+		*arc_cc = ARC_CC_SGT;
+		break;
+	case BPF_JSGE:
+		*arc_cc = ARC_CC_SGE;
+		break;
+	case BPF_JLT:
+		*arc_cc = ARC_CC_LT;
+		break;
+	case BPF_JLE:
+		*arc_cc = ARC_CC_LE;
+		break;
+	case BPF_JSLT:
+		*arc_cc = ARC_CC_SLT;
+		break;
+	case BPF_JSLE:
+		*arc_cc = ARC_CC_SLE;
+		break;
 	default:
+		pr_err("bpf-jit: can't hanlde condition 0x%02X\n", op);
+		return -EINVAL;
 	}
-	pr_err("bpf-jit: can't hanlde condition 0x%02X\n", op);
-	return -EINVAL;
+	return 0;
 }
 
 /*
@@ -523,8 +550,6 @@ static int check_bpf_jump(const struct jit_context *ctx,
 }
 
 /*
- * "insn" must be a jump instruction.
- *
  * Based on input "insn", consult "ctx->bpf2insn" to get the
  * JIT address of the "current instruction".
  */
@@ -533,13 +558,13 @@ static u32 get_curr_jit_addr(const struct jit_context *ctx,
 {
 #ifdef ARC_BPF_JIT_DEBUG
 	if (!ctx->bpf2insn_valid)
-		assert("get_curr_jit_addr(): no address available.");
+		BUG("get_curr_jit_addr(): no address available.");
 #endif
 	return ctx->bpf2insn[get_index_for_insn(ctx, insn)];
 }
 
 /*
- * "insn" must be a jump instruction.
+ * The input "insn" must be a jump instruction.
  *
  * Based on input "insn", consult "ctx->bpf2insn" to get the
  * JIT address of the "target instruction" that "insn" would
@@ -551,7 +576,7 @@ static u32 get_targ_jit_addr(const struct jit_context *ctx,
 	const s32 idx = get_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
 	if (!ctx->bpf2insn_valid)
-		assert("get_targ_jit_addr(): no address available.");
+		BUG("get_targ_jit_addr(): no address available.");
 #endif
 	if (ctx->bpf2insn_valid)
 		return ctx->bpf2insn[insn->off + idx + 1];
@@ -596,7 +621,7 @@ static int feasible_jit_jump(const struct jit_context *ctx,
 		}
 
 		if (ret != 0)
-			pr_err("bpf-jit: the jit displacement is not OK.\n");
+			pr_err("bpf-jit: the JIT displacement is not OK.\n");
 	}
 
 	return ret;
@@ -605,10 +630,10 @@ static int feasible_jit_jump(const struct jit_context *ctx,
 /*
  * This jump handler performs the followings:
  *
- * 1. Have the internal condition code
+ * 1. Compute ARC's internal condition code from BPF's
  * 2. Determine the bitness of the operation (32 vs. 64)
  * 3. Sanity check on BPF stream
- * 4. Sanity check on what is supposed to be the displacement
+ * 4. Sanity check on what is supposed to be JIT's displacement
  * 5. And finally, emit the necessary instructions
  *
  * The last two steps are performed through the back-end.
@@ -629,10 +654,8 @@ static int handle_jumps(const struct jit_context *ctx,
 	*len = 0;
 
 	/* Map the BPF condition to internal enum. */
-	if ((ret = bpf_cond_to_arc(BPF_OP(insn->code))) < 0)
+	if ((ret = bpf_cond_to_arc(BPF_OP(insn->code), &cond)) < 0)
 		return ret;
-	else
-		cond = (u8) ret;
 
 	/* Sanity check on the BPF byte stream. */
 	if ((ret = check_bpf_jump(ctx, insn)) < 0)
@@ -641,7 +664,7 @@ static int handle_jumps(const struct jit_context *ctx,
 	/*
 	 * Move the immediate into a temporary register _now_ for 2 reasons:
 	 *
-	 * 1. "check_jmp_{32,64}()" deal with operands in registers.
+	 * 1. "gen_jmp_{32,64}()" deal with operands in registers.
 	 *
 	 * 2. The "len" parameter will grow so that the current jit address
 	 *    (buf+*len) will have increased to a point where the necessary
@@ -673,16 +696,12 @@ static int handle_jumps(const struct jit_context *ctx,
 	return ret;
 }
 
-/*
- * Jump to epilogue from the current location (insn). For details on
- * offset calculation, see the comments of bpf_offset_to_jit().
- */
+/* Jump to translated epilogue address. */
 static int handle_jmp_epilogue(struct jit_context *ctx,
 			       const struct bpf_insn *insn, u8 *len)
 {
 	u32 epilogue_addr = 0;
 	u8  *buf = effective_jit_buf(&ctx->jit);
-	const s32 idx = get_index_for_insn(ctx, insn);
 
 	/* Only after the dry-run, ctx->bpf2insn holds meaningful values. */
 	if (ctx->bpf2insn_valid) {
@@ -694,13 +713,39 @@ static int handle_jmp_epilogue(struct jit_context *ctx,
 		}
 	}
 
-	/* Jump to "targ" with no frills (rd and rs don't matter). */
+	/* Jump to "epilogue_addr" (rd and rs don't matter). */
 	*len = gen_jmp_64(buf, 0, 0, ARC_CC_AL, epilogue_addr);
 
 	return 0;
 }
-
 /*^^^^^^ REVAMP JUMPS ^^^^^^*/
+
+/* Try to get the resolved address and generate the instructions. */
+static int handle_call(struct jit_context *ctx,
+		       const struct bpf_insn *insn,
+		       u8 *len)
+{
+	int  ret;
+	bool in_kernel_func, fixed = false;
+	u64  addr = 0;
+	u8  *buf = effective_jit_buf(&ctx->jit);
+
+	ret = bpf_jit_get_func_addr(ctx->prog, insn, ctx->is_extra_pass,
+				    &addr, &fixed);
+	if (ret < 0) {
+		pr_err("bpf-jit: can't get the address for call.\n");
+		return ret;
+	}
+	in_kernel_func = (fixed ? true : false);
+
+	/* No valuble address retrieved (yet). */
+	if (!fixed && !addr)
+		set_need_for_extra_pass(ctx);
+
+	*len = gen_func_call(buf, addr, in_kernel_func);
+
+	return 0;
+}
 
 /*
  * Try to generate instructions for loading a 64-bit immediate.
@@ -708,8 +753,9 @@ static int handle_jmp_epilogue(struct jit_context *ctx,
  * relocations: R_BPF_64_64. Therefore, signal the need for an extra
  * pass if the circumstances are right.
  */
-static int handle_ld_imm64(struct jit_context *ctx, const struct bpf_insn *insn,
-			u8 *len)
+static int handle_ld_imm64(struct jit_context *ctx,
+			   const struct bpf_insn *insn,
+			   u8 *len)
 {
 	const s32 idx = get_index_for_insn(ctx, insn);
 	u8 *buf = effective_jit_buf(&ctx->jit);
@@ -722,32 +768,6 @@ static int handle_ld_imm64(struct jit_context *ctx, const struct bpf_insn *insn,
 
 	*len = mov_r64_i64(buf, insn->dst_reg, insn->imm, (insn+1)->imm);
 	set_need_for_extra_pass(ctx);
-
-	return 0;
-}
-
-/* Try to get the resolved address and generate the instructions. */
-static int handle_call(struct jit_context *ctx, const struct bpf_insn *insn,
-		       u8 *len)
-{
-	int  ret;
-	bool in_kernel_func, fixed = false;
-	u64  addr = 0;
-	u8  *buf = effective_jit_buf(&ctx->jit);
-
-	ret = bpf_jit_get_func_addr(ctx->prog, insn, ctx->is_extra_pass, &addr,
-				    &fixed);
-	if (ret < 0) {
-		pr_err("bpf-jit: can't get the address for call.\n");
-		return ret;
-	}
-	in_kernel_func = (fixed ? true : false);
-
-	/* No valuble address retrieved (yet). */
-	if (!fixed && !addr)
-		set_need_for_extra_pass(ctx);
-
-	*len = gen_func_call(buf, addr, in_kernel_func);
 
 	return 0;
 }
@@ -995,24 +1015,12 @@ static int handle_insn(struct jit_context *ctx, u32 idx)
 		len = store_i(buf, imm, dst, off, BPF_SIZE(code));
 		break;
 	case BPF_JMP | BPF_JA:
-		if ((ret = gen_ja(ctx, insn, &len)) < 0)
-			return ret;
-		break;
 	case BPF_JMP | BPF_JEQ  | BPF_X:
 	case BPF_JMP | BPF_JEQ  | BPF_K:
-		if ((ret = gen_j_eq_64(ctx, insn, true, &len)) < 0)
-			return ret;
-		break;
 	case BPF_JMP | BPF_JNE  | BPF_X:
 	case BPF_JMP | BPF_JNE  | BPF_K:
-		if ((ret = gen_j_eq_64(ctx, insn, false, &len)) < 0)
-			return ret;
-		break;
 	case BPF_JMP | BPF_JSET | BPF_X:
 	case BPF_JMP | BPF_JSET | BPF_K:
-		if ((ret = gen_jset_64(ctx, insn, &len)) < 0)
-			return ret;
-		break;
 	case BPF_JMP | BPF_JGT  | BPF_X:
 	case BPF_JMP | BPF_JGT  | BPF_K:
 	case BPF_JMP | BPF_JGE  | BPF_X:
@@ -1029,9 +1037,6 @@ static int handle_insn(struct jit_context *ctx, u32 idx)
 	case BPF_JMP | BPF_JSLT | BPF_K:
 	case BPF_JMP | BPF_JSLE | BPF_X:
 	case BPF_JMP | BPF_JSLE | BPF_K:
-		if ((ret = gen_jcc_64(ctx, insn, &len)) < 0)
-			return ret;
-		break;
 	case BPF_JMP32 | BPF_JEQ  | BPF_X:
 	case BPF_JMP32 | BPF_JEQ  | BPF_K:
 	case BPF_JMP32 | BPF_JNE  | BPF_X:
@@ -1054,7 +1059,7 @@ static int handle_insn(struct jit_context *ctx, u32 idx)
 	case BPF_JMP32 | BPF_JSLT | BPF_K:
 	case BPF_JMP32 | BPF_JSLE | BPF_X:
 	case BPF_JMP32 | BPF_JSLE | BPF_K:
-		if ((ret = gen_jcc_32(ctx, insn, &len)) < 0)
+		if ((ret = handle_jumps(ctx, insn, &len)) < 0)
 			return ret;
 		break;
 	case BPF_JMP | BPF_CALL:

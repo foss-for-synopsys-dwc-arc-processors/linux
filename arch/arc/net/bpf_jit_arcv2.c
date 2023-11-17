@@ -2353,64 +2353,11 @@ static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, u32 targ_addr)
 	return len;
 }
 
-/*
- * Expands an inequality comparison into 3 condition codes in ARC.
- * For the logic, see the comments of gen_jcc_64().
- */
-static int bpf_cond_to_arcs(const u8 op, u8 *c1, u8 *c2, u8 *c3)
-{
-	switch (op) {
-	case BPF_JGT:
-		*c1 = CC_great_u;
-		*c2 = CC_less_u;
-		*c3 = CC_great_u;
-		break;
-	case BPF_JGE:
-		*c1 = CC_great_u;
-		*c2 = CC_less_u;
-		*c3 = CC_great_eq_u;
-		break;
-	case BPF_JLT:
-		*c1 = CC_less_u;
-		*c2 = CC_great_u;
-		*c3 = CC_less_u;
-		break;
-	case BPF_JLE:
-		*c1 = CC_less_u;
-		*c2 = CC_great_u;
-		*c3 = CC_less_eq_u;
-		break;
-	case BPF_JSGT:
-		*c1 = CC_great_s;
-		*c2 = CC_less_s;
-		*c3 = CC_great_u;
-		break;
-	case BPF_JSGE:
-		*c1 = CC_great_s;
-		*c2 = CC_less_s;
-		*c3 = CC_great_eq_u;
-		break;
-	case BPF_JSLT:
-		*c1 = CC_less_s;
-		*c2 = CC_great_s;
-		*c3 = CC_less_u;
-		break;
-	case BPF_JSLE:
-		*c1 = CC_less_s;
-		*c2 = CC_great_s;
-		*c3 = CC_less_eq_u;
-		break;
-	default:
-		pr_err("bpf-jit: can't expand condition 0x%02X\n", op);
-		return -EINVAL;
-	}
-	return 0;
-}
-
 /*vvvvvv REVAMP JUMPS vvvvvv*/
-
 /*
- * The data structure holding information for jump translations.
+ * For details on the algorithm, see the comments of "gen_jcc_64()".
+ *
+ * This data structure is holding information for jump translations.
  *
  * jit_off: How many bytes into the current JIT address, "b"ranch insn. occurs
  * cond: The condition that the ARC branch instruction must use
@@ -2434,46 +2381,117 @@ static int bpf_cond_to_arcs(const u8 op, u8 *c1, u8 *c2, u8 *c3)
  * jit_address + jit_off(set) - @target
  * 0x1000      + 4            - @target
  */
-struct jump_info
-{
-	u8 jit_off;
-	u8 cond;
-};
-
-struct jump_infos
-{
-	struct jump_info first;
-	struct jump_info second;
-	struct jump_info third;
-};
-
+#define NR_OF_JMPS_IN_JCC64 3
 /* TODO: Shahab, maybe the "c2" can go away if the 2nd "cmp" becomes "cmp.z". */
-const struct jump_info arcv2_64b_jumps[JCC_MAX] = {
-	[JCC_GT] = {
-		/*
-		 *   cmp  rd_hi, rs_hi
-		 *   bhi  @target         # 1: u>
-		 *   blo  @end            # 2: u<
-		 *   cmp  rd_lo, rs_lo
-		 *   bhi  @target         # 3: u>
-		 * end:
-		 */
-		.first  = {INSN_len_normal*1, CC_great_u},
-		.second = {INSN_len_normal*2, CC_less_u},
-		.third  = {INSN_len_normal*4, CC_great_u}
+const struct = {
+	/*
+	 * "jit_off" is common between all "jmp[]" and is coupled with
+	 * "cond" of each "jmp[]" instance. e.g.:
+	 *
+	 * arcv2_64b_jumps.jit_off[1]
+	 * arcv2_64b_jumps.jmp[ARC_CC_UGT].cond[1]
+	 *
+	 * Are indicating that the second jump in JITed code of "UGT"
+	 * is at offset "jit_off[1]" while its condition is "cond[1]".
+	 */
+	u8 jit_off[NR_OF_JMPS_IN_JCC64];
+
+	struct {
+		u8 cond[NR_OF_JMPS_IN_JCC64];
+	} jmp[ARC_CC_SLE+1];
+} arcv2_64b_jccs = {
+	.jit_off = {
+		INSN_len_normal*1,
+		INSN_len_normal*2,
+		INSN_len_normal*4
 	},
-	[JCC_SGE] = {
-		/*
-		 *   cmp  rd_hi, rs_hi
-		 *   bgt  @target         # 1: s>
-		 *   blt  @end            # 2: s<
-		 *   cmp  rd_lo, rs_lo
-		 *   bhs  @target         # 3: u>=
-		 * end:
-		 */
-		.first  = {INSN_len_normal*1, CC_great_s},
-		.second = {INSN_len_normal*2, CC_less_s},
-		.third  = {INSN_len_normal*4, CC_great_eq_u}
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   bhi  @target         # 1: u>
+	 *   blo  @end            # 2: u<
+	 *   cmp  rd_lo, rs_lo
+	 *   bhi  @target         # 3: u>
+	 * end:
+	 */
+	.jmp[ARC_CC_UGT] = {
+		.cond = {CC_great_u, CC_less_u, CC_great_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   bhi  @target         # 1: u>
+	 *   blo  @end            # 2: u<
+	 *   cmp  rd_lo, rs_lo
+	 *   bhs  @target         # 3: u>=
+	 * end:
+	 */
+	.jmp[ARC_CC_UGE] = {
+		.cond = {CC_great_u, CC_less_u, CC_great_eq_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   blo  @target         # 1: u<
+	 *   bhi  @end            # 2: u>
+	 *   cmp  rd_lo, rs_lo
+	 *   blo  @target         # 3: u<
+	 * end:
+	 */
+	.jmp[ARC_CC_ULT] = {
+		.cond = {CC_less_u, CC_great_u, CC_less_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   blo  @target         # 1: u<
+	 *   bhi  @end            # 2: u>
+	 *   cmp  rd_lo, rs_lo
+	 *   bls  @target         # 3: u<=
+	 * end:
+	 */
+	.jmp[ARC_CC_ULE] = {
+		.cond = {CC_less_u, CC_great_u, CC_less_eq_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   bgt  @target         # 1: s>
+	 *   blt  @end            # 2: s<
+	 *   cmp  rd_lo, rs_lo
+	 *   bhi  @target         # 3: u>
+	 * end:
+	 */
+	.jmp[ARC_CC_SGT] = {
+		.cond = {CC_great_s, CC_less_s, CC_great_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   bgt  @target         # 1: s>
+	 *   blt  @end            # 2: s<
+	 *   cmp  rd_lo, rs_lo
+	 *   bhs  @target         # 3: u>=
+	 * end:
+	 */
+	.jmp[ARC_CC_SGE] = {
+		.cond = {CC_great_s, CC_less_s, CC_great_eq_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   blt  @target         # 1: s<
+	 *   bgt  @end            # 2: s>
+	 *   cmp  rd_lo, rs_lo
+	 *   blo  @target         # 3: u<
+	 * end:
+	 */
+	.jmp[ARC_CC_SLT] = {
+		.cond = {CC_less_s, CC_great_s, CC_less_u}
+	},
+	/*
+	 *   cmp  rd_hi, rs_hi
+	 *   blt  @target         # 1: s<
+	 *   bgt  @end            # 2: s>
+	 *   cmp  rd_lo, rs_lo
+	 *   bls  @target         # 3: u<=
+	 * end:
+	 */
+	.jmp[ARC_CC_SLE] = {
+		.cond = {CC_less_s, CC_great_s, CC_less_eq_u}
 	}
 };
 
@@ -2511,10 +2529,45 @@ static inline s32 get_displacement(u32 curr_addr, u32 targ_addr)
 }
 
 
+/*
+ * The template for the 64-bit jumps with the following BPF conditions
+ *
+ * u< u<= u> u>= s< s<= s> s>=
+ *
+ * Looks like below:
+ *
+ *   cmp   rd_hi, rs_hi
+ *   b<c1> @target
+ *   b<c2> @end
+ *   cmp   rd_lo, rs_lo   # if execution reaches here, r{d,s}_hi are equal
+ *   b<c3> @target
+ * end:
+ *
+ * "c1" is the condition that JIT is handling minus the equality part.
+ * For instance if we have to translate an "unsigned greater or equal",
+ * then "c1" will be "unsigned greater". We won't know about equality
+ * until all 64-bits of data (higeher and lower registers) are processed.
+ *
+ * "c2" is the counter logic of "c1". For instance, if "c1" is originated
+ * from "s>", then "c2" would be "s<". Notice that equality doesn't play
+ * a role here either because the lower 32 bits are not processed yet.
+ *
+ * "c3" is the unsigned version of "c1", no matter if the BPF condition
+ * was signed or unsigned. An unsigned version is necessary, because the
+ * MSB of the lower 32 bits does not reflect a sign in the whole 64-bit
+ * scheme. Otherwise, 64-bit comparisons like
+ * (0x0000_0000,0x8000_0000) s>= (0x0000_0000,0x0000_0000)
+ * would yield an incorrect result. Finally, if there is an equality
+ * check in the BPF condition, it will be reflected in "c3".
+ *
+ * You can find all the instances of this template where the
+ * "arcv2_64b_jccs" is getting initialised.
+ */
 static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 {
 	s32 disp;
 	u32 end;
+	const u8 *cond = arcv2_64b_jccs.jmp[cond].cond;
 	u8 len = 0;
 
 	/* cmp rd_hi, rs_hi */
@@ -2522,19 +2575,19 @@ static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 
 	/* b<c1> @target */
 	disp = get_displacement(buf+len, target);
-	len += arc_bcc(buf+len, arcv2_64b_jumps[cond].first.cond, disp);
+	len += arc_bcc(buf+len, cond[0], disp);
 
 	/* b<c2> @end */
 	end = buf + len + (3 * INSN_len_normal);
 	disp = get_displacement(buf+len, end);
-	len += arc_bcc(buf+len, arcv2_64b_jumps[cond].second.cond, disp);
+	len += arc_bcc(buf+len, cond[1], disp);
 
 	/* cmp rd_lo, rs_lo */
 	arc_cmp_r(buf+len, REG_LO(rd), REG_LO(rs));
 
 	/* b<c3> @target */
 	disp = get_displacement(buf+len, target);
-	len += arc_bcc(buf+len, arcv2_64b_jumps[cond].third.cond, disp);
+	len += arc_bcc(buf+len, cond[2], disp);
 
 	return len;
 }
@@ -2565,7 +2618,7 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 		break;
 	case ARC_CC_EQ:
 		eq = true;
-		/* fall thru. */
+		/* fall through. */
 	case ARC_CC_NE:
 		len = gen_j_eq_64(buf, rd, rs, eq, target);
 		break;
@@ -2574,120 +2627,10 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 		break;
 	default:
 #ifdef ARC_BPF_JIT_DEBUG
-		assert("condition not known.");
+		BUG("64-bit jump condition is not known.");
 #endif
 	}
 	return len;
-}
-
-/*^^^^^^ REVAMP JUMPS ^^^^^^*/
-
-/*
- * Calculate the displacement needed to encode in "b" instruction to
- * jump to an instruction which is "bytes" away. See the comments of
- * bpf_offset_to_jit() for details.
- * Note: "s32 = (u32 + s32) - u32" is OK.
- */
-static int jit_offset_to_rel_insn(u32 curr_addr,
-				  s32 bytes,
-				  s32 *jit_offset)
-{
-	const u32 pcl = curr_addr & ~3;
-	*jit_offset = (curr_addr + bytes) - pcl;
-
-	/* The offset in "b" (branch) encoding must be 16-bit aligned. */
-	if (*jit_offset & 1) {
-		pr_err("bpf-jit: jit address is not 16-bit aligned.\n");
-		return -EFAULT;
-	}
-
-	if (( use_far && !IN_S25_RANGE(*jit_offset)) ||
-	    (!use_far && !IN_S21_RANGE(*jit_offset))) {
-		pr_err("bpf-jit: jit address is too far to jump to.\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
-/*
- * The template for the 64-bit (non-strict) inequality checks:
- * < <= > >= s< s<= s> s>=
- *
- * cmp   rd_hi, rs_hi
- * b<c1> @target
- * b<c2> @end
- * cmp   rd_lo, rs_lo   # if execution reaches here, r{d,s}_hi are equal
- * b<c3> @target
- * end:
- *
- * "c1" is the condition obtained from converting BPF condition to ARC
- * condition, respecting the sign mode if there is any. If there is an
- * equality in BPF condition, that won't be reflected in "c1", because
- * the lower 32 bits need to be checked too.
- *
- * "c2" is the counter logic of "c1". For instance, if "c1" is originated
- * from "s>", then "c2" would be "s<". Notice that equality doesn't play
- * a role here either because the lower 32 bits are not processed yet.
- *
- * "c3" is the unsigned version of "c1", no matter if the BPF condition
- * was signed or unsigned. An unsigned version is necessary, because the
- * MSB of the lower 32 bits does not reflect a sign in the whole 64-bit
- * scheme. Otherwise 64-bit comparisons like
- * (0x0000_0000,0x8000_0000) s>= (0x0000_0000,0x0000_0000)
- * would yield an incorrect result. Finally, if there is an equality
- * check in the BPF condition, it will be reflected in "c3".
- *
- * A sample output for s>= would be:
- * cmp   rd_hi, rs_hi
- * bgt   @target               # greater than (signed)
- * blt   @end                  # lower than (signed)
- * cmp   rd_lo, rs_lo
- * bhs   @target               # higher or same (unsigned)
- * end:
- */
-static int gen_jcc_64(struct jit_context *ctx,
-		      const struct bpf_insn *insn,
-		      u8 *len)
-{
-	u8 *buf = effective_jit_buf(&ctx->jit);
-	u8 rd = insn->dst_reg;
-	u8 rs = insn->src_reg;
-	s32 joff = 0;
-	u8 c1, c2, c3;
-	int ret;
-	*len = 0;
-
-	if ((ret = bpf_cond_to_arcs(BPF_OP(insn->code), &c1, &c2, &c3)) < 0)
-		return ret;
-
-	if (has_imm(insn)) {
-		*len += mov_r64_i32(buf+*len, JIT_REG_TMP, insn->imm);
-		rs = JIT_REG_TMP;
-	}
-
-	*len += arc_cmp_r(buf+*len, REG_HI(rd), REG_HI(rs));
-
-	if ((ret = gen_branch(ctx, insn, c1, len)) < 0)
-		return ret;
-
-	/* If this is the emit pass, then "buf" holds an address. */
-	if (emit) {
-		/*
-		 * To get to "end", we must skip over 2 normal instructions
-		 * plus the current "b"ranch instruction itself.
-		 */
-		const u32 distance = 2*INSN_len_normal + INSN_len_normal;
-		const u32 jit_curr_addr = (u32) (buf + *len);
-		ret = jit_offset_to_rel_insn(jit_curr_addr, distance, &joff);
-		if (ret < 0)
-			return ret;
-	}
-	*len += arc_bcc(buf+*len, c2, joff);
-
-	*len += arc_cmp_r(buf+*len, REG_LO(rd), REG_LO(rs));
-
-	return gen_branch(ctx, insn, c3, len);
 }
 
 /*
@@ -2723,11 +2666,4 @@ u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func)
 
 	return len;
 }
-
-/* TODO: mix with is_displacement_valid() ? */
-bool check_far_jmp(u32 curr_addr, u32 targ_addr)
-{
-	const s32 disp = get_displacement(curr_addr, targ_addr);
-	const bool aligned = ((disp & 1) == 0);
-	return (aligned && IN_S25_RANGE(displacement));
-}
+/*^^^^^^ REVAMP JUMPS ^^^^^^*/

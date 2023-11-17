@@ -96,15 +96,13 @@ extern u8 push_r(u8 *buf, u8 reg);
 extern u8 pop_r(u8 *buf, u8 reg);
 extern u8 frame_enter(u8 *buf, u16 size);
 extern u8 frame_exit(u8 *buf);
-extern u8 frame_assign_return(u8 *buf, u8 rs);
-extern u8 frame_return(u8 *buf);
-extern u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func);
+extern u8 assign_return(u8 *buf, u8 rs);
+extern u8 call_return(u8 *buf);
 /***** Jumps *****/
 /* Different sorts of conditions (ARC enum as opposed to BPF_*). */
 enum ARC_CC
 {
-	ARC_CC_AL = 0,		/* always      */
-	ARC_CC_UGT,		/* unsigned >  */
+	ARC_CC_UGT = 0,		/* unsigned >  */
 	ARC_CC_UGE,		/* unsigned >= */
 	ARC_CC_ULT,		/* unsigned <  */
 	ARC_CC_ULE,		/* unsigned <= */
@@ -112,6 +110,7 @@ enum ARC_CC
 	ARC_CC_SGE,		/*   signed >= */
 	ARC_CC_SLT,		/*   signed <  */
 	ARC_CC_SLE,		/*   signed <= */
+	ARC_CC_AL,		/* always      */
 	ARC_CC_EQ,		/*          == */
 	ARC_CC_NE,		/*          != */
 	ARC_CC_SET,		/* test        */
@@ -122,6 +121,7 @@ extern bool check_jmp_32(u32 curr_addr, u32 targ_addr, u8 cond);
 extern bool check_jmp_64(u32 curr_addr, u32 targ_addr, u8 cond);
 extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target);
 extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target);
+extern u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func);
 /***** Miscellaneous *****/
 extern u8 gen_swap(u8 *buf, u8 rd, u8 size, u8 endian);
 
