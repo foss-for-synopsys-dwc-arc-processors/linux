@@ -19,6 +19,12 @@ endif
 endif
 endif
 
+ifdef CONFIG_FTRACE
+ifdef CONFIG_ISA_ARCV3
+cflags-y	+= -fno-omit-frame-pointer
+endif
+endif
+
 ifdef CONFIG_ISA_ARCV3
 ifdef CONFIG_64BIT
 UTS_MACHINE	:= arc64
