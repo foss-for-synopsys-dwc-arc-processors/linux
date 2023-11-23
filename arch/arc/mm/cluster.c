@@ -31,11 +31,6 @@ void arc_cluster_mumbojumbo()
 		arc_cln_write_reg(ARC_CLN_PER_0_BASE, 0xf00);
 		arc_cln_write_reg(ARC_CLN_PER_0_SIZE,   0x1);
 	}
-
-	if (cln0.has_scm) {
-		arc_cln_write_reg(ARC_CLN_SHMEM_ADDR, 0xf01);
-		arc_cln_write_reg(ARC_CLN_SHMEM_SIZE,   0x1);
-	}
 }
 
 void arc_cluster_scm_enable()
