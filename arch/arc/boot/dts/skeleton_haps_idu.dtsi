@@ -68,5 +68,12 @@
 			#interrupt-cells = <1>;
 			interrupts = <23>;
 		};
+
+		cdma: custer_dma {
+			compatible = "snps,cluster-dma-1.0";
+			#interrupt-cells = <1>;
+			interrupts = <21>;
+			cdma-max-desc-len = <0x1FFFF>;
+		};
 	};
 };

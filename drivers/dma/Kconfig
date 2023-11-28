@@ -181,6 +181,15 @@ config DW_AXI_DMAC
 	  NOTE: This driver wasn't tested on 64 bit platform because
 	  of lack 64 bit platform with Synopsys DW AXI DMAC.
 
+config DW_CDMA
+	tristate "Synopsys DesignWare ARC HS Hammerhead Cluster DMA driver"
+	depends on OF || COMPILE_TEST
+	depends on HAS_IOMEM
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+	help
+	  Enable support for Synopsys DesignWare Cluster DMA.
+
 config EP93XX_DMA
 	bool "Cirrus Logic EP93xx DMA support"
 	depends on ARCH_EP93XX || COMPILE_TEST
