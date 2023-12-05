@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [arc64]
+    branches: [arc64, abrodkin-arc64-5.15.y]
   pull_request:
-    branches: [arc64]
+    branches: [arc64, abrodkin-arc64-5.15.y]
 
   workflow_dispatch:
 
