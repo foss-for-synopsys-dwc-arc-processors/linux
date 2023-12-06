@@ -7,6 +7,16 @@ obj-y	:= arcksyms.o setup.o irq.o reset.o ptrace.o process.o devtree.o
 obj-y	+= signal.o traps.o sys.o troubleshoot.o stacktrace.o disasm.o
 obj-y	+= ctx_sw_asm.o
 
+ifdef CONFIG_FTRACE
+# ftrace can't be traced (infinite loop)
+CFLAGS_REMOVE_ftrace.o = -pg
+CFLAGS_REMOVE_mcount.o = -pg
+
+obj-$(CONFIG_FUNCTION_TRACER)          += mcount.o
+obj-$(CONFIG_FUNCTION_GRAPH_TRACER)    += ftrace.o
+
+endif
+
 ifdef CONFIG_ISA_ARCOMPACT
 obj-y	+= intc-compact.o
 else
