@@ -17,11 +17,10 @@ bool zext_thyself = false;
 static void dump_bytes(const u8 *buf, u32 len, const char *header)
 {
 	u8 line[64];
-	size_t i, j;
 
 	pr_info("-----------------[ %s ]-----------------\n", header);
 
-	for (i = 0, j = 0; i < len; i++) {
+	for (size_t i = 0, size_t j = 0; i < len; i++) {
 		/* Last input byte? */
 		if (i == len-1) {
 			j += scnprintf(line+j, 64-j, "0x%02x" , buf[i]);
@@ -245,10 +244,9 @@ static void analyze_reg_usage(struct jit_context *ctx)
 {
 	u32 usage = 0;
 	s16 size = 0;	/* Will be "min()"ed against negative numbers. */
-	size_t i;
 	const struct bpf_insn *insn = ctx->prog->insnsi;
 
-	for (i = 0; i < ctx->prog->len; i++) {
+	for (size_t i = 0; i < ctx->prog->len; i++) {
 		const u8 bpf_reg = insn[i].dst_reg;
 
 		/* BPF registers that must be saved. */
@@ -412,7 +410,23 @@ static inline s32 get_index_for_insn(const struct jit_context *ctx,
 	return (insn - ctx->prog->insnsi);
 }
 
-/* Determine to which number of the BPF instruction we're jumping to. */
+/*
+ * Determine to which number of the BPF instruction we're jumping to.
+ *
+ * The "insn->off" is interpreted as the "number" of BPF instructions
+ * from the _next_ BPF instruction. e.g.:
+ *
+ *  4 means 4 instructions after  the next insn
+ *  0 means 0 instructions after  the next insn -> fall through.
+ * -1 means 1 instruction  before the next insn -> jmp to current insn.
+ *
+ *  Another way to look at this, "offset" is the number of instructions
+ *  that exist between the current instruction and the target instruction.
+ *
+ *  It is worth noting that a "mov r,i64", which is 16-byte long, is
+ *  treated as two instructions long, therefore "offset" needn't be
+ *  treated specially for those. Everything is uniform.
+ */
 static inline s32 get_target_index_for_insn(const struct jit_context *ctx,
 					    const struct bpf_insn *insn)
 {
@@ -742,7 +756,7 @@ static int handle_call(struct jit_context *ctx,
 	if (!fixed && !addr)
 		set_need_for_extra_pass(ctx);
 
-	*len = gen_func_call(buf, addr, in_kernel_func);
+	*len = gen_func_call(buf, (ARC_ADDR) addr, in_kernel_func);
 
 	return 0;
 }

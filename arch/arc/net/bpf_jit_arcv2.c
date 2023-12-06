@@ -2105,14 +2105,10 @@ u8 frame_assign_return(u8 *buf, u8 rs)
 	return len;
 }
 
+/* End of a function: jump to blink! */
 u8 frame_return(u8 *buf)
 {
 	return arc_jmp_return(buf);
-}
-
-u8 jmp_relative(u8 *buf, int displacement)
-{
-	return arc_b(buf, displacement);
 }
 
 /*
@@ -2132,227 +2128,6 @@ static u8 jump_and_link(u8 *buf, u32 addr)
 	return len;
 }
 
-/*
- * The "offset" is interpreted as the "number" of BPF instructions
- * from the _next_ BPF instruction. e.g.:
- *
- *  4 means 4 instructions after  the next insn
- *  0 means 0 instructions after  the next insn -> fall through.
- * -1 means 1 instruction  before the next insn -> jmp to current insn.
- *
- *  Another way to look at this, "offset" is the number of instructions
- *  that exist between the current instruction and the target instruction.
- *
- *  It is worth noting that a "mov r,i64", which is 16-byte long, is
- *  treated as two instructions long, therefore "offset" needn't be
- *  treated specially for those. Everything is uniform.
- *
- *  Knowing the current BPF instruction and the target BPF instruction,
- *  we can obtain their JITed memory addresses, namely "jit_curr_addr"
- *  and "jit_targ_addr". The offset, a.k.a. displacement, for ARC's
- *  "b" (branch) instruction is the distance from the _current_ instruction
- *  (PC) to the target instruction. To be precise, it is the distance from
- *  PCL (PC aLigned) to the target address. PCL is the word-aligned
- *  copy of PC.
- */
-static int bpf_offset_to_jit(const struct jit_context *ctx,
-			     const struct bpf_insn *insn,
-			     u8 advance,
-			     s32 *jit_offset,
-			     bool use_far)
-{
-	u32 jit_curr_addr, jit_targ_addr, pcl;
-	const s32 idx = get_index_for_insn(ctx, insn);
-	const s16 bpf_offset = insn->off;
-	const s32 bpf_targ_idx = (idx+1) + bpf_offset;
-
-	/*
-	 * "len" reflects the number of bytes for possible "check" instructions
-	 * that are emitted. In that case, ARC's "b(ranch)" instruction is not
-	 * emitted at the begenning of "jit.buf + bpf2ins[idx]", but "advance"
-	 * bytes after that.
-	 */
-	jit_curr_addr = (u32) (ctx->jit.buf + ctx->bpf2insn[idx] + advance);
-	jit_targ_addr = (u32) (ctx->jit.buf + ctx->bpf2insn[bpf_targ_idx]);
-	pcl           = jit_curr_addr & ~3;
-	*jit_offset   = jit_targ_addr - pcl;
-
-	/* The S21 in "b" (branch) encoding must be 16-bit aligned. */
-	if (*jit_offset & 1) {
-		pr_err("bpf-jit: jit address is not 16-bit aligned.\n");
-		return -EFAULT;
-	}
-
-	if (( use_far && !IN_S25_RANGE(*jit_offset)) ||
-	    (!use_far && !IN_S21_RANGE(*jit_offset))) {
-		pr_err("bpf-jit: jit address is too far to jump to.\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
-/*
- * A branch to the instruction that is "insn->off" away.
- *
- * - "cond" must be in ARC format (CC_*). If it happens to be "CC_always",
- *   then encoding of the condition code can be skipped and a far branch
- *   can be used. A far branch supports S25 offset while the conditioned
- *   version supports S21 range.
- *
- * - "len" holds the growing length of JIT buffer that is not yet committed
- *   back to "ctx->jit" buffer. It is necessary for calculating the exact
- *   offset of a "b"ranch instruction. See "bpf_offset_to_jit()" comments
- *   for more datils.
- */
-static int gen_branch(struct jit_context *ctx,
-		      const struct bpf_insn *insn,
-		      u8 cond,
-		      u8 *len)
-{
-	s32 disp = 0;
-	u8 *buf = effective_jit_buf(&ctx->jit);
-
-	/* After that ctx->bpf2insn[] is initialised, offsets can be deduced. */
-	if (ctx->bpf2insn_valid) {
-		int ret = bpf_offset_to_jit(ctx, insn, *len, &disp,
-					    cond == CC_always);
-		if (ret < 0)
-			return ret;
-	}
-
-	if (cond == CC_always)
-		*len += arc_b(buf+*len, disp);
-	else
-		*len += arc_bcc(buf+*len, cond, disp);
-	return 0;
-}
-
-/*
- * A wrapper around "gen_branch()", so "handle_insn()" doesn't need to know
- * about back-end internal (CC_always), while handling "BPF_JA".
- */
-static int gen_ja(struct jit_context *ctx,
-		  const struct bpf_insn *insn,
-		  u8 *len)
-{
-	return gen_branch(ctx, insn, CC_always, len);
-}
-
-/* Convert BPF conditions to ARC's, for 32-bit versions. */
-static inline int bpf_cond_to_arc(const u8 op)
-{
-	switch (op) {
-	case BPF_JA:	return CC_always;
-	case BPF_JEQ:	return CC_equal;
-	case BPF_JGT:	return CC_great_u;
-	case BPF_JGE:	return CC_great_eq_u;
-	case BPF_JSET:	return CC_unequal;
-	case BPF_JNE:	return CC_unequal;
-	case BPF_JSGT:	return CC_great_s;
-	case BPF_JSGE:	return CC_great_eq_s;
-	case BPF_JLT:	return CC_less_u;
-	case BPF_JLE:	return CC_less_eq_u;
-	case BPF_JSLT:	return CC_less_s;
-	case BPF_JSLE:	return CC_less_eq_s;
-	default:
-	}
-	pr_err("bpf-jit: can't hanlde condition 0x%02X\n", op);
-	return -EINVAL;
-}
-
-/*
- * For jset:
- * tst   r, [r,i]      # test reg vs. another reg or imm
- * bne   @target
- *
- * For others:
- * cmp   r, [r,i]      # compare regr vs. another reg or imm
- * b<cc> @target       # "cc" is deduced from the BPF condition
- */
-static int gen_jcc_32(struct jit_context *ctx,
-		      const struct bpf_insn *insn,
-		      u8 *len)
-{
-	u8 *buf = effective_jit_buf(&ctx->jit);
-	s8 cond;
-	const u8 rd = insn->dst_reg;
-	const u8 rs = insn->src_reg;
-	*len = 0;
-
-	if ((cond = bpf_cond_to_arc(BPF_OP(insn->code))) < 0)
-		return cond;
-
-	/* Either issue "tst" or "cmp" before the conditional jump. */
-	switch (BPF_OP(insn->code))
-	{
-	case BPF_JSET:
-		if (has_imm(insn))
-			*len = tst_r32_i32(buf+*len, rd, insn->imm);
-		else
-			*len = tst_r32(buf+*len, rd, rs);
-		break;
-	case BPF_JEQ:
-	case BPF_JNE:
-	case BPF_JGT:
-	case BPF_JGE:
-	case BPF_JLT:
-	case BPF_JLE:
-	case BPF_JSGT:
-	case BPF_JSGE:
-	case BPF_JSLT:
-	case BPF_JSLE:
-		if (has_imm(insn))
-			*len = cmp_r32_i32(buf+*len, rd, insn->imm);
-		else
-			*len = cmp_r32(buf+*len, rd, rs);
-		break;
-	default:
-		pr_err("bpf-jit: can't handle 32-bit condition.\n");
-		return -EINVAL;
-	}
-
-	return gen_branch(ctx, insn, cond, len);
-}
-
-/*
- * cmp        rd_hi, rs_hi
- * cmp.z      rd_lo, rs_lo
- * b{eq,ne}   @target
- *   |  |
- *   |  `-->  "eq" param is true  (JEQ)
- *   `----->  "eq" param is false (JNE)
- */
-static int gen_j_eq_64(u8 *buf, u8 rd, u8 rs, bool eq, u32 targ_addr)
-{
-	u8 len = 0;
-
-	len += arc_cmp_r(buf+len, REG_HI(rd), REG_HI(rs));
-	len += arc_cmpz_r(buf+len, REG_LO(rd), REG_LO(rs));
-	disp = get_displacement(buf+len, targ_addr);
-	len += arc_bcc(buf+len, eq ? CC_equal : CC_unequal, disp);
-
-	return len;
-}
-
-/*
- * tst   rd_hi, rs_hi
- * tst.z rd_lo, rs_lo
- * bne   @target
- */
-static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, u32 targ_addr)
-{
-	u8 len = 0;
-	s32 disp;
-
-	len += arc_tst_r(buf+len, REG_HI(rd), REG_HI(rs));
-	len += arc_tstz_r(buf+len, REG_LO(rd), REG_LO(rs));
-	disp = get_displacement(buf+len, targ_addr);
-	len += arc_bcc(buf+len, CC_unequal, disp);
-
-	return len;
-}
-
 /*vvvvvv REVAMP JUMPS vvvvvv*/
 /*
  * For details on the algorithm, see the comments of "gen_jcc_64()".
@@ -2369,8 +2144,11 @@ static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, u32 targ_addr)
  *            |
  *            v
  * 0x1000: cmp  r3, r1     # 0x1000 is the JIT address for "BPF_JGE ..." insn
- * 0x1004: bhs  @target    # branch higher or same
- * 0x1008: ...
+ * 0x1004: bhi  @target    # first jump (branch higher)
+ * 0x1008: blo  @end       # second jump acting as a skip (end is 0x1014)
+ * 0x100C: cmp  r2, r0     # the lower 32 bits are evaluated
+ * 0x1010: bhs  @target    # third jump (branch higher or same)
+ * 0x1014: ...
  *
  * The jit_off(set) of the "bhs" is 4 bytes.
  * The cond(ition) for the "bhs" is "CC_great_equal_u".
@@ -2381,23 +2159,25 @@ static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, u32 targ_addr)
  * jit_address + jit_off(set) - @target
  * 0x1000      + 4            - @target
  */
-#define NR_OF_JMPS_IN_JCC64 3
+#define JCC64_NR_OF_JMPS 3	/* Number of jumps in jcc64 template. */
+#define JCC64_INSNS_TO_END 3	/* Number of insn. inclusive the 2nd jmp to end. */
+#define JCC64_SKIP_JMP 1	/* Index of the "skip" jump to "end". */
 /* TODO: Shahab, maybe the "c2" can go away if the 2nd "cmp" becomes "cmp.z". */
-const struct = {
+const struct {
 	/*
 	 * "jit_off" is common between all "jmp[]" and is coupled with
 	 * "cond" of each "jmp[]" instance. e.g.:
 	 *
-	 * arcv2_64b_jumps.jit_off[1]
-	 * arcv2_64b_jumps.jmp[ARC_CC_UGT].cond[1]
+	 * arcv2_64b_jccs.jit_off[1]
+	 * arcv2_64b_jccs.jmp[ARC_CC_UGT].cond[1]
 	 *
 	 * Are indicating that the second jump in JITed code of "UGT"
 	 * is at offset "jit_off[1]" while its condition is "cond[1]".
 	 */
-	u8 jit_off[NR_OF_JMPS_IN_JCC64];
+	u8 jit_off[JCC64_NR_OF_JMPS];
 
 	struct {
-		u8 cond[NR_OF_JMPS_IN_JCC64];
+		u8 cond[JCC64_NR_OF_JMPS];
 	} jmp[ARC_CC_SLE+1];
 } arcv2_64b_jccs = {
 	.jit_off = {
@@ -2496,6 +2276,18 @@ const struct = {
 };
 
 /*
+ * The displacement (offset) for ARC's "b"ranch instruction is the distance
+ * from the aligned version of _current_ instruction (PCL) to the target
+ * instruction:
+ *
+ * DISP = TARGET - PCL          # PCL is the word aligned PC
+ */
+static inline s32 get_displacement(ARC_ADDR curr_addr, ARC_ADDR targ_addr)
+{
+	return (s32) targ_addr - ((s32) (curr_addr & ~3L);
+}
+
+/*
  * Check couple of things:
  *
  * 1. The displacement is 16-bit aligned.
@@ -2517,17 +2309,106 @@ bool is_displacement_valid(s32 disp, u8 cond)
 }
 
 /*
- * The displacement (offset) for ARC's "b"ranch instruction is the distance
- * from the aligned version of _current_ instruction (PCL) to the target
- * instruction:
- *
- * DISP = TARGET - PCL          # PCL is the word aligned PC
+ * cmp        rd_hi, rs_hi
+ * cmp.z      rd_lo, rs_lo
+ * b{eq,ne}   @target
+ *   |  |
+ *   |  `-->  "eq" param is true  (JEQ)
+ *   `----->  "eq" param is false (JNE)
  */
-static inline s32 get_displacement(u32 curr_addr, u32 targ_addr)
+static int gen_j_eq_64(u8 *buf, u8 rd, u8 rs, bool eq, ARC_ADDR targ_addr)
 {
-	return (s32) targ_addr - ((s32) (curr_addr & ~3L);
+	u8 len = 0;
+
+	len += arc_cmp_r(buf+len, REG_HI(rd), REG_HI(rs));
+	len += arc_cmpz_r(buf+len, REG_LO(rd), REG_LO(rs));
+	disp = get_displacement(buf+len, targ_addr);
+	len += arc_bcc(buf+len, eq ? CC_equal : CC_unequal, disp);
+
+	return len;
 }
 
+/*
+ * tst   rd_hi, rs_hi
+ * tst.z rd_lo, rs_lo
+ * bne   @target
+ */
+static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, ARC_ADDR targ_addr)
+{
+	u8 len = 0;
+	s32 disp;
+
+	len += arc_tst_r(buf+len, REG_HI(rd), REG_HI(rs));
+	len += arc_tstz_r(buf+len, REG_LO(rd), REG_LO(rs));
+	disp = get_displacement(buf+len, targ_addr);
+	len += arc_bcc(buf+len, CC_unequal, disp);
+
+	return len;
+}
+
+
+/*
+ * Verify if all the jumps for a JITed jcc64 operation are valid,
+ * by consulting the data stored at "arcv2_64b_jccs".
+ */
+static bool check_jcc_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
+{
+	size_t i;
+
+	if (cond >= ARC_CC_LAST)
+		return false;
+
+	for (i = 0; i < JCC64_NR_OF_JMPS; i++) {
+		u32 from, to;
+		u8  cc;
+		s32 disp;
+
+		from = curr_addr + arcv2_64b_jccs.jit_off[i];
+		/* for the 2nd jump, we jump to the end of block. */
+		if (i != JCC64_SKIP_JMP)
+			to = targ_addr;
+		else
+			to = from + (JCC64_INSNS_TO_END * INSN_len_normal);
+		cc = arcv2_64b_jccs.jmp[cond].cond[i];
+		disp = get_displacement(from, to);
+		if (!is_displacement_valid(disp, cc))
+			return false;
+	}
+
+	return true;
+}
+
+/* Can the jump from "curr_addr" to "targ_addr" actually happen? */
+bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
+{
+	s32 disp;
+
+	switch (cond) {
+	case ARC_CC_UGT:
+	case ARC_CC_UGE:
+	case ARC_CC_ULT:
+	case ARC_CC_ULE:
+	case ARC_CC_SGT:
+	case ARC_CC_SGE:
+	case ARC_CC_SLT:
+	case ARC_CC_SLE:
+		return check_jcc_64(curr_addr, targ_addr, cond);
+	case ARC_CC_EQ:
+	case ARC_CC_NE:
+	case ARC_CC_SET:
+		/*
+		 * The "jump" for the JITed BPF_J{SET,EQ,NE} is actually the
+		 * 3rd instruction. See comments of "gen_j{set,_eq}_64()".
+		 */
+		curr_addr += 2 * INSN_len_normal;
+		/* fall through. */
+	case ARC_CC_AL:
+		disp = get_displacement(curr_addr, targ_addr);
+		return is_displacement_valid(disp, cond);
+	default:
+		return false;
+	}
+}
 
 /*
  * The template for the 64-bit jumps with the following BPF conditions
@@ -2578,7 +2459,7 @@ static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 	len += arc_bcc(buf+len, cond[0], disp);
 
 	/* b<c2> @end */
-	end = buf + len + (3 * INSN_len_normal);
+	end = buf + len + (JCC64_INSNS_TO_END * INSN_len_normal);
 	disp = get_displacement(buf+len, end);
 	len += arc_bcc(buf+len, cond[1], disp);
 
@@ -2597,7 +2478,7 @@ static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
  * translations. All the sanity checks must have already been done
  * by calling the check_jmp_64().
  */
-u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
+u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR target)
 {
 	u8 len = 0;
 	bool eq = false;
@@ -2633,6 +2514,17 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 	return len;
 }
 
+/* Can the jump from "curr_addr" to "targ_addr" actually happen? */
+bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
+{
+	/* TODO: ASAP: fill me in after filling "gen_jmp_32()". */
+}
+
+u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR target)
+{
+	/* TODO: ASAP: fill me in. look into "gen_jcc_32()". */
+}
+
 /*
  * Generate code for functions calls. There can be two types of calls:
  *
@@ -2642,7 +2534,7 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
  * In the later case, we must comply to ARCv2 ABI and handle arguments
  * and return values accordingly.
  */
-u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func)
+u8 gen_func_call(u8 *buf, ARC_ADDR func_addr, bool external_func)
 {
 	u8 len = 0;
 
@@ -2655,7 +2547,7 @@ u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func)
 	if (external_func)
 		len += push_r64(buf+len, BPF_REG_5);
 
-	len += jump_and_link(buf+len, (u32) func_addr);
+	len += jump_and_link(buf+len, func_addr);
 
 	if (external_func) {
 		len += arc_add_i(buf+len, ARC_R_SP, ARC_R_SP, ARG5_SIZE);
@@ -2667,3 +2559,175 @@ u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func)
 	return len;
 }
 /*^^^^^^ REVAMP JUMPS ^^^^^^*/
+/* TODO: REMOVE US */
+/*
+ * The "offset" is interpreted as the "number" of BPF instructions
+ * from the _next_ BPF instruction. e.g.:
+ *
+ *  4 means 4 instructions after  the next insn
+ *  0 means 0 instructions after  the next insn -> fall through.
+ * -1 means 1 instruction  before the next insn -> jmp to current insn.
+ *
+ *  Another way to look at this, "offset" is the number of instructions
+ *  that exist between the current instruction and the target instruction.
+ *
+ *  It is worth noting that a "mov r,i64", which is 16-byte long, is
+ *  treated as two instructions long, therefore "offset" needn't be
+ *  treated specially for those. Everything is uniform.
+ *
+ *  Knowing the current BPF instruction and the target BPF instruction,
+ *  we can obtain their JITed memory addresses, namely "jit_curr_addr"
+ *  and "jit_targ_addr". The offset, a.k.a. displacement, for ARC's
+ *  "b" (branch) instruction is the distance from the _current_ instruction
+ *  (PC) to the target instruction. To be precise, it is the distance from
+ *  PCL (PC aLigned) to the target address. PCL is the word-aligned
+ *  copy of PC.
+ */
+static int bpf_offset_to_jit(const struct jit_context *ctx,
+			     const struct bpf_insn *insn,
+			     u8 advance,
+			     s32 *jit_offset,
+			     bool use_far)
+{
+	u32 jit_curr_addr, jit_targ_addr, pcl;
+	const s32 idx = get_index_for_insn(ctx, insn);
+	const s16 bpf_offset = insn->off;
+	const s32 bpf_targ_idx = (idx+1) + bpf_offset;
+
+	/*
+	 * "len" reflects the number of bytes for possible "check" instructions
+	 * that are emitted. In that case, ARC's "b(ranch)" instruction is not
+	 * emitted at the begenning of "jit.buf + bpf2ins[idx]", but "advance"
+	 * bytes after that.
+	 */
+	jit_curr_addr = (u32) (ctx->jit.buf + ctx->bpf2insn[idx] + advance);
+	jit_targ_addr = (u32) (ctx->jit.buf + ctx->bpf2insn[bpf_targ_idx]);
+	pcl           = jit_curr_addr & ~3;
+	*jit_offset   = jit_targ_addr - pcl;
+
+	/* The S21 in "b" (branch) encoding must be 16-bit aligned. */
+	if (*jit_offset & 1) {
+		pr_err("bpf-jit: jit address is not 16-bit aligned.\n");
+		return -EFAULT;
+	}
+
+	if (( use_far && !IN_S25_RANGE(*jit_offset)) ||
+	    (!use_far && !IN_S21_RANGE(*jit_offset))) {
+		pr_err("bpf-jit: jit address is too far to jump to.\n");
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+/*
+ * A branch to the instruction that is "insn->off" away.
+ *
+ * - "cond" must be in ARC format (CC_*). If it happens to be "CC_always",
+ *   then encoding of the condition code can be skipped and a far branch
+ *   can be used. A far branch supports S25 offset while the conditioned
+ *   version supports S21 range.
+ *
+ * - "len" holds the growing length of JIT buffer that is not yet committed
+ *   back to "ctx->jit" buffer. It is necessary for calculating the exact
+ *   offset of a "b"ranch instruction. See "bpf_offset_to_jit()" comments
+ *   for more datils.
+ */
+static int gen_branch(struct jit_context *ctx,
+		      const struct bpf_insn *insn,
+		      u8 cond,
+		      u8 *len)
+{
+	s32 disp = 0;
+	u8 *buf = effective_jit_buf(&ctx->jit);
+
+	/* After that ctx->bpf2insn[] is initialised, offsets can be deduced. */
+	if (ctx->bpf2insn_valid) {
+		int ret = bpf_offset_to_jit(ctx, insn, *len, &disp,
+					    cond == CC_always);
+		if (ret < 0)
+			return ret;
+	}
+
+	if (cond == CC_always)
+		*len += arc_b(buf+*len, disp);
+	else
+		*len += arc_bcc(buf+*len, cond, disp);
+	return 0;
+}
+
+/* Convert BPF conditions to ARC's, for 32-bit versions. */
+static inline int bpf_cond_to_arc(const u8 op)
+{
+	switch (op) {
+	case BPF_JA:	return CC_always;
+	case BPF_JEQ:	return CC_equal;
+	case BPF_JGT:	return CC_great_u;
+	case BPF_JGE:	return CC_great_eq_u;
+	case BPF_JSET:	return CC_unequal;
+	case BPF_JNE:	return CC_unequal;
+	case BPF_JSGT:	return CC_great_s;
+	case BPF_JSGE:	return CC_great_eq_s;
+	case BPF_JLT:	return CC_less_u;
+	case BPF_JLE:	return CC_less_eq_u;
+	case BPF_JSLT:	return CC_less_s;
+	case BPF_JSLE:	return CC_less_eq_s;
+	default:
+	}
+	pr_err("bpf-jit: can't hanlde condition 0x%02X\n", op);
+	return -EINVAL;
+}
+
+/*
+ * For jset:
+ * tst   r, [r,i]      # test reg vs. another reg or imm
+ * bne   @target
+ *
+ * For others:
+ * cmp   r, [r,i]      # compare regr vs. another reg or imm
+ * b<cc> @target       # "cc" is deduced from the BPF condition
+ */
+static int gen_jcc_32(struct jit_context *ctx,
+		      const struct bpf_insn *insn,
+		      u8 *len)
+{
+	u8 *buf = effective_jit_buf(&ctx->jit);
+	s8 cond;
+	const u8 rd = insn->dst_reg;
+	const u8 rs = insn->src_reg;
+	*len = 0;
+
+	if ((cond = bpf_cond_to_arc(BPF_OP(insn->code))) < 0)
+		return cond;
+
+	/* Either issue "tst" or "cmp" before the conditional jump. */
+	switch (BPF_OP(insn->code))
+	{
+	case BPF_JSET:
+		if (has_imm(insn))
+			*len = tst_r32_i32(buf+*len, rd, insn->imm);
+		else
+			*len = tst_r32(buf+*len, rd, rs);
+		break;
+	case BPF_JEQ:
+	case BPF_JNE:
+	case BPF_JGT:
+	case BPF_JGE:
+	case BPF_JLT:
+	case BPF_JLE:
+	case BPF_JSGT:
+	case BPF_JSGE:
+	case BPF_JSLT:
+	case BPF_JSLE:
+		if (has_imm(insn))
+			*len = cmp_r32_i32(buf+*len, rd, insn->imm);
+		else
+			*len = cmp_r32(buf+*len, rd, rs);
+		break;
+	default:
+		pr_err("bpf-jit: can't handle 32-bit condition.\n");
+		return -EINVAL;
+	}
+
+	return gen_branch(ctx, insn, cond, len);
+}

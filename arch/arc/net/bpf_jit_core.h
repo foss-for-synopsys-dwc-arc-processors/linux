@@ -13,6 +13,12 @@
 /* TODO: comment me out! */
 #define ARC_BPF_JIT_DEBUG
 
+/* Determine the address type of the target. */
+#ifdef CONFIG_ISA_ARCV2
+/* TODO: propagate this to jit context (bpf2insn), get_targ_jit_addr, ... */
+#define ARC_ADDR u32
+#endif
+
 /************* Globals that have effects on code generation ***********/
 /*
  * If "emit" is true, the instructions are actually generated. Else, the
@@ -99,7 +105,12 @@ extern u8 frame_exit(u8 *buf);
 extern u8 assign_return(u8 *buf, u8 rs);
 extern u8 call_return(u8 *buf);
 /***** Jumps *****/
-/* Different sorts of conditions (ARC enum as opposed to BPF_*). */
+/*
+ * Different sorts of conditions (ARC enum as opposed to BPF_*).
+ *
+ * Do not change the order of enums here. ARC_CC_SLE+1 is used
+ * to determine the number of JCCs.
+ */
 enum ARC_CC
 {
 	ARC_CC_UGT = 0,		/* unsigned >  */
@@ -117,11 +128,11 @@ enum ARC_CC
 	ARC_CC_LAST
 };
 /* Prerequisites to call the gen_jmp_{32,64}() functions. */
-extern bool check_jmp_32(u32 curr_addr, u32 targ_addr, u8 cond);
-extern bool check_jmp_64(u32 curr_addr, u32 targ_addr, u8 cond);
-extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target);
-extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target);
-extern u8 gen_func_call(u8 *buf, u64 func_addr, bool external_func);
+extern bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond);
+extern bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond);
+extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR target);
+extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR target);
+extern u8 gen_func_call(u8 *buf, ARC_ADDR func_addr, bool external_func);
 /***** Miscellaneous *****/
 extern u8 gen_swap(u8 *buf, u8 rd, u8 size, u8 endian);
 
