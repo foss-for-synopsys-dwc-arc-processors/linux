@@ -1,4 +1,5 @@
 #include <linux/filter.h>
+#include <asm/bug.h>
 
 #include "bpf_jit_core.h"
 #ifdef CONFIG_ISA_ARCV2
@@ -17,10 +18,11 @@ bool zext_thyself = false;
 static void dump_bytes(const u8 *buf, u32 len, const char *header)
 {
 	u8 line[64];
+	size_t i, j;
 
 	pr_info("-----------------[ %s ]-----------------\n", header);
 
-	for (size_t i = 0, size_t j = 0; i < len; i++) {
+	for (i = 0, j = 0; i < len; i++) {
 		/* Last input byte? */
 		if (i == len-1) {
 			j += scnprintf(line+j, 64-j, "0x%02x" , buf[i]);
@@ -242,11 +244,12 @@ static void jit_ctx_cleanup(struct jit_context *ctx)
  */
 static void analyze_reg_usage(struct jit_context *ctx)
 {
+	size_t i;
 	u32 usage = 0;
 	s16 size = 0;	/* Will be "min()"ed against negative numbers. */
 	const struct bpf_insn *insn = ctx->prog->insnsi;
 
-	for (size_t i = 0; i < ctx->prog->len; i++) {
+	for (i = 0; i < ctx->prog->len; i++) {
 		const u8 bpf_reg = insn[i].dst_reg;
 
 		/* BPF registers that must be saved. */
@@ -489,7 +492,7 @@ static inline bool check_insn_idx_valid(const struct jit_context *ctx,
  * Decouple the back-end from BPF by converting BPF conditions
  * to internal enum.
  */
-static int bpf_cond_to_arc(const u8 op, u8 &arc_cc)
+static int bpf_cond_to_arc(const u8 op, u8 *arc_cc)
 {
 	switch (op) {
 	case BPF_JA:
@@ -571,8 +574,7 @@ static u32 get_curr_jit_addr(const struct jit_context *ctx,
 			     const struct bpf_insn *insn)
 {
 #ifdef ARC_BPF_JIT_DEBUG
-	if (!ctx->bpf2insn_valid)
-		BUG("get_curr_jit_addr(): no address available.");
+	BUG_ON(!ctx->bpf2insn_valid);
 #endif
 	return ctx->bpf2insn[get_index_for_insn(ctx, insn)];
 }
@@ -589,8 +591,7 @@ static u32 get_targ_jit_addr(const struct jit_context *ctx,
 {
 	const s32 idx = get_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
-	if (!ctx->bpf2insn_valid)
-		BUG("get_targ_jit_addr(): no address available.");
+	BUG_ON(!ctx->bpf2insn_valid);
 #endif
 	if (ctx->bpf2insn_valid)
 		return ctx->bpf2insn[insn->off + idx + 1];

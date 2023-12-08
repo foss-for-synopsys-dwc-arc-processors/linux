@@ -130,8 +130,8 @@ enum ARC_CC
 /* Prerequisites to call the gen_jmp_{32,64}() functions. */
 extern bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond);
 extern bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond);
-extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR target);
-extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR target);
+extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr);
+extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr);
 extern u8 gen_func_call(u8 *buf, ARC_ADDR func_addr, bool external_func);
 /***** Miscellaneous *****/
 extern u8 gen_swap(u8 *buf, u8 rd, u8 size, u8 endian);
