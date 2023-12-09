@@ -479,8 +479,6 @@ static int handle_swap(u8 *buf, u8 rd, u8 size, u8 endian, u8 *len)
 	return 0;
 }
 
-
-/*vvvvvv REVAMP JUMPS vvvvvv*/
 /* Checks if the (instruction) index is in valid range. */
 static inline bool check_insn_idx_valid(const struct jit_context *ctx,
 					const s32 idx)
@@ -502,10 +500,10 @@ static int bpf_cond_to_arc(const u8 op, u8 *arc_cc)
 		*arc_cc = ARC_CC_EQ;
 		break;
 	case BPF_JGT:
-		*arc_cc = ARC_CC_GT;
+		*arc_cc = ARC_CC_UGT;
 		break;
 	case BPF_JGE:
-		*arc_cc = ARC_CC_GE;
+		*arc_cc = ARC_CC_UGE;
 		break;
 	case BPF_JSET:
 		*arc_cc = ARC_CC_SET;
@@ -520,10 +518,10 @@ static int bpf_cond_to_arc(const u8 op, u8 *arc_cc)
 		*arc_cc = ARC_CC_SGE;
 		break;
 	case BPF_JLT:
-		*arc_cc = ARC_CC_LT;
+		*arc_cc = ARC_CC_ULT;
 		break;
 	case BPF_JLE:
-		*arc_cc = ARC_CC_LE;
+		*arc_cc = ARC_CC_ULE;
 		break;
 	case BPF_JSLT:
 		*arc_cc = ARC_CC_SLT;
@@ -548,14 +546,15 @@ static int bpf_cond_to_arc(const u8 op, u8 *arc_cc)
 static int check_bpf_jump(const struct jit_context *ctx,
 			  const struct bpf_insn *insn)
 {
+	const u8 code = insn->code;
 	/* Must be a jmp(32) instruction that is not a "call/exit". */
-	if (!((BPF_OP(insn) == BPF_JMP || BPF_OP(insn) == BPF_JMP32) &&
-	      !(insn->code & BPF_CALL) && !(insn->code & BPF_EXIT))) {
+	if (!((BPF_OP(code) == BPF_JMP || BPF_OP(code) == BPF_JMP32) &&
+	      !(code & BPF_CALL) && !(code & BPF_EXIT))) {
 		pr_err("bpf-jit: not a jump instruction.\n");
 		return -EINVAL;
 	}
 
-	if (!check_insn_idx_valid(ctx, get_index_for_insn(ctx,ins))) {
+	if (!check_insn_idx_valid(ctx, get_index_for_insn(ctx, insn))) {
 		pr_err("bpf-jit: offset calc. -> insn is not in prog.\n");
 		return -EINVAL;
 	}
@@ -593,8 +592,7 @@ static u32 get_targ_jit_addr(const struct jit_context *ctx,
 #ifdef ARC_BPF_JIT_DEBUG
 	BUG_ON(!ctx->bpf2insn_valid);
 #endif
-	if (ctx->bpf2insn_valid)
-		return ctx->bpf2insn[insn->off + idx + 1];
+	return ctx->bpf2insn[insn->off + idx + 1];
 }
 
 /*
@@ -623,9 +621,9 @@ static int feasible_jit_jump(const struct jit_context *ctx,
 
 	/* Are there any addresses to check? */
 	if (ctx->bpf2insn_valid) {
-		const u32 from_addr =
+		const ARC_ADDR from_addr =
 			get_curr_jit_addr(ctx, insn) + likely_mov_len;
-		const u32 to_addr = get_targ_jit_addr(ctx, insn);
+		const ARC_ADDR to_addr = get_targ_jit_addr(ctx, insn);
 
 		if (b32) {
 			if (!check_jmp_32(from_addr, to_addr, cond))
@@ -722,7 +720,7 @@ static int handle_jmp_epilogue(struct jit_context *ctx,
 	if (ctx->bpf2insn_valid) {
 		epilogue_addr = ctx->bpf2insn[ctx->epilogue_offset];
 
-		if (!check_jmp_64(buf, epilogue_addr, ARC_CC_AL)) {
+		if (!check_jmp_64((ARC_ADDR) buf, epilogue_addr, ARC_CC_AL)) {
 			pr_err("bpf-jit: epilogue address is not valid.\n");
 			return -EINVAL;
 		}
@@ -733,7 +731,6 @@ static int handle_jmp_epilogue(struct jit_context *ctx,
 
 	return 0;
 }
-/*^^^^^^ REVAMP JUMPS ^^^^^^*/
 
 /* Try to get the resolved address and generate the instructions. */
 static int handle_call(struct jit_context *ctx,

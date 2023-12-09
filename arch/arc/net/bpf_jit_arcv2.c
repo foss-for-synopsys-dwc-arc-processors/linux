@@ -5,14 +5,7 @@
 /* For the extern proto-types */
 #include "bpf_jit_core.h"
 
-/*
- * bpf2arc array maps BPF registers to ARC registers. For the translation
- * of some BPF instructions, a pair of temporary registers might be required.
- * This temporary register is added as yet another index in the bpf2arc array,
- * so it will unfold like the rest of registers during the code generation
- * process.
- */
-#define JIT_REG_TMP MAX_BPF_JIT_REG
+#include "bpf_jit_arcv2.h"
 
 /*
  * Remarks about the rationale behind the chosen mapping:
@@ -36,7 +29,9 @@
  *   Its life span is one single BPF instruction. Since during the
  *   analyze_reg_usage(), it is not known if temporary registers are used,
  *   it is mapped to ARC's scratch registers: r10 and r11. Therefore, they
- *   don't matter in analysing phase and don't need saving.
+ *   don't matter in analysing phase and don't need saving. This temporary
+ *   register is added as yet another index in the bpf2arc array, so it will
+ *   unfold like the rest of registers during the code generation process.
  *
  * - Mapping of callee-saved BPF registers, BPF_REG_{6,7,8,9}, starts from
  *   (r15,r14) register pair. The (r13,r12) is not a good choice, because
@@ -2368,7 +2363,7 @@ bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 		 * 3rd instruction. See comments of "gen_j{set,_eq}_64()".
 		 */
 		curr_addr += 2 * INSN_len_normal;
-		/* fall through. */
+		fallthrough;
 	case ARC_CC_AL:
 		disp = get_displacement(curr_addr, targ_addr);
 		return is_displacement_valid(disp, cond);
@@ -2466,7 +2461,7 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
 		break;
 	case ARC_CC_EQ:
 		eq = true;
-		/* fall through. */
+		fallthrough;
 	case ARC_CC_NE:
 		len = gen_j_eq_64(buf, rd, rs, eq, targ_addr);
 		break;
@@ -2475,6 +2470,7 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
 		break;
 	default:
 #ifdef ARC_BPF_JIT_DEBUG
+		pr_err("64-bit jump condition is not known.");
 		BUG();
 #endif
 	}
@@ -2550,6 +2546,7 @@ u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
 	 */
 	if (cond >= ARC_CC_LAST) {
 #ifdef ARC_BPF_JIT_DEBUG
+		pr_err("32-bit jump condition is not known.");
 		BUG();
 #endif
 		return 0;

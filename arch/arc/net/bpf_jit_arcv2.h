@@ -28,6 +28,12 @@ enum {
 	ARC_R_IMM = 62
 };
 
+/*
+ * For the translation of some BPF instructions, a temporary register as
+ * a place holder for some interim data might be needed.
+ */
+#define JIT_REG_TMP MAX_BPF_JIT_REG
+
 #define ARC_CALLEE_SAVED_REG_FIRST ARC_R_13
 #define ARC_CALLEE_SAVED_REG_LAST  ARC_R_25
 
