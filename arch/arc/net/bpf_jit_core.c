@@ -1,16 +1,10 @@
-#include <linux/filter.h>
+#include <linux/filter.h>	/* BPF_REG macros */
 #include <asm/bug.h>
 
 #include "bpf_jit_core.h"
-#ifdef CONFIG_ISA_ARCV2
-#include "bpf_jit_arcv2.h"
-#endif
-
-/* Determine the bitness of the target. */
-#define REG_BITS ((sizeof(long) < 8) ? 32 : 64)
 
 /* Sane initial values for the globals */
-bool emit         = false;
+bool emit = false;
 bool zext_thyself = false;
 
 #ifdef ARC_BPF_JIT_DEBUG
@@ -230,17 +224,17 @@ static void jit_ctx_cleanup(struct jit_context *ctx)
 	}
 
 	/* Global vars back to their original state. */
-	emit         = false;
+	emit = false;
 	zext_thyself = false;
 }
 
 /*
- * This function is responsible for deciding which ARC registers must be
- * saved and restored accross the JIT translation of a BPF function. It
- * merely looks at "dst" register of BPF instructions and their mappings
- * to figure this out. Therefore, it is not aware of the semantics of any
- * instruction. When a register of interest is clobbered, its corresponding
- * bit position in ctx->arc_regs_clobbered is set to true.
+ * Analyze the register usage and calculate the frame size.
+ *
+ * The register usage is determined by consulting the back-end.
+ * The frame size is calculated by finding the maximum ammount that
+ * is reduced from "FP" register, as in "*(FP - val) = data", among all
+ * the instructions.
  */
 static void analyze_reg_usage(struct jit_context *ctx)
 {
@@ -250,44 +244,27 @@ static void analyze_reg_usage(struct jit_context *ctx)
 	const struct bpf_insn *insn = ctx->prog->insnsi;
 
 	for (i = 0; i < ctx->prog->len; i++) {
-		const u8 bpf_reg = insn[i].dst_reg;
+		u8 bpf_reg;
+		bool call;
 
-		/* BPF registers that must be saved. */
-		if (bpf_reg >= BPF_REG_6 && bpf_reg <= BPF_REG_9) {
-			usage |= BIT(REG_LO(bpf_reg));
-			usage |= BIT(REG_HI(bpf_reg));
-		/*
-		 * Reading the frame pointer register implies that it should
-		 * be saved and reinitialised with the current frame data.
-		 */
-		} else if (bpf_reg == BPF_REG_FP) {
+		bpf_reg = insn[i].dst_reg;
+		call = (insn[i].code == (BPF_JMP | BPF_CALL)) ? true : false;
+		usage |= mask_for_used_regs(bpf_reg, call);
+
+		/* Is FP usage in the form of "*(FP + -off) = data"? */
+		if (bpf_reg == BPF_REG_FP) {
 			const u8 store_mem_mask = 0x67;
 			const u8 code_mask = insn[i].code & store_mem_mask;
-			usage |= BIT(REG_LO(BPF_REG_FP));
-			/* Is FP usage in the form of "*(FP + -off) = data"? */
 			if (code_mask == (BPF_ST  | BPF_MEM) ||
 			    code_mask == (BPF_STX | BPF_MEM)) {
 				/* Then, record the deepest "off"set. */
 				size = min(size, insn[i].off);
 			}
-		/* Could there be some ARC registers that must to be saved? */
-		} else {
-			if (REG_LO(bpf_reg) >= ARC_CALLEE_SAVED_REG_FIRST &&
-			    REG_LO(bpf_reg) <= ARC_CALLEE_SAVED_REG_LAST)
-				usage |= BIT(REG_LO(bpf_reg));
-
-			if (REG_HI(bpf_reg) >= ARC_CALLEE_SAVED_REG_FIRST &&
-			    REG_HI(bpf_reg) <= ARC_CALLEE_SAVED_REG_LAST)
-				usage |= BIT(REG_HI(bpf_reg));
 		}
-
-		/* A "call" indicates that ARC's "blink" reg must be saved. */
-		if (insn[i].code == (BPF_JMP | BPF_CALL))
-			usage |= BIT(ARC_R_BLINK);
 	}
 
 	ctx->arc_regs_clobbered = usage;
-	ctx->frame_size         = abs(size);
+	ctx->frame_size = abs(size);
 }
 
 /* Verify that no instruction will be emitted when there is no buffer. */
@@ -322,85 +299,33 @@ static inline u8 *effective_jit_buf(const struct jit_buffer *jbuf)
 	return (emit ? jbuf->buf + jbuf->index : NULL);
 }
 
-/*
- * If "emit" is true, all the necessary "push"s are generated. Else, it acts
- * as a dry run and only updates the length of would-have-been instructions.
- */
+/* Prologue based on context variables set by "analyze_reg_usage()". */
 static int handle_prologue(struct jit_context *ctx)
 {
 	int ret;
-	u32 gp_regs = 0;
 	u8 *buf = effective_jit_buf(&ctx->jit);
 	u32 len = 0;
 
 	if ((ret = jit_buffer_check(&ctx->jit)))
 	    return ret;
 
-	/* Deal with blink first. */
-	if (ctx->arc_regs_clobbered & BIT(ARC_R_BLINK))
-		len += push_r(buf+len, ARC_R_BLINK);
-
-	gp_regs = ctx->arc_regs_clobbered & ~(BIT(ARC_R_BLINK) | BIT(ARC_R_FP));
-	while (gp_regs) {
-		u8 reg = __builtin_ffs(gp_regs) - 1;
-
-		len += push_r(buf+len, reg);
-		gp_regs &= ~BIT(reg);
-	}
-
-	/* Deal with fp last. */
-	if (ctx->arc_regs_clobbered & BIT(ARC_R_FP))
-		len += push_r(buf+len, ARC_R_FP);
-
-	if (ctx->frame_size)
-		len += frame_enter(buf+len, ctx->frame_size);
-
+	len = arc_prologue(buf, ctx->arc_regs_clobbered, ctx->frame_size);
 	jit_buffer_update(&ctx->jit, len);
 
 	return 0;
 }
 
-/*
- * The counter part for "handle_prologue()". If this function is asked to emit
- * instructions then it continues with "jit.index". If no instruction is
- * supposed to be emitted, it means it should contribute to the calculation of
- * "jit.len", and therefore it begins with that.
- */
+/* The counter part for "handle_prologue()". */
 static int handle_epilogue(struct jit_context *ctx)
 {
 	int ret;
-	u32 gp_regs = 0;
 	u8 *buf = effective_jit_buf(&ctx->jit);
 	u32 len = 0;
 
 	if ((ret = jit_buffer_check(&ctx->jit)))
 	    return ret;
 
-	if (ctx->frame_size)
-		len += frame_exit(buf+len);
-
-	/* Deal with fp first. */
-	if (ctx->arc_regs_clobbered & BIT(ARC_R_FP))
-		len += pop_r(buf+len, ARC_R_FP);
-
-	gp_regs = ctx->arc_regs_clobbered & ~(BIT(ARC_R_BLINK) | BIT(ARC_R_FP));
-	while (gp_regs) {
-		u8 reg = (REG_BITS - 1) - __builtin_clz(gp_regs);
-
-		len += pop_r(buf+len, reg);
-		gp_regs &= ~BIT(reg);
-	}
-
-	/* Deal with blink last. */
-	if (ctx->arc_regs_clobbered & BIT(ARC_R_BLINK))
-		len += pop_r(buf+len, ARC_R_BLINK);
-
-	/* Assigning JIT's return reg to ABI's return reg. */
-	len += assign_return(buf+len, BPF_REG_0);
-
-	/* At last, issue the "return". */
-	len += call_return(buf+len);
-
+	len = arc_epilogue(buf, ctx->arc_regs_clobbered, ctx->frame_size);
 	jit_buffer_update(&ctx->jit, len);
 
 	return 0;

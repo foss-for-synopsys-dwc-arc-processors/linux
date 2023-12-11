@@ -19,6 +19,12 @@
 #define ARC_ADDR u32
 #endif
 
+/*
+ * For the translation of some BPF instructions, a temporary register as
+ * a place holder for some interim data might be needed.
+ */
+#define JIT_REG_TMP MAX_BPF_JIT_REG
+
 /************* Globals that have effects on code generation ***********/
 /*
  * If "emit" is true, the instructions are actually generated. Else, the
@@ -98,12 +104,9 @@ extern u8 load_r(u8 *buf, u8 rd, u8 rs, s16 off, u8 size);
 extern u8 store_r(u8 *buf, u8 rd, u8 rs, s16 off, u8 size);
 extern u8 store_i(u8 *buf, s32 imm, u8 rd, s16 off, u8 size);
 /***** Frame related *****/
-extern u8 push_r(u8 *buf, u8 reg);
-extern u8 pop_r(u8 *buf, u8 reg);
-extern u8 frame_enter(u8 *buf, u16 size);
-extern u8 frame_exit(u8 *buf);
-extern u8 assign_return(u8 *buf, u8 rs);
-extern u8 call_return(u8 *buf);
+extern u32 mask_for_used_regs(u8 bpf_reg, bool is_call);
+extern u8 arc_prologue(u8 *buf, u32 usage, u16 frame_size);
+extern u8 arc_epilogue(u8 *buf, u32 usage, u16 frame_size);
 /***** Jumps *****/
 /*
  * Different sorts of conditions (ARC enum as opposed to BPF_*).

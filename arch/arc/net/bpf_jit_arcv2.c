@@ -1,11 +1,27 @@
-/* TODO: Remove me? */
-#include <linux/filter.h>
+#include <linux/filter.h>	/* BPF_REG macros */
 #include <asm/bug.h>
 
 /* For the extern proto-types */
 #include "bpf_jit_core.h"
 
-#include "bpf_jit_arcv2.h"
+/* ARC core registers. */
+enum {
+	ARC_R_0 , ARC_R_1 , ARC_R_2 , ARC_R_3 , ARC_R_4 , ARC_R_5,
+	ARC_R_6 , ARC_R_7 , ARC_R_8 , ARC_R_9 , ARC_R_10, ARC_R_11,
+	ARC_R_12, ARC_R_13, ARC_R_14, ARC_R_15, ARC_R_16, ARC_R_17,
+	ARC_R_18, ARC_R_19, ARC_R_20, ARC_R_21, ARC_R_22, ARC_R_23,
+	ARC_R_24, ARC_R_25, ARC_R_26, ARC_R_FP, ARC_R_SP, ARC_R_ILINK,
+	ARC_R_30, ARC_R_BLINK,
+	/*
+	 * Having ARC_R_IMM encoded as source register means there is an
+	 * immediate that must be interpreted from the next 4 bytes. If
+	 * encoded as the destination register though, it implies that the
+	 * output of the operation is not assigned to any register. The
+	 * latter is helpful if we only care about updating the CPU status
+	 * flags.
+	 */
+	ARC_R_IMM = 62
+};
 
 /*
  * Remarks about the rationale behind the chosen mapping:
@@ -65,6 +81,13 @@ const u8 bpf2arc[][2] = {
 	[JIT_REG_TMP] = {ARC_R_10, ARC_R_11}
 };
 
+#define ARC_CALLEE_SAVED_REG_FIRST ARC_R_13
+#define ARC_CALLEE_SAVED_REG_LAST  ARC_R_25
+
+#define REG_LO(r) (bpf2arc[(r)][0])
+#define REG_HI(r) (bpf2arc[(r)][1])
+
+
 /*
  * To comply with ARCv2 ABI, BPF's arg5 must be put on stack. After which,
  * the stack needs to be restored by ARG5_SIZE.
@@ -73,8 +96,8 @@ const u8 bpf2arc[][2] = {
 
 /* Instruction lengths in bytes. */
 enum {
-	INSN_len_short = 2,	/* Short instructions length. */
-	INSN_len_normal = 4	/* Normal instructions length. */
+	INSN_len_normal = 4,	/* Normal instructions length. */
+	INSN_len_imm = 4	/* Length of an extra 32-bit immediate. */
 };
 
 /* ZZ defines the size of operation in encodings that it is used. */
@@ -2015,13 +2038,13 @@ u8 load_r(u8 *buf, u8 rd, u8 rs, s16 off, u8 size)
 }
 
 /* A mere wrapper, so the core doesn't call an arc_*_() function directly. */
-u8 push_r(u8 *buf, u8 reg)
+static u8 push_r(u8 *buf, u8 reg)
 {
 	return arc_push_r(buf, reg);
 }
 
 /* A mere wrapper, so the core doesn't call an arc_*_() function directly. */
-u8 pop_r(u8 *buf, u8 reg)
+static u8 pop_r(u8 *buf, u8 reg)
 {
 	return arc_pop_r(buf, reg);
 }
@@ -2037,7 +2060,7 @@ u8 pop_r(u8 *buf, u8 reg)
  * All that remains is copying SP value to FP and shrinking SP's address space
  * for any possible function call to come.
  */
-u8 frame_enter(u8 *buf, u16 size)
+static u8 frame_enter(u8 *buf, u16 size)
 {
 	u8 len;
 	len = arc_mov_r(buf, ARC_R_FP, ARC_R_SP);
@@ -2049,29 +2072,24 @@ u8 frame_enter(u8 *buf, u16 size)
 }
 
 /* The value of SP upon entering was copied to FP. */
-u8 frame_exit(u8 *buf)
+static u8 frame_exit(u8 *buf)
 {
 	return arc_mov_r(buf, ARC_R_SP, ARC_R_FP);
 }
 
 /*
- * Move the return value in BPF register "rs", into ARCv2 ABI
- * return register "r1r0".
+ * Move the return value in BPF register "rs", into ARCv2 ABI return
+ * register "r1r0".
  */
-u8 frame_assign_return(u8 *buf, u8 rs)
+static u8 frame_assign_return(u8 *buf, u8 rs)
 {
 	u8 len = 0;
 
 	len += arc_mov_r(buf+len, ARC_R_0, REG_LO(rs));
 	len += arc_mov_r(buf+len, ARC_R_1, REG_HI(rs));
+	len += arc_jmp_return(buf+len);
 
 	return len;
-}
-
-/* End of a function: jump to blink! */
-u8 frame_return(u8 *buf)
-{
-	return arc_jmp_return(buf);
 }
 
 /*
@@ -2088,6 +2106,142 @@ static u8 jump_and_link(u8 *buf, u32 addr)
 	u8 len;
 	len  = arc_mov_i(buf, REG_LO(JIT_REG_TMP), addr);
 	len += arc_jl(buf+len, REG_LO(JIT_REG_TMP));
+	return len;
+}
+
+/*
+ * This function determines which ARC registers must be saved and restored.
+ * It does so by looking into:
+ *
+ * "bpf_reg": The cloberred (destination) BPF register
+ * "is_call": Indicator if the current instruction is a call
+ *
+ * When a register of interest is clobbered, its corresponding bit position
+ * in return value, "usage", is set to true.
+ */
+u32 mask_for_used_regs(u8 bpf_reg, bool is_call)
+{
+	u32 usage = 0;
+
+	/* BPF registers that must be saved. */
+	if (bpf_reg >= BPF_REG_6 && bpf_reg <= BPF_REG_9) {
+		usage |= BIT(REG_LO(bpf_reg));
+		usage |= BIT(REG_HI(bpf_reg));
+	/*
+	 * Using the frame pointer register implies that it should
+	 * be saved and reinitialised with the current frame data.
+	 */
+	} else if (bpf_reg == BPF_REG_FP) {
+		usage |= BIT(REG_LO(BPF_REG_FP));
+	/* Could there be some ARC registers that must to be saved? */
+	} else {
+		if (REG_LO(bpf_reg) >= ARC_CALLEE_SAVED_REG_FIRST &&
+		    REG_LO(bpf_reg) <= ARC_CALLEE_SAVED_REG_LAST)
+			usage |= BIT(REG_LO(bpf_reg));
+
+		if (REG_HI(bpf_reg) >= ARC_CALLEE_SAVED_REG_FIRST &&
+		    REG_HI(bpf_reg) <= ARC_CALLEE_SAVED_REG_LAST)
+			usage |= BIT(REG_HI(bpf_reg));
+	}
+
+	/* A "call" indicates that ARC's "blink" reg must be saved. */
+	usage |= is_call ? BIT(ARC_R_BLINK) : 0;
+
+	return usage;
+}
+
+/*
+ * push blink             # if blink is marked as clobbered
+ * push r[0-n]            # if r[i] is marked as clobbered
+ * push fp                # if fp is marked as clobbered
+ * mov  fp, sp            # if frame_size > 0
+ * sub  sb, <frame_size>  # ditto
+ *
+ * "fp being marked as clobbered" and "frame_size > 0" are the two sides of
+ * the same coin.
+ */
+u8 arc_prologue(u8 *buf, u32 usage, u16 frame_size)
+{
+	u8 len = 0;
+	u32 gp_regs = 0;
+
+	/* Deal with blink first. */
+	if (usage & BIT(ARC_R_BLINK))
+		len += push_r(buf+len, ARC_R_BLINK);
+
+	gp_regs = usage & ~(BIT(ARC_R_BLINK) | BIT(ARC_R_FP));
+	while (gp_regs) {
+		u8 reg = __builtin_ffs(gp_regs) - 1;
+
+		len += push_r(buf+len, reg);
+		gp_regs &= ~BIT(reg);
+	}
+
+	/* Deal with fp last. */
+	if (usage & BIT(ARC_R_FP))
+		len += push_r(buf+len, ARC_R_FP);
+
+	if (frame_size > 0)
+		len += frame_enter(buf+len, frame_size);
+
+#ifdef ARC_BPF_JIT_DEBUG
+	if ((usage & BIT(ARC_R_FP)) && (frame_size == 0)) {
+		pr_err("FP is being saved while there is no frame.");
+		BUG();
+	}
+#endif
+
+	return len;
+}
+
+/*
+ * mov  sp, fp            # if frame_size > 0
+ * pop  fp                # if fp is marked as clobbered
+ * pop  r[n-0]            # if r[i] is marked as clobbered
+ * pop  blink             # if blink is marked as clobbered
+ * sub  sb, <frame_size>  # ditto
+ * mov  r0, r8            # always: ABI_return <- BPF_return
+ * mov  r1, r9            # ditto
+ * j    [blink]           # always
+ *
+ * "fp being marked as clobbered" and "frame_size > 0" are the two sides of
+ * the same coin.
+ */
+u8 arc_epilogue(u8 *buf, u32 usage, u16 frame_size)
+{
+	u32 len = 0;
+	u32 gp_regs = 0;
+
+#ifdef ARC_BPF_JIT_DEBUG
+	if ((usage & BIT(ARC_R_FP)) && (frame_size == 0)) {
+		pr_err("FP is being saved while there is no frame.");
+		BUG();
+	}
+#endif
+
+	if (frame_size > 0)
+		len += frame_exit(buf+len);
+
+	/* Deal with fp first. */
+	if (usage & BIT(ARC_R_FP))
+		len += pop_r(buf+len, ARC_R_FP);
+
+	gp_regs = usage & ~(BIT(ARC_R_BLINK) | BIT(ARC_R_FP));
+	while (gp_regs) {
+		/* "usage" is 32-bit, each bit indicating an ARC register. */
+		u8 reg = 31 - __builtin_clz(gp_regs);
+
+		len += pop_r(buf+len, reg);
+		gp_regs &= ~BIT(reg);
+	}
+
+	/* Deal with blink last. */
+	if (usage & BIT(ARC_R_BLINK))
+		len += pop_r(buf+len, ARC_R_BLINK);
+
+	/* Wrap up the return value and jump back to the caller. */
+	len += frame_assign_return(buf+len, BPF_REG_0);
+
 	return len;
 }
 
@@ -2246,7 +2400,7 @@ const struct {
  */
 static inline s32 get_displacement(ARC_ADDR curr_addr, ARC_ADDR targ_addr)
 {
-	return (s32) targ_addr - ((s32) (curr_addr & ~3L);
+	return (s32) targ_addr - ((s32) (curr_addr & ~3L));
 }
 
 /*
@@ -2280,11 +2434,12 @@ bool is_displacement_valid(s32 disp, u8 cond)
  */
 static int gen_j_eq_64(u8 *buf, u8 rd, u8 rs, bool eq, ARC_ADDR targ_addr)
 {
+	s32 disp;
 	u8 len = 0;
 
 	len += arc_cmp_r(buf+len, REG_HI(rd), REG_HI(rs));
 	len += arc_cmpz_r(buf+len, REG_LO(rd), REG_LO(rs));
-	disp = get_displacement(buf+len, targ_addr);
+	disp = get_displacement((ARC_ADDR) (buf+len), targ_addr);
 	len += arc_bcc(buf+len, eq ? CC_equal : CC_unequal, disp);
 
 	return len;
@@ -2302,7 +2457,7 @@ static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, ARC_ADDR targ_addr)
 
 	len += arc_tst_r(buf+len, REG_HI(rd), REG_HI(rs));
 	len += arc_tstz_r(buf+len, REG_LO(rd), REG_LO(rs));
-	disp = get_displacement(buf+len, targ_addr);
+	disp = get_displacement((ARC_ADDR) (buf+len), targ_addr);
 	len += arc_bcc(buf+len, CC_unequal, disp);
 
 	return len;
@@ -2409,28 +2564,28 @@ bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 {
 	s32 disp;
-	u32 end;
-	const u8 *cond = arcv2_64_jccs.jmp[cond].cond;
+	ARC_ADDR end;
+	const u8 *cc = arcv2_64_jccs.jmp[cond].cond;
 	u8 len = 0;
 
 	/* cmp rd_hi, rs_hi */
 	len += arc_cmp_r(buf, REG_HI(rd), REG_HI(rs));
 
 	/* b<c1> @target */
-	disp = get_displacement(buf+len, target);
-	len += arc_bcc(buf+len, cond[0], disp);
+	disp = get_displacement((ARC_ADDR) (buf+len), target);
+	len += arc_bcc(buf+len, cc[0], disp);
 
 	/* b<c2> @end */
-	end = buf + len + (JCC64_INSNS_TO_END * INSN_len_normal);
-	disp = get_displacement(buf+len, end);
-	len += arc_bcc(buf+len, cond[1], disp);
+	end = (ARC_ADDR) (buf + len + (JCC64_INSNS_TO_END * INSN_len_normal));
+	disp = get_displacement((ARC_ADDR) (buf+len), end);
+	len += arc_bcc(buf+len, cc[1], disp);
 
 	/* cmp rd_lo, rs_lo */
 	arc_cmp_r(buf+len, REG_LO(rd), REG_LO(rs));
 
 	/* b<c3> @target */
-	disp = get_displacement(buf+len, target);
-	len += arc_bcc(buf+len, cond[2], disp);
+	disp = get_displacement((ARC_ADDR) (buf+len), target);
+	len += arc_bcc(buf+len, cc[2], disp);
 
 	return len;
 }
@@ -2447,7 +2602,8 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
 
 	switch (cond) {
 	case ARC_CC_AL:
-		len = arc_b(buf, disp, get_displacement(buf, targ_addr));
+		s32 disp = get_displacement((ARC_ADDR) buf, targ_addr);
+		len = arc_b(buf, disp);
 		break;
 	case ARC_CC_UGT:
 	case ARC_CC_UGE:
@@ -2536,7 +2692,7 @@ bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
  */
 u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
 {
-	const s32 disp = get_displacement(buf, targ_addr);
+	const s32 disp = get_displacement((ARC_ADDR) buf, targ_addr);
 	u8 len = 0;
 
 	/*
