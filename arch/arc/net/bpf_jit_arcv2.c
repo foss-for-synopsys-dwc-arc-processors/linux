@@ -1899,11 +1899,21 @@ u8 mov_r64_i64(u8 *buf, u8 reg, u32 lo, u32 hi)
 
 /*
  * If the offset is too big to fit in s9, emit:
+ *
+ *   ld  r, [rm, off]    # for loads
+ *   st  r, [rm, off]    # for stores
+ *   ----------------
+ *          |
+ *          v
  *   add r20, REG_LO(rm), off
- * and make sure that r20 will be the effective address for store:
- *   st  r, [r20, 0]
+ *
+ * and make sure that r20 becomes the effective address for store:
+ *
+ *   ld  r, [r20, 0]     # for loads
+ *   st  r, [r20, 0]     # for stores
  */
-static u8 adjust_mem_access(u8 *buf, s16 *off, u8 size, u8 rm, u8 *arc_reg_mem)
+static u8 adjust_mem_access(u8 *buf, s16 *off, u8 size,
+			    u8 rm, u8 *arc_reg_mem)
 {
 	u8 len = 0;
 	*arc_reg_mem = REG_LO(rm);
@@ -2001,7 +2011,7 @@ u8 load_r(u8 *buf, u8 rd, u8 rs, s16 off, u8 size)
 {
 	u8 len, arc_reg_mem;
 
-	len = adjust_mem_access(buf, &off, size, rd, &arc_reg_mem);
+	len = adjust_mem_access(buf, &off, size, rs, &arc_reg_mem);
 
 	if (size == BPF_B || size == BPF_H || size == BPF_W) {
 		u8 zz = bpf_to_arc_size(size);
@@ -2398,9 +2408,9 @@ const struct {
  *
  * DISP = TARGET - PCL          # PCL is the word aligned PC
  */
-static inline s32 get_displacement(ARC_ADDR curr_addr, ARC_ADDR targ_addr)
+static inline s32 get_displacement(u32 curr_off, u32 targ_off)
 {
-	return (s32) targ_addr - ((s32) (curr_addr & ~3L));
+	return (s32) (targ_off - (curr_off & ~3L));
 }
 
 /*
@@ -2432,14 +2442,15 @@ bool is_displacement_valid(s32 disp, u8 cond)
  *   |  `-->  "eq" param is true  (JEQ)
  *   `----->  "eq" param is false (JNE)
  */
-static int gen_j_eq_64(u8 *buf, u8 rd, u8 rs, bool eq, ARC_ADDR targ_addr)
+static int gen_j_eq_64(u8 *buf, u8 rd, u8 rs, bool eq,
+		       u32 curr_off, u32 targ_off)
 {
 	s32 disp;
 	u8 len = 0;
 
 	len += arc_cmp_r(buf+len, REG_HI(rd), REG_HI(rs));
 	len += arc_cmpz_r(buf+len, REG_LO(rd), REG_LO(rs));
-	disp = get_displacement((ARC_ADDR) (buf+len), targ_addr);
+	disp = get_displacement(curr_off + len, targ_off);
 	len += arc_bcc(buf+len, eq ? CC_equal : CC_unequal, disp);
 
 	return len;
@@ -2450,14 +2461,14 @@ static int gen_j_eq_64(u8 *buf, u8 rd, u8 rs, bool eq, ARC_ADDR targ_addr)
  * tst.z rd_lo, rs_lo
  * bne   @target
  */
-static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, ARC_ADDR targ_addr)
+static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, u32 curr_off, u32 targ_off)
 {
 	u8 len = 0;
 	s32 disp;
 
 	len += arc_tst_r(buf+len, REG_HI(rd), REG_HI(rs));
 	len += arc_tstz_r(buf+len, REG_LO(rd), REG_LO(rs));
-	disp = get_displacement((ARC_ADDR) (buf+len), targ_addr);
+	disp = get_displacement(curr_off + len, targ_off);
 	len += arc_bcc(buf+len, CC_unequal, disp);
 
 	return len;
@@ -2468,7 +2479,7 @@ static u8 gen_jset_64(u8 *buf, u8 rd, u8 rs, ARC_ADDR targ_addr)
  * Verify if all the jumps for a JITed jcc64 operation are valid,
  * by consulting the data stored at "arcv2_64_jccs".
  */
-static bool check_jcc_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
+static bool check_jcc_64(u32 curr_off, u32 targ_off, u8 cond)
 {
 	size_t i;
 
@@ -2480,10 +2491,10 @@ static bool check_jcc_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 		u8  cc;
 		s32 disp;
 
-		from = curr_addr + arcv2_64_jccs.jit_off[i];
+		from = curr_off + arcv2_64_jccs.jit_off[i];
 		/* for the 2nd jump, we jump to the end of block. */
 		if (i != JCC64_SKIP_JMP)
-			to = targ_addr;
+			to = targ_off;
 		else
 			to = from + (JCC64_INSNS_TO_END * INSN_len_normal);
 		cc = arcv2_64_jccs.jmp[cond].cond[i];
@@ -2495,8 +2506,8 @@ static bool check_jcc_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 	return true;
 }
 
-/* Can the jump from "curr_addr" to "targ_addr" actually happen? */
-bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
+/* Can the jump from "curr_off" to "targ_off" actually happen? */
+bool check_jmp_64(u32 curr_off, u32 targ_off, u8 cond)
 {
 	s32 disp;
 
@@ -2509,7 +2520,7 @@ bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 	case ARC_CC_SGE:
 	case ARC_CC_SLT:
 	case ARC_CC_SLE:
-		return check_jcc_64(curr_addr, targ_addr, cond);
+		return check_jcc_64(curr_off, targ_off, cond);
 	case ARC_CC_EQ:
 	case ARC_CC_NE:
 	case ARC_CC_SET:
@@ -2517,10 +2528,10 @@ bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 		 * The "jump" for the JITed BPF_J{SET,EQ,NE} is actually the
 		 * 3rd instruction. See comments of "gen_j{set,_eq}_64()".
 		 */
-		curr_addr += 2 * INSN_len_normal;
+		curr_off += 2 * INSN_len_normal;
 		fallthrough;
 	case ARC_CC_AL:
-		disp = get_displacement(curr_addr, targ_addr);
+		disp = get_displacement(curr_off, targ_off);
 		return is_displacement_valid(disp, cond);
 	default:
 		return false;
@@ -2561,10 +2572,11 @@ bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
  * You can find all the instances of this template where the
  * "arcv2_64_jccs" is getting initialised.
  */
-static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
+static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond,
+		     u32 curr_off, u32 targ_off)
 {
 	s32 disp;
-	ARC_ADDR end;
+	u32 end_off;
 	const u8 *cc = arcv2_64_jccs.jmp[cond].cond;
 	u8 len = 0;
 
@@ -2572,19 +2584,19 @@ static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
 	len += arc_cmp_r(buf, REG_HI(rd), REG_HI(rs));
 
 	/* b<c1> @target */
-	disp = get_displacement((ARC_ADDR) (buf+len), target);
+	disp = get_displacement(curr_off + len, targ_off);
 	len += arc_bcc(buf+len, cc[0], disp);
 
 	/* b<c2> @end */
-	end = (ARC_ADDR) (buf + len + (JCC64_INSNS_TO_END * INSN_len_normal));
-	disp = get_displacement((ARC_ADDR) (buf+len), end);
+	end_off = curr_off + len + (JCC64_INSNS_TO_END * INSN_len_normal);
+	disp = get_displacement(curr_off + len, end_off);
 	len += arc_bcc(buf+len, cc[1], disp);
 
 	/* cmp rd_lo, rs_lo */
-	arc_cmp_r(buf+len, REG_LO(rd), REG_LO(rs));
+	len += arc_cmp_r(buf+len, REG_LO(rd), REG_LO(rs));
 
 	/* b<c3> @target */
-	disp = get_displacement((ARC_ADDR) (buf+len), target);
+	disp = get_displacement(curr_off + len, targ_off);
 	len += arc_bcc(buf+len, cc[2], disp);
 
 	return len;
@@ -2595,14 +2607,14 @@ static u8 gen_jcc_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 target)
  * translations. All the sanity checks must have already been done
  * by calling the check_jmp_64().
  */
-u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
+u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 curr_off, u32 targ_off)
 {
 	u8 len = 0;
 	bool eq = false;
 
 	switch (cond) {
 	case ARC_CC_AL:
-		s32 disp = get_displacement((ARC_ADDR) buf, targ_addr);
+		s32 disp = get_displacement(curr_off, targ_off);
 		len = arc_b(buf, disp);
 		break;
 	case ARC_CC_UGT:
@@ -2613,16 +2625,16 @@ u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
 	case ARC_CC_SGE:
 	case ARC_CC_SLT:
 	case ARC_CC_SLE:
-		len = gen_jcc_64(buf, rd, rs, cond, targ_addr);
+		len = gen_jcc_64(buf, rd, rs, cond, curr_off, targ_off);
 		break;
 	case ARC_CC_EQ:
 		eq = true;
 		fallthrough;
 	case ARC_CC_NE:
-		len = gen_j_eq_64(buf, rd, rs, eq, targ_addr);
+		len = gen_j_eq_64(buf, rd, rs, eq, curr_off, targ_off);
 		break;
 	case ARC_CC_SET:
-		len = gen_jset_64(buf, rd, rs, targ_addr);
+		len = gen_jset_64(buf, rd, rs, curr_off, targ_off);
 		break;
 	default:
 #ifdef ARC_BPF_JIT_DEBUG
@@ -2658,8 +2670,8 @@ const u8 arcv2_32_jmps[ARC_CC_LAST] = {
 	[ARC_CC_SET] = CC_unequal
 };
 
-/* Can the jump from "curr_addr" to "targ_addr" actually happen? */
-bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
+/* Can the jump from "curr_off" to "targ_off" actually happen? */
+bool check_jmp_32(u32 curr_off, u32 targ_off, u8 cond)
 {
 	u8 addendum;
 	s32 disp;
@@ -2672,7 +2684,7 @@ bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
 	 * are either preceded by a "cmp" or "tst" instruction.
 	 */
 	addendum = (cond == ARC_CC_AL) ? 0 : INSN_len_normal;
-	disp = get_displacement(curr_addr + addendum, targ_addr);
+	disp = get_displacement(curr_off + addendum, targ_off);
 	return is_displacement_valid(disp, cond);
 }
 
@@ -2690,9 +2702,9 @@ bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond)
  *   cmp rd, rs
  *   b<cc> @jit_targ_addr            # cc = arcv2_32_jmps[xx]
  */
-u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr)
+u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 curr_off, u32 targ_off)
 {
-	const s32 disp = get_displacement((ARC_ADDR) buf, targ_addr);
+	const s32 disp = get_displacement(curr_off, targ_off);
 	u8 len = 0;
 
 	/*

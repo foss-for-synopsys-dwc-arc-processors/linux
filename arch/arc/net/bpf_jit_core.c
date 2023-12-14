@@ -471,10 +471,11 @@ static int bpf_cond_to_arc(const u8 op, u8 *arc_cc)
 static int check_bpf_jump(const struct jit_context *ctx,
 			  const struct bpf_insn *insn)
 {
-	const u8 code = insn->code;
+	const u8 class = BPF_CLASS(insn->code);
+	const u8 op = BPF_OP(insn->code);
 	/* Must be a jmp(32) instruction that is not a "call/exit". */
-	if (!((BPF_OP(code) == BPF_JMP || BPF_OP(code) == BPF_JMP32) &&
-	      !(code & BPF_CALL) && !(code & BPF_EXIT))) {
+	if ((class != BPF_JMP && class != BPF_JMP32) ||
+	    (op == BPF_CALL || op == BPF_EXIT)) {
 		pr_err("bpf-jit: not a jump instruction.\n");
 		return -EINVAL;
 	}
@@ -488,17 +489,20 @@ static int check_bpf_jump(const struct jit_context *ctx,
 		pr_err("bpf-jit: bpf jump label is out of range.\n");
 		return -EINVAL;
 	}
+
+	return 0;
 }
 
 /*
  * Based on input "insn", consult "ctx->bpf2insn" to get the
- * JIT address of the "current instruction".
+ * related index (offset) of "current instruction" in JIT stream.
  */
-static u32 get_curr_jit_addr(const struct jit_context *ctx,
-			     const struct bpf_insn *insn)
+static u32 get_curr_jit_off(const struct jit_context *ctx,
+			    const struct bpf_insn *insn)
 {
+	const s32 idx = get_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
-	BUG_ON(!ctx->bpf2insn_valid);
+	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, idx));
 #endif
 	return ctx->bpf2insn[get_index_for_insn(ctx, insn)];
 }
@@ -507,15 +511,15 @@ static u32 get_curr_jit_addr(const struct jit_context *ctx,
  * The input "insn" must be a jump instruction.
  *
  * Based on input "insn", consult "ctx->bpf2insn" to get the
- * JIT address of the "target instruction" that "insn" would
- * jump to.
+ * related JIT index (offset) of "target instruction" that
+ * "insn" would jump to.
  */
-static u32 get_targ_jit_addr(const struct jit_context *ctx,
-			     const struct bpf_insn *insn)
+static u32 get_targ_jit_off(const struct jit_context *ctx,
+			    const struct bpf_insn *insn)
 {
 	const s32 idx = get_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
-	BUG_ON(!ctx->bpf2insn_valid);
+	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, idx));
 #endif
 	return ctx->bpf2insn[insn->off + idx + 1];
 }
@@ -525,12 +529,12 @@ static u32 get_targ_jit_addr(const struct jit_context *ctx,
  *
  * Consult the back-end to check if it finds it feasible to emit
  * the necessary instructions based on "cond" and the displacement
- * between the "from_addr" and the "to_addr".
+ * between the "from_off" and the "to_off".
  *
  * If the jit addresses are known (ctx->bpf2insn_valid is true):
  *
- *   from_addr = current jit address + likely move length
- *   to_addr   = the target jit address
+ *   from_off = current jit offset + likely move length
+ *   to_off   = the target jit offset
  *
  * The "likely_mov_len" is the length of "mov" instruction that
  * might have been used to move the immediate values into temporary
@@ -539,22 +543,21 @@ static u32 get_targ_jit_addr(const struct jit_context *ctx,
 static int feasible_jit_jump(const struct jit_context *ctx,
 			     const struct bpf_insn *insn,
 			     u8 cond,
-			     bool b32,
+			     bool j32,
 			     u8 likely_mov_len)
 {
 	int ret = 0;
 
 	/* Are there any addresses to check? */
 	if (ctx->bpf2insn_valid) {
-		const ARC_ADDR from_addr =
-			get_curr_jit_addr(ctx, insn) + likely_mov_len;
-		const ARC_ADDR to_addr = get_targ_jit_addr(ctx, insn);
+		u32 from_off = get_curr_jit_off(ctx, insn) + likely_mov_len;
+		u32 to_off = get_targ_jit_off(ctx, insn);
 
-		if (b32) {
-			if (!check_jmp_32(from_addr, to_addr, cond))
+		if (j32) {
+			if (!check_jmp_32(from_off, to_off, cond))
 				ret = -EFAULT;
 		} else {
-			if (!check_jmp_64(from_addr, to_addr, cond))
+			if (!check_jmp_64(from_off, to_off, cond))
 				ret = -EFAULT;
 		}
 
@@ -584,10 +587,10 @@ static int handle_jumps(const struct jit_context *ctx,
 	u8 cond;
 	int ret = 0;
 	u8 *buf = effective_jit_buf(&ctx->jit);
-	const bool b32 = !!(insn->code & BPF_JMP32);
+	const bool j32 = (BPF_CLASS(insn->code) == BPF_JMP32) ? true : false;
 	const u8 rd = insn->dst_reg;
 	u8 rs = insn->src_reg;
-	u8 targ_addr = 0;
+	u32 curr_off = 0, targ_off = 0;
 
 	*len = 0;
 
@@ -612,7 +615,7 @@ static int handle_jumps(const struct jit_context *ctx,
 	 *    jump.
 	 */
 	if (has_imm(insn)) {
-		if (b32)
+		if (j32)
 			*len += mov_r32_i32(buf+*len, JIT_REG_TMP, insn->imm);
 		else
 			*len += mov_r64_i32(buf+*len, JIT_REG_TMP, insn->imm);
@@ -620,16 +623,18 @@ static int handle_jumps(const struct jit_context *ctx,
 	}
 
 	/* Sanity check on the back-end side. */
-	if ((ret = feasible_jit_jump(ctx, insn, cond, b32, *len)) < 0)
+	if ((ret = feasible_jit_jump(ctx, insn, cond, j32, *len)) < 0)
 		return ret;
 
 	/* If we have come this far, then the translation can go OK. */
-	if (ctx->bpf2insn_valid)
-		targ_addr = get_targ_jit_addr(ctx, insn);
-	if (b32)
-		*len += gen_jmp_32(buf+*len, rd, rs, cond, targ_addr);
+	if (ctx->bpf2insn_valid) {
+		curr_off = get_curr_jit_off(ctx, insn) + *len;
+		targ_off = get_targ_jit_off(ctx, insn);
+	}
+	if (j32)
+		*len += gen_jmp_32(buf+*len, rd, rs, cond, curr_off, targ_off);
 	else
-		*len += gen_jmp_64(buf+*len, rd, rs, cond, targ_addr);
+		*len += gen_jmp_64(buf+*len, rd, rs, cond, curr_off, targ_off);
 
 	return ret;
 }
@@ -638,21 +643,22 @@ static int handle_jumps(const struct jit_context *ctx,
 static int handle_jmp_epilogue(struct jit_context *ctx,
 			       const struct bpf_insn *insn, u8 *len)
 {
-	u32 epilogue_addr = 0;
-	u8  *buf = effective_jit_buf(&ctx->jit);
+	u8 *buf = effective_jit_buf(&ctx->jit);
+	u32 curr_off = 0, epi_off = 0;
 
 	/* Only after the dry-run, ctx->bpf2insn holds meaningful values. */
 	if (ctx->bpf2insn_valid) {
-		epilogue_addr = ctx->bpf2insn[ctx->epilogue_offset];
+		curr_off = get_curr_jit_off(ctx, insn);
+		epi_off = ctx->epilogue_offset;
 
-		if (!check_jmp_64((ARC_ADDR) buf, epilogue_addr, ARC_CC_AL)) {
+		if (!check_jmp_64(curr_off, epi_off, ARC_CC_AL)) {
 			pr_err("bpf-jit: epilogue address is not valid.\n");
 			return -EINVAL;
 		}
 	}
 
 	/* Jump to "epilogue_addr" (rd and rs don't matter). */
-	*len = gen_jmp_64(buf, 0, 0, ARC_CC_AL, epilogue_addr);
+	*len = gen_jmp_64(buf, 0, 0, ARC_CC_AL, curr_off, epi_off);
 
 	return 0;
 }
@@ -724,14 +730,14 @@ static int handle_ld_imm64(struct jit_context *ctx,
 static int handle_insn(struct jit_context *ctx, u32 idx)
 {
 	const struct bpf_insn *insn = &ctx->prog->insnsi[idx];
-	u8   code = insn->code;
-	u8   dst  = insn->dst_reg;
-	u8   src  = insn->src_reg;
-	s16  off  = insn->off;
-	s32  imm  = insn->imm;
-	u8  *buf  = effective_jit_buf(&ctx->jit);
-	u8   len  = 0;
-	int  ret  = 0;
+	const u8  code = insn->code;
+	const u8  dst  = insn->dst_reg;
+	const u8  src  = insn->src_reg;
+	const s16 off  = insn->off;
+	const s32 imm  = insn->imm;
+	u8 *buf = effective_jit_buf(&ctx->jit);
+	u8  len = 0;
+	int ret = 0;
 
 	switch (code) {
 	/* dst += src (32-bit) */

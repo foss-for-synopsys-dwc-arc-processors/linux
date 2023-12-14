@@ -15,7 +15,6 @@
 
 /* Determine the address type of the target. */
 #ifdef CONFIG_ISA_ARCV2
-/* TODO: propagate this to jit context (bpf2insn), get_targ_jit_addr, ... */
 #define ARC_ADDR u32
 #endif
 
@@ -130,11 +129,22 @@ enum ARC_CC
 	ARC_CC_SET,		/* test        */
 	ARC_CC_LAST
 };
-/* Prerequisites to call the gen_jmp_{32,64}() functions. */
-extern bool check_jmp_32(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond);
-extern bool check_jmp_64(ARC_ADDR curr_addr, ARC_ADDR targ_addr, u8 cond);
-extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr);
-extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, ARC_ADDR targ_addr);
+/*
+ * A few notes:
+ *
+ * - check_jmp_*() are prerequisites before calling the gen_jmp_*().
+ * - the notion of "*_off" is to emphasize that these parameters are
+ *   merely offsets in the JIT stream and not absolute addresses. One
+ *   can look at them as addresses if the JIT code would start from
+ *   address 0x0000_0000. Nonethless, since the buffer address for the
+ *   JIT is on a word-aligned address, this works and actually makes
+ *   things simpler (offsets are in the range of u32 which is more than
+ *   enough).
+ */
+extern bool check_jmp_32(u32 curr_off, u32 targ_off, u8 cond);
+extern bool check_jmp_64(u32 curr_off, u32 targ_off, u8 cond);
+extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 c_off, u32 t_off);
+extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 c_off, u32 t_off);
 extern u8 gen_func_call(u8 *buf, ARC_ADDR func_addr, bool external_func);
 /***** Miscellaneous *****/
 extern u8 gen_swap(u8 *buf, u8 rd, u8 size, u8 endian);
