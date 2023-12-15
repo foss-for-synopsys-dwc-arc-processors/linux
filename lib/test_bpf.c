@@ -4490,7 +4490,7 @@ static struct bpf_test tests[] = {
 			BPF_JMP_REG(BPF_JEQ, R0, R4, 1),
 			BPF_EXIT_INSN(),
 			BPF_ALU64_IMM(BPF_AND, R4, 63),
-			BPF_ALU64_REG(BPF_LSH, R0, R4), /* R0 <= 46 */
+			BPF_ALU64_REG(BPF_LSH, R0, R4), /* R0 <<= 46 */
 			BPF_MOV64_IMM(R3, 47),
 			BPF_ALU64_REG(BPF_ARSH, R0, R3),
 			BPF_JMP_IMM(BPF_JEQ, R0, -617, 1),
