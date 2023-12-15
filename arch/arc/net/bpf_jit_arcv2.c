@@ -2414,24 +2414,25 @@ static inline s32 get_displacement(u32 curr_off, u32 targ_off)
 }
 
 /*
- * Check couple of things:
+ * "disp"lacement should be:
  *
- * 1. The displacement is 16-bit aligned.
- * 2. The range is valid based on the jump (cond. vs uncond.).
+ * 1. 16-bit aligned.
+ * 2. fit in S25, because no "condition code" is supposed to be encoded.
  */
-bool is_displacement_valid(s32 disp, u8 cond)
+static inline bool is_valid_far_disp(s32 disp)
 {
-	/* If no conditional code has to be encoded, we can jump furhter. */
-	const bool use_far = (cond == CC_always);
+	return (!(disp & 1) && IN_S25_RANGE(disp));
+}
 
-	if (disp & 1)
-		return false;
-
-	if (( use_far && !IN_S25_RANGE(disp)) ||
-	    (!use_far && !IN_S21_RANGE(disp)))
-		return false;
-
-	return true;
+/*
+ * "disp"lacement should be:
+ *
+ * 1. 16-bit aligned.
+ * 2. fit in S21, because "condition code" is supposed to be encoded too.
+ */
+static inline bool is_valid_near_disp(s32 disp)
+{
+	return (!(disp & 1) && IN_S21_RANGE(disp));
 }
 
 /*
@@ -2488,8 +2489,6 @@ static bool check_jcc_64(u32 curr_off, u32 targ_off, u8 cond)
 
 	for (i = 0; i < JCC64_NR_OF_JMPS; i++) {
 		u32 from, to;
-		u8  cc;
-		s32 disp;
 
 		from = curr_off + arcv2_64_jccs.jit_off[i];
 		/* for the 2nd jump, we jump to the end of block. */
@@ -2497,9 +2496,8 @@ static bool check_jcc_64(u32 curr_off, u32 targ_off, u8 cond)
 			to = targ_off;
 		else
 			to = from + (JCC64_INSNS_TO_END * INSN_len_normal);
-		cc = arcv2_64_jccs.jmp[cond].cond[i];
-		disp = get_displacement(from, to);
-		if (!is_displacement_valid(disp, cc))
+		/* There is a "cc" in the instruction, so a "near" jump. */
+		if (!is_valid_near_disp(get_displacement(from, to)))
 			return false;
 	}
 
@@ -2529,10 +2527,12 @@ bool check_jmp_64(u32 curr_off, u32 targ_off, u8 cond)
 		 * 3rd instruction. See comments of "gen_j{set,_eq}_64()".
 		 */
 		curr_off += 2 * INSN_len_normal;
-		fallthrough;
+		disp = get_displacement(curr_off, targ_off);
+		/* There is a "cc" field in the issued instruction. */
+		return is_valid_near_disp(disp);
 	case ARC_CC_AL:
 		disp = get_displacement(curr_off, targ_off);
-		return is_displacement_valid(disp, cond);
+		return is_valid_far_disp(disp);
 	default:
 		return false;
 	}
@@ -2685,7 +2685,11 @@ bool check_jmp_32(u32 curr_off, u32 targ_off, u8 cond)
 	 */
 	addendum = (cond == ARC_CC_AL) ? 0 : INSN_len_normal;
 	disp = get_displacement(curr_off + addendum, targ_off);
-	return is_displacement_valid(disp, cond);
+
+	if (ARC_CC_AL)
+		return is_valid_far_disp(disp);
+	else
+		return is_valid_near_disp(disp);
 }
 
 /*

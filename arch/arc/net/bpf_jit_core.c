@@ -174,6 +174,15 @@ static int jit_ctx_init(struct jit_context *ctx, struct bpf_prog *prog)
 }
 
 /*
+ * Only after the first iteration of normal pass (the dry-run),
+ * there are valid offsets in ctx->bpf2insn array.
+ */
+static inline bool offsets_available(const struct jit_context *ctx)
+{
+	return ctx->bpf2insn_valid;
+}
+
+/*
  * "*mem" should be freed when there is no "extra pass" to come,
  * or the compilation terminated abruptly. A few of such memory
  * allocations are: ctx->jit_data and ctx->bpf2insn.
@@ -502,7 +511,7 @@ static u32 get_curr_jit_off(const struct jit_context *ctx,
 {
 	const s32 idx = get_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
-	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, idx));
+	BUG_ON(!offsets_available(ctx) || !check_insn_idx_valid(ctx, idx));
 #endif
 	return ctx->bpf2insn[idx];
 }
@@ -519,7 +528,7 @@ static u32 get_targ_jit_off(const struct jit_context *ctx,
 {
 	const s32 tidx = get_target_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
-	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, tidx));
+	BUG_ON(!offsets_available(ctx) || !check_insn_idx_valid(ctx, tidx));
 #endif
 	return ctx->bpf2insn[tidx];
 }
@@ -601,7 +610,7 @@ static int handle_jumps(const struct jit_context *ctx,
 	}
 
 	/* If offsets are known, check if the branch can occur. */
-	if (ctx->bpf2insn_valid) {
+	if (offsets_available(ctx)) {
 		curr_off = get_curr_jit_off(ctx, insn) + *len;
 		targ_off = get_targ_jit_off(ctx, insn);
 
@@ -626,13 +635,13 @@ static int handle_jmp_epilogue(struct jit_context *ctx,
 	u8 *buf = effective_jit_buf(&ctx->jit);
 	u32 curr_off = 0, epi_off = 0;
 
-	/* Only after the dry-run, ctx->bpf2insn holds meaningful values. */
-	if (ctx->bpf2insn_valid) {
+	/* Check the offset only if the data is available. */
+	if (offsets_available(ctx)) {
 		curr_off = get_curr_jit_off(ctx, insn);
 		epi_off = ctx->epilogue_offset;
 
 		if (!check_jmp_64(curr_off, epi_off, ARC_CC_AL)) {
-			pr_err("bpf-jit: epilogue address is not valid.\n");
+			pr_err("bpf-jit: epilogue offset is not valid.\n");
 			return -EINVAL;
 		}
 	}

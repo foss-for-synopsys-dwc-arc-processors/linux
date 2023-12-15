@@ -133,10 +133,12 @@ enum ARC_CC
  * A few notes:
  *
  * - check_jmp_*() are prerequisites before calling the gen_jmp_*().
- * - the notion of "*_off" is to emphasize that these parameters are
+ *   They return "true" if the jump is possible and "false" otherwise.
+ *
+ * - The notion of "*_off" is to emphasize that these parameters are
  *   merely offsets in the JIT stream and not absolute addresses. One
  *   can look at them as addresses if the JIT code would start from
- *   address 0x0000_0000. Nonethless, since the buffer address for the
+ *   address 0x0000_0000. Nonetheless, since the buffer address for the
  *   JIT is on a word-aligned address, this works and actually makes
  *   things simpler (offsets are in the range of u32 which is more than
  *   enough).
@@ -145,8 +147,8 @@ extern bool check_jmp_32(u32 curr_off, u32 targ_off, u8 cond);
 extern bool check_jmp_64(u32 curr_off, u32 targ_off, u8 cond);
 extern u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 c_off, u32 t_off);
 extern u8 gen_jmp_64(u8 *buf, u8 rd, u8 rs, u8 cond, u32 c_off, u32 t_off);
-extern u8 gen_func_call(u8 *buf, ARC_ADDR func_addr, bool external_func);
 /***** Miscellaneous *****/
+extern u8 gen_func_call(u8 *buf, ARC_ADDR func_addr, bool external_func);
 extern u8 gen_swap(u8 *buf, u8 rd, u8 size, u8 endian);
 
 #endif /* _BPF_JIT_CORE_H */
