@@ -2704,13 +2704,13 @@ bool check_jmp_32(u32 curr_off, u32 targ_off, u8 cond)
  */
 u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 curr_off, u32 targ_off)
 {
-	const s32 disp = get_displacement(curr_off, targ_off);
+	s32 disp;
 	u8 len = 0;
 
 	/*
 	 * Although this must have already been checked by "check_jmp_32()",
-	 * we're not going to risk accessing "arcv2_32_jmps" array by it
-	 * without the check in place.
+	 * we're not going to risk accessing "arcv2_32_jmps" array without
+	 * the boundry check.
 	 */
 	if (cond >= ARC_CC_LAST) {
 #ifdef ARC_BPF_JIT_DEBUG
@@ -2720,15 +2720,25 @@ u8 gen_jmp_32(u8 *buf, u8 rd, u8 rs, u8 cond, u32 curr_off, u32 targ_off)
 		return 0;
 	}
 
-	if (cond == ARC_CC_AL) {
-		return arc_b(buf, disp);
-	} else if (cond == ARC_CC_SET) {
-		len = tst_r32(buf, rd, rs);
+	/* If there is a "condition", issue the "cmp" or "tst" first. */
+	if (cond != ARC_CC_AL) {
+		if (cond == ARC_CC_SET)
+			len = tst_r32(buf, rd, rs);
+		else
+			len = cmp_r32(buf, rd, rs);
+		/*
+		 * The issued instruction affects the "disp"lacement as
+		 * it alters the "curr_off" by its "len"gth. The "curr_off"
+		 * should always point to the jump instruction.
+		 */
+		disp = get_displacement(curr_off + len, targ_off);
+		len += arc_bcc(buf+len, arcv2_32_jmps[cond], disp);
 	} else {
-		len = cmp_r32(buf, rd, rs);
+		/* The straight forward unconditional jump. */
+		disp = get_displacement(curr_off, targ_off);
+		len = arc_b(buf, disp);
 	}
 
-	len += arc_bcc(buf+len, arcv2_32_jmps[cond], disp);
 	return len;
 }
 

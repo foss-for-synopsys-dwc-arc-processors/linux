@@ -504,7 +504,7 @@ static u32 get_curr_jit_off(const struct jit_context *ctx,
 #ifdef ARC_BPF_JIT_DEBUG
 	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, idx));
 #endif
-	return ctx->bpf2insn[get_index_for_insn(ctx, insn)];
+	return ctx->bpf2insn[idx];
 }
 
 /*
@@ -517,11 +517,11 @@ static u32 get_curr_jit_off(const struct jit_context *ctx,
 static u32 get_targ_jit_off(const struct jit_context *ctx,
 			    const struct bpf_insn *insn)
 {
-	const s32 idx = get_index_for_insn(ctx, insn);
+	const s32 tidx = get_target_index_for_insn(ctx, insn);
 #ifdef ARC_BPF_JIT_DEBUG
-	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, idx));
+	BUG_ON(!ctx->bpf2insn_valid || !check_insn_idx_valid(ctx, tidx));
 #endif
-	return ctx->bpf2insn[insn->off + idx + 1];
+	return ctx->bpf2insn[tidx];
 }
 
 /*
@@ -530,40 +530,21 @@ static u32 get_targ_jit_off(const struct jit_context *ctx,
  * Consult the back-end to check if it finds it feasible to emit
  * the necessary instructions based on "cond" and the displacement
  * between the "from_off" and the "to_off".
- *
- * If the jit addresses are known (ctx->bpf2insn_valid is true):
- *
- *   from_off = current jit offset + likely move length
- *   to_off   = the target jit offset
- *
- * The "likely_mov_len" is the length of "mov" instruction that
- * might have been used to move the immediate values into temporary
- * register(s).
  */
-static int feasible_jit_jump(const struct jit_context *ctx,
-			     const struct bpf_insn *insn,
-			     u8 cond,
-			     bool j32,
-			     u8 likely_mov_len)
+static int feasible_jit_jump(u32 from_off, u32 to_off, u8 cond, bool j32)
 {
 	int ret = 0;
 
-	/* Are there any addresses to check? */
-	if (ctx->bpf2insn_valid) {
-		u32 from_off = get_curr_jit_off(ctx, insn) + likely_mov_len;
-		u32 to_off = get_targ_jit_off(ctx, insn);
-
-		if (j32) {
-			if (!check_jmp_32(from_off, to_off, cond))
-				ret = -EFAULT;
-		} else {
-			if (!check_jmp_64(from_off, to_off, cond))
-				ret = -EFAULT;
-		}
-
-		if (ret != 0)
-			pr_err("bpf-jit: the JIT displacement is not OK.\n");
+	if (j32) {
+		if (!check_jmp_32(from_off, to_off, cond))
+			ret = -EFAULT;
+	} else {
+		if (!check_jmp_64(from_off, to_off, cond))
+			ret = -EFAULT;
 	}
+
+	if (ret != 0)
+		pr_err("bpf-jit: the JIT displacement is not OK.\n");
 
 	return ret;
 }
@@ -607,12 +588,9 @@ static int handle_jumps(const struct jit_context *ctx,
 	 *
 	 * 1. "gen_jmp_{32,64}()" deal with operands in registers.
 	 *
-	 * 2. The "len" parameter will grow so that the current jit address
-	 *    (buf+*len) will have increased to a point where the necessary
+	 * 2. The "len" parameter will grow so that the current jit offset
+	 *    (curr_off) will have increased to a point where the necessary
 	 *    instructions can be inserted by "gen_jmp_{32,64}()".
-	 *    The "feasible_jit_jump()" will consider this possible move
-	 *    before consulting the back-end about the feasibility of the
-	 *    jump.
 	 */
 	if (has_imm(insn)) {
 		if (j32)
@@ -622,15 +600,17 @@ static int handle_jumps(const struct jit_context *ctx,
 		rs = JIT_REG_TMP;
 	}
 
-	/* Sanity check on the back-end side. */
-	if ((ret = feasible_jit_jump(ctx, insn, cond, j32, *len)) < 0)
-		return ret;
-
-	/* If we have come this far, then the translation can go OK. */
+	/* If offsets are known, check if the branch can occur. */
 	if (ctx->bpf2insn_valid) {
 		curr_off = get_curr_jit_off(ctx, insn) + *len;
 		targ_off = get_targ_jit_off(ctx, insn);
+
+		/* Sanity check on the back-end side. */
+		ret = feasible_jit_jump(curr_off, targ_off, cond, j32);
+		if (ret < 0)
+			return ret;
 	}
+
 	if (j32)
 		*len += gen_jmp_32(buf+*len, rd, rs, cond, curr_off, targ_off);
 	else
