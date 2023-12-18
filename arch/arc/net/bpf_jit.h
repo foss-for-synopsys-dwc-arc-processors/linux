@@ -13,7 +13,7 @@
 #include <linux/filter.h>
 
 /* Print debug info and assert. */
-//#define ARC_BPF_JIT_DEBUG
+#define ARC_BPF_JIT_DEBUG
 
 /* Determine the address type of the target. */
 #ifdef CONFIG_ISA_ARCV2
