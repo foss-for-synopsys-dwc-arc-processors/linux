@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  toolchain_ver: 2022.09-rc2
+  toolchain_ver: 2023.09
   toolchain_url: https://github.com/foss-for-synopsys-dwc-arc-processors/arc-gnu-toolchain/releases/download/$toolchain_ver
 
 jobs:
