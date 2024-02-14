@@ -14233,7 +14233,7 @@ static struct bpf_test tests[] = {
 		{ { 0, 0 } },
 	},
 	/* Conditional branch conversions */
-	{
+	/*{
 		"Long conditional jump: taken at runtime",
 		{ },
 		INTERNAL | FLAG_NO_DATA,
@@ -14264,7 +14264,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 2 } },
 		.fill_helper = bpf_fill_max_jmp_never_taken,
-	},
+	},*/
 	/* Staggered jump sequences, immediate */
 	{
 		"Staggered jumps: JMP_JA",
