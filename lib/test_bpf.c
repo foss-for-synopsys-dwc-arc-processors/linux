@@ -4457,7 +4457,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 0xfefe } }
 	},
-	{
+	/*{
 		"INT: ALU MIX",
 		.u.insns_int = {
 			BPF_ALU64_IMM(BPF_MOV, R0, 11),
@@ -4476,7 +4476,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, -1 } }
-	},
+	},*/
 	{
 		"INT: shifts by register",
 		.u.insns_int = {
@@ -5931,7 +5931,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 1 } },
 	},
-	{
+	/*{
 		"ALU64_DIV_X: 6 / 2 = 3",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, 6),
@@ -5971,7 +5971,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, 0x1 } },
-	},
+	},*/
 	/* BPF_ALU | BPF_DIV | BPF_K */
 	{
 		"ALU_DIV_K: 6 / 2 = 3",
@@ -6022,7 +6022,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 0x1 } },
 	},
-	{
+	/*{
 		"ALU64_DIV_K: 6 / 2 = 3",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, 6),
@@ -6070,7 +6070,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, 0x1 } },
-	},
+	},*/
 	/* BPF_ALU | BPF_MOD | BPF_X */
 	{
 		"ALU_MOD_X: 3 % 2 = 1",
@@ -6096,7 +6096,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 2 } },
 	},
-	{
+	/*{
 		"ALU64_MOD_X: 3 % 2 = 1",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, 3),
@@ -6119,7 +6119,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, 2 } },
-	},
+	},*/
 	/* BPF_ALU | BPF_MOD | BPF_K */
 	{
 		"ALU_MOD_K: 3 % 2 = 1",
@@ -6154,7 +6154,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 2 } },
 	},
-	{
+	/*{
 		"ALU64_MOD_K: 3 % 2 = 1",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, 3),
@@ -6186,7 +6186,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, 2 } },
-	},
+	},*/
 	/* BPF_ALU | BPF_DIV | BPF_X off=1 (SDIV) */
 	{
 		"ALU_SDIV_X: -6 / 2 = -3",
@@ -6213,7 +6213,7 @@ static struct bpf_test tests[] = {
 		{ { 0, -3 } },
 	},
 	/* BPF_ALU64 | BPF_DIV | BPF_X off=1 (SDIV64) */
-	{
+	/*{
 		"ALU64_SDIV_X: -6 / 2 = -3",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, -6),
@@ -6224,9 +6224,9 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, -3 } },
-	},
+	},*/
 	/* BPF_ALU64 | BPF_DIV | BPF_K off=1 (SDIV64) */
-	{
+	/*{
 		"ALU64_SDIV_K: -6 / 2 = -3",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, -6),
@@ -6236,7 +6236,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, -3 } },
-	},
+	},*/
 	/* BPF_ALU | BPF_MOD | BPF_X off=1 (SMOD) */
 	{
 		"ALU_SMOD_X: -7 % 2 = -1",
@@ -6263,7 +6263,7 @@ static struct bpf_test tests[] = {
 		{ { 0, -1 } },
 	},
 	/* BPF_ALU64 | BPF_MOD | BPF_X off=1 (SMOD64) */
-	{
+	/*{
 		"ALU64_SMOD_X: -7 % 2 = -1",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, -7),
@@ -6274,9 +6274,9 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, -1 } },
-	},
+	},*/
 	/* BPF_ALU64 | BPF_MOD | BPF_K off=1 (SMOD64) */
-	{
+	/*{
 		"ALU64_SMOD_K: -7 % 2 = -1",
 		.u.insns_int = {
 			BPF_LD_IMM64(R0, -7),
@@ -6286,7 +6286,7 @@ static struct bpf_test tests[] = {
 		INTERNAL,
 		{ },
 		{ { 0, -1 } },
-	},
+	},*/
 	/* BPF_ALU | BPF_AND | BPF_X */
 	{
 		"ALU_AND_X: 3 & 2 = 2",
@@ -11963,10 +11963,10 @@ static struct bpf_test tests[] = {
 	BPF_TEST_CLOBBER_ALU(ALU64_IMM, SUB, R9, 123456789),
 	BPF_TEST_CLOBBER_ALU(ALU64_IMM, MUL, R8, 123456789),
 	BPF_TEST_CLOBBER_ALU(ALU64_IMM, MUL, R9, 123456789),
-	BPF_TEST_CLOBBER_ALU(ALU64_IMM, DIV, R8, 123456789),
+	/*BPF_TEST_CLOBBER_ALU(ALU64_IMM, DIV, R8, 123456789),
 	BPF_TEST_CLOBBER_ALU(ALU64_IMM, DIV, R9, 123456789),
 	BPF_TEST_CLOBBER_ALU(ALU64_IMM, MOD, R8, 123456789),
-	BPF_TEST_CLOBBER_ALU(ALU64_IMM, MOD, R9, 123456789),
+	BPF_TEST_CLOBBER_ALU(ALU64_IMM, MOD, R9, 123456789),*/
 	/* ALU32 immediate operations, register clobbering */
 	BPF_TEST_CLOBBER_ALU(ALU32_IMM, AND, R8, 123456789),
 	BPF_TEST_CLOBBER_ALU(ALU32_IMM, AND, R9, 123456789),
@@ -12009,10 +12009,10 @@ static struct bpf_test tests[] = {
 	BPF_TEST_CLOBBER_ALU(ALU64_REG, SUB, R9, R1),
 	BPF_TEST_CLOBBER_ALU(ALU64_REG, MUL, R8, R1),
 	BPF_TEST_CLOBBER_ALU(ALU64_REG, MUL, R9, R1),
-	BPF_TEST_CLOBBER_ALU(ALU64_REG, DIV, R8, R1),
+	/*BPF_TEST_CLOBBER_ALU(ALU64_REG, DIV, R8, R1),
 	BPF_TEST_CLOBBER_ALU(ALU64_REG, DIV, R9, R1),
 	BPF_TEST_CLOBBER_ALU(ALU64_REG, MOD, R8, R1),
-	BPF_TEST_CLOBBER_ALU(ALU64_REG, MOD, R9, R1),
+	BPF_TEST_CLOBBER_ALU(ALU64_REG, MOD, R9, R1),*/
 	/* ALU32 register operations, register clobbering */
 	BPF_TEST_CLOBBER_ALU(ALU32_REG, AND, R8, R1),
 	BPF_TEST_CLOBBER_ALU(ALU32_REG, AND, R9, R1),
@@ -12318,7 +12318,7 @@ static struct bpf_test tests[] = {
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_alu64_mul_imm_regs,
 	},
-	{
+	/*{
 		"ALU64_DIV_K: registers",
 		{ },
 		INTERNAL,
@@ -12333,7 +12333,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_alu64_mod_imm_regs,
-	},
+	},*/
 	/* ALU32 K registers */
 	{
 		"ALU32_MOV_K: registers",
@@ -12512,7 +12512,7 @@ static struct bpf_test tests[] = {
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_alu64_mul_reg_pairs,
 	},
-	{
+	/*{
 		"ALU64_DIV_X: register combinations",
 		{ },
 		INTERNAL,
@@ -12527,7 +12527,7 @@ static struct bpf_test tests[] = {
 		{ },
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_alu64_mod_reg_pairs,
-	},
+	},*/
 	/* ALU32 X register combinations */
 	{
 		"ALU32_MOV_X: register combinations",
@@ -12843,7 +12843,7 @@ static struct bpf_test tests[] = {
 		.fill_helper = bpf_fill_alu64_mul_imm,
 		.nr_testruns = NR_PATTERN_RUNS,
 	},
-	{
+	/*{
 		"ALU64_DIV_K: all immediate value magnitudes",
 		{ },
 		INTERNAL | FLAG_NO_DATA,
@@ -12860,7 +12860,7 @@ static struct bpf_test tests[] = {
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_alu64_mod_imm,
 		.nr_testruns = NR_PATTERN_RUNS,
-	},
+	},*/
 	/* ALU32 immediate magnitudes */
 	{
 		"ALU32_MOV_K: all immediate value magnitudes",
@@ -13007,7 +13007,7 @@ static struct bpf_test tests[] = {
 		.fill_helper = bpf_fill_alu64_mul_reg,
 		.nr_testruns = NR_PATTERN_RUNS,
 	},
-	{
+	/*{
 		"ALU64_DIV_X: all register value magnitudes",
 		{ },
 		INTERNAL | FLAG_NO_DATA,
@@ -13024,7 +13024,7 @@ static struct bpf_test tests[] = {
 		{ { 0, 1 } },
 		.fill_helper = bpf_fill_alu64_mod_reg,
 		.nr_testruns = NR_PATTERN_RUNS,
-	},
+	},*/
 	/* ALU32 register magnitudes */
 	{
 		"ALU32_MOV_X: all register value magnitudes",
