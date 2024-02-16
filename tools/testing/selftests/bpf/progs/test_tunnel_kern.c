@@ -13,6 +13,16 @@
 #include "bpf_kfuncs.h"
 #include "bpf_tracing_net.h"
 
+struct bpf_fou_encap {
+	__be16 sport;
+	__be16 dport;
+};
+
+enum bpf_fou_encap_type {
+	FOU_BPF_ENCAP_FOU,
+	FOU_BPF_ENCAP_GUE,
+};
+
 #define log_err(__ret) bpf_printk("ERROR line:%d ret:%d\n", __LINE__, __ret)
 
 #define VXLAN_UDP_PORT		4789

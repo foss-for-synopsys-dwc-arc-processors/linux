@@ -17,7 +17,7 @@ struct thread {
 
 static struct bench_local_storage_create *skel;
 static struct thread *threads;
-static long create_owner_errs;
+static __s64 create_owner_errs;
 static int storage_type = BPF_MAP_TYPE_SK_STORAGE;
 static int batch_sz = 32;
 
@@ -238,7 +238,7 @@ static void report_final(struct bench_res res[], int res_cnt)
 	       creates_mean, creates_stddev, creates_mean / env.producer_cnt);
 	printf("%4.2lf kmallocs/create\n", (double)total_kmallocs / total_creates);
 	if (create_owner_errs || skel->bss->create_errs)
-		printf("%s() errors %ld create_errs %ld\n",
+		printf("%s() errors %lld create_errs %lld\n",
 		       storage_type == BPF_MAP_TYPE_SK_STORAGE ?
 		       "socket" : "pthread_create",
 		       create_owner_errs,

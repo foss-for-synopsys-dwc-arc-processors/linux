@@ -9,7 +9,7 @@
 
 /* weak and shared between both files */
 const volatile int my_tid __weak;
-long syscall_id __weak;
+__s64 syscall_id __weak;
 
 int output_val2;
 int output_ctx2;
@@ -64,7 +64,7 @@ extern int set_output_val1(int x);
 __hidden extern void set_output_ctx1(__u64 *ctx);
 
 SEC("?raw_tp/sys_enter")
-int BPF_PROG(handler2, struct pt_regs *regs, long id)
+int BPF_PROG(handler2, struct pt_regs *regs, __s64 id)
 {
 	static volatile int whatever;
 

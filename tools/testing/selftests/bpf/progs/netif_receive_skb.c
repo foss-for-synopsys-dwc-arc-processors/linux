@@ -8,7 +8,7 @@
 
 #include <errno.h>
 
-long ret = 0;
+__s64 ret = 0;
 int num_subtests = 0;
 int ran_subtests = 0;
 bool skip = false;

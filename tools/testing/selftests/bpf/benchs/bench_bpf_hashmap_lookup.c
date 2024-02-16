@@ -258,7 +258,7 @@ static void hashmap_report_final(struct bench_res res[], int res_cnt)
 				printf("cpu%02d %.3lf\n", i, events_mean);
 		} else {
 			printf("cpu%02d: lookup %.3lfM ± %.3lfM events/sec"
-			       " (approximated from %d samples of ~%lums)\n",
+			       " (approximated from %d samples of ~%llums)\n",
 			       i, events_mean, 2*events_stddev,
 			       n, mean_time / 1000000);
 		}

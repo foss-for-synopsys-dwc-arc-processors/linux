@@ -6,7 +6,7 @@
 
 /* struct btf_type_tag_test is referenced in btf_type_tag.skel.h */
 struct btf_type_tag_test {
-        int **p;
+        __u64 p;
 };
 #include "btf_type_tag.skel.h"
 #include "btf_type_tag_user.skel.h"

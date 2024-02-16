@@ -33,8 +33,8 @@ struct {
 	});
 } array_of_hash_maps SEC(".maps");
 
-long important_hits;
-long hits;
+__s64 important_hits;
+__s64 hits;
 
 /* set from user-space */
 const volatile unsigned int use_hashmap;
@@ -44,8 +44,8 @@ const volatile unsigned int interleave;
 
 struct loop_ctx {
 	struct task_struct *task;
-	long loop_hits;
-	long loop_important_hits;
+	__s64 loop_hits;
+	__s64 loop_important_hits;
 };
 
 static int do_lookup(unsigned int elem, struct loop_ctx *lctx)

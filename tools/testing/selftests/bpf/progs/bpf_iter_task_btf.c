@@ -8,8 +8,8 @@
 
 char _license[] SEC("license") = "GPL";
 
-long tasks = 0;
-long seq_err = 0;
+__s64 tasks = 0;
+__s64 seq_err = 0;
 bool skip = false;
 
 SEC("iter/task")

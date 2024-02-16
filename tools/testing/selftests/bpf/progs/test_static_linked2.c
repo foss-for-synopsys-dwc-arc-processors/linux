@@ -9,7 +9,7 @@ static volatile int static_var1 = 5;
 static volatile int static_var2 = 6;
 int var2 = -1;
 /* 8-byte aligned .rodata */
-const volatile long rovar2;
+const volatile __s64 rovar2;
 
 /* same "subprog" name in both files */
 static __noinline int subprog(int x)

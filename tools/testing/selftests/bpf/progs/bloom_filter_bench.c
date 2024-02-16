@@ -47,7 +47,7 @@ struct callback_ctx {
 /* Tracks the number of hits, drops, and false hits */
 struct {
 	__u32 stats[3];
-} __attribute__((__aligned__(256))) percpu_stats[256];
+} __attribute__((__aligned__(4))) percpu_stats[256];
 
 const __u32 hit_key  = 0;
 const __u32 drop_key  = 1;

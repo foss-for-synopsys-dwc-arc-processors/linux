@@ -37,7 +37,7 @@ struct test_struct___signed {
 } __attribute((preserve_access_index));
 
 /* real layout and sizes according to test's (32-bit) BTF */
-struct test_struct___real {
+struct __attribute__((packed)) test_struct___real {
 	unsigned int ptr; /* can't use `void *`, it is always 8 byte in BPF target */
 	unsigned int val2;
 	unsigned long long val1;

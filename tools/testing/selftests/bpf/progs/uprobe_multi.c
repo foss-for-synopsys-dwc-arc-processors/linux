@@ -24,13 +24,13 @@ int pid = 0;
 int child_pid = 0;
 
 bool test_cookie = false;
-void *user_ptr = 0;
+__u64 user_ptr = 0;
 
 static __always_inline bool verify_sleepable_user_copy(void)
 {
 	char data[9];
 
-	bpf_copy_from_user(data, sizeof(data), user_ptr);
+	bpf_copy_from_user(data, sizeof(data), (void *) user_ptr);
 	return bpf_strncmp(data, sizeof(data), "test_data") == 0;
 }
 

@@ -141,7 +141,7 @@ struct var_filemod_data_t {
 	char payload[MAX_FILEMOD_PAYLOAD_LEN];
 };
 
-struct profiler_config_struct {
+struct __attribute__((packed)) profiler_config_struct {
 	bool fetch_cgroups_from_bpf;
 	ino_t cgroup_fs_inode;
 	ino_t cgroup_login_session_inode;

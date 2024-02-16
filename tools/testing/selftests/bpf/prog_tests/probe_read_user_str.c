@@ -17,13 +17,13 @@ static int test_one_str(struct test_probe_read_user_str *skel, const char *str,
 	memcpy(buf, str, len);
 
 	/* Give prog our userspace pointer */
-	skel->bss->user_ptr = buf;
+	skel->bss->user_ptr = (__u64) buf;
 
 	/* Trigger tracepoint */
 	usleep(1);
 
 	/* Did helper fail? */
-	if (CHECK(skel->bss->ret < 0, "prog_ret", "prog returned: %ld\n",
+	if (CHECK(skel->bss->ret < 0, "prog_ret", "prog returned: %lld\n",
 		  skel->bss->ret))
 		return 1;
 

@@ -24,7 +24,7 @@ char _license[] SEC("license") = "GPL";
 
 unsigned char zeroed_value[4096];
 unsigned int nr_thread = 0;
-long op_cnt = 0;
+__s64 op_cnt = 0;
 
 static int write_htab(unsigned int i, struct update_ctx *ctx, unsigned int flags)
 {

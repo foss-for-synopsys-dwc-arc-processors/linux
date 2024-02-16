@@ -13,28 +13,28 @@ struct {
 } ringbuf SEC(".maps");
 
 const volatile int batch_cnt = 0;
-const volatile long use_output = 0;
+const volatile __s64 use_output = 0;
 
-long sample_val = 42;
-long dropped __attribute__((aligned(128))) = 0;
+__s64 sample_val = 42;
+__s64 dropped __attribute__((aligned(128))) = 0;
 
-const volatile long wakeup_data_size = 0;
+const volatile __s64 wakeup_data_size = 0;
 
-static __always_inline long get_flags()
+static __always_inline __s64 get_flags()
 {
-	long sz;
+	__s64 sz;
 
 	if (!wakeup_data_size)
 		return 0;
 
-	sz = bpf_ringbuf_query(&ringbuf, BPF_RB_AVAIL_DATA);
+	sz = (__s64) bpf_ringbuf_query(&ringbuf, BPF_RB_AVAIL_DATA);
 	return sz >= wakeup_data_size ? BPF_RB_FORCE_WAKEUP : BPF_RB_NO_WAKEUP;
 }
 
 SEC("fentry/" SYS_PREFIX "sys_getpgid")
 int bench_ringbuf(void *ctx)
 {
-	long *sample, flags;
+	__s64 *sample, flags;
 	int i;
 
 	if (!use_output) {

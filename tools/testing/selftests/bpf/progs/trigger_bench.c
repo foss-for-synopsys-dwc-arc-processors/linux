@@ -9,7 +9,7 @@
 
 char _license[] SEC("license") = "GPL";
 
-long hits = 0;
+__s64 hits = 0;
 
 SEC("tp/syscalls/sys_enter_getpgid")
 int bench_trigger_tp(void *ctx)

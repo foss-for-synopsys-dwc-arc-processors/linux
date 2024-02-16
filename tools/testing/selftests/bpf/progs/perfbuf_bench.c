@@ -16,8 +16,8 @@ struct {
 
 const volatile int batch_cnt = 0;
 
-long sample_val = 42;
-long dropped __attribute__((aligned(128))) = 0;
+__s64 sample_val = 42;
+__s64 dropped __attribute__((aligned(128))) = 0;
 
 SEC("fentry/" SYS_PREFIX "sys_getpgid")
 int bench_perfbuf(void *ctx)

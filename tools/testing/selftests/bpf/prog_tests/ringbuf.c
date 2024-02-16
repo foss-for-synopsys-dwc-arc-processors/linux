@@ -22,7 +22,7 @@ static int duration = 0;
 struct sample {
 	int pid;
 	int seq;
-	long value;
+	__s64 value;
 	char comm[16];
 };
 
@@ -46,12 +46,12 @@ static int process_sample(void *ctx, void *data, size_t len)
 
 	switch (s->seq) {
 	case 0:
-		CHECK(s->value != 333, "sample1_value", "exp %ld, got %ld\n",
-		      333L, s->value);
+		CHECK(s->value != 333, "sample1_value", "exp %lld, got %lld\n",
+		      333LL, s->value);
 		return 0;
 	case 1:
-		CHECK(s->value != 777, "sample2_value", "exp %ld, got %ld\n",
-		      777L, s->value);
+		CHECK(s->value != 777, "sample2_value", "exp %lld, got %lld\n",
+		      777LL, s->value);
 		return -EDONE;
 	default:
 		/* we don't care about the rest */
@@ -93,7 +93,7 @@ static void ringbuf_subtest(void)
 	void *mmap_ptr, *tmp_ptr;
 	struct ring *ring;
 	int map_fd;
-	unsigned long avail_data, ring_size, cons_pos, prod_pos;
+	__s64 avail_data, ring_size, cons_pos, prod_pos;
 
 	skel = test_ringbuf_lskel__open();
 	if (CHECK(!skel, "skel_open", "skeleton open failed\n"))
@@ -174,17 +174,17 @@ static void ringbuf_subtest(void)
 
 	/* 2 submitted + 1 discarded records */
 	CHECK(skel->bss->avail_data != 3 * rec_sz,
-	      "err_avail_size", "exp %ld, got %ld\n",
-	      3L * rec_sz, skel->bss->avail_data);
+	      "err_avail_size", "exp %lld, got %lld\n",
+	      3LL * rec_sz, skel->bss->avail_data);
 	CHECK(skel->bss->ring_size != page_size,
-	      "err_ring_size", "exp %ld, got %ld\n",
-	      (long)page_size, skel->bss->ring_size);
+	      "err_ring_size", "exp %lld, got %lld\n",
+	      (__s64)page_size, skel->bss->ring_size);
 	CHECK(skel->bss->cons_pos != 0,
-	      "err_cons_pos", "exp %ld, got %ld\n",
-	      0L, skel->bss->cons_pos);
+	      "err_cons_pos", "exp %lld, got %lld\n",
+	      0LL, skel->bss->cons_pos);
 	CHECK(skel->bss->prod_pos != 3 * rec_sz,
-	      "err_prod_pos", "exp %ld, got %ld\n",
-	      3L * rec_sz, skel->bss->prod_pos);
+	      "err_prod_pos", "exp %lld, got %lld\n",
+	      3LL * rec_sz, skel->bss->prod_pos);
 
 	/* verify getting this data directly via the ring object yields the same
 	 * results
@@ -214,18 +214,18 @@ static void ringbuf_subtest(void)
 	cnt = atomic_xchg(&sample_cnt, 0);
 	CHECK(cnt != 0, "cnt", "exp %d samples, got %d\n", 0, cnt);
 
-	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %ld, got %ld\n",
-	      0L, skel->bss->dropped);
-	CHECK(skel->bss->total != 2, "err_total", "exp %ld, got %ld\n",
-	      2L, skel->bss->total);
-	CHECK(skel->bss->discarded != 1, "err_discarded", "exp %ld, got %ld\n",
-	      1L, skel->bss->discarded);
+	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %lld, got %lld\n",
+	      0LL, skel->bss->dropped);
+	CHECK(skel->bss->total != 2, "err_total", "exp %lld, got %lld\n",
+	      2LL, skel->bss->total);
+	CHECK(skel->bss->discarded != 1, "err_discarded", "exp %lld, got %lld\n",
+	      1LL, skel->bss->discarded);
 
 	/* now validate consumer position is updated and returned */
 	trigger_samples();
 	CHECK(skel->bss->cons_pos != 3 * rec_sz,
-	      "err_cons_pos", "exp %ld, got %ld\n",
-	      3L * rec_sz, skel->bss->cons_pos);
+	      "err_cons_pos", "exp %lld, got %lld\n",
+	      3LL * rec_sz, skel->bss->cons_pos);
 	err = ring_buffer__poll(ringbuf, -1);
 	CHECK(err <= 0, "poll_err", "err %d\n", err);
 	cnt = atomic_xchg(&sample_cnt, 0);
@@ -252,12 +252,12 @@ static void ringbuf_subtest(void)
 		goto cleanup;
 
 	/* BPF side did everything right */
-	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %ld, got %ld\n",
-	      0L, skel->bss->dropped);
-	CHECK(skel->bss->total != 2, "err_total", "exp %ld, got %ld\n",
-	      2L, skel->bss->total);
-	CHECK(skel->bss->discarded != 1, "err_discarded", "exp %ld, got %ld\n",
-	      1L, skel->bss->discarded);
+	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %lld, got %lld\n",
+	      0LL, skel->bss->dropped);
+	CHECK(skel->bss->total != 2, "err_total", "exp %lld, got %lld\n",
+	      2LL, skel->bss->total);
+	CHECK(skel->bss->discarded != 1, "err_discarded", "exp %lld, got %lld\n",
+	      1LL, skel->bss->discarded);
 	cnt = atomic_xchg(&sample_cnt, 0);
 	CHECK(cnt != 0, "cnt", "exp %d samples, got %d\n", 0, cnt);
 
@@ -313,12 +313,12 @@ static void ringbuf_subtest(void)
 	CHECK(cnt != 6, "cnt", "exp %d samples, got %d\n", 6, cnt);
 
 	/* BPF side did everything right */
-	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %ld, got %ld\n",
-	      0L, skel->bss->dropped);
-	CHECK(skel->bss->total != 2, "err_total", "exp %ld, got %ld\n",
-	      2L, skel->bss->total);
-	CHECK(skel->bss->discarded != 1, "err_discarded", "exp %ld, got %ld\n",
-	      1L, skel->bss->discarded);
+	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %lld, got %lld\n",
+	      0LL, skel->bss->dropped);
+	CHECK(skel->bss->total != 2, "err_total", "exp %lld, got %lld\n",
+	      2LL, skel->bss->total);
+	CHECK(skel->bss->discarded != 1, "err_discarded", "exp %lld, got %lld\n",
+	      1LL, skel->bss->discarded);
 
 	test_ringbuf_lskel__detach(skel);
 cleanup:

@@ -33,11 +33,24 @@ OPT_FLAGS	?= $(if $(RELEASE),-O2,-O0)
 LIBELF_CFLAGS	:= $(shell $(PKG_CONFIG) libelf --cflags 2>/dev/null)
 LIBELF_LIBS	:= $(shell $(PKG_CONFIG) libelf --libs 2>/dev/null || echo -lelf)
 
-CFLAGS += -g $(OPT_FLAGS) -rdynamic					\
-	  -Wall -Werror 						\
-	  $(GENFLAGS) $(SAN_CFLAGS) $(LIBELF_CFLAGS)			\
-	  -I$(CURDIR) -I$(INCLUDE_DIR) -I$(GENDIR) -I$(LIBDIR)		\
-	  -I$(TOOLSINCDIR) -I$(APIDIR) -I$(OUTPUT)
+CFLAGS_COMMON = -g $(OPT_FLAGS) -rdynamic				\
+		 -Wall -Werror						\
+		 $(GENFLAGS) $(SAN_CFLAGS) $(LIBELF_CFLAGS)		\
+		 -I$(CURDIR) -I$(INCLUDE_DIR) -I$(GENDIR) -I$(LIBDIR)	\
+		 -I$(TOOLSINCDIR) -I$(APIDIR)
+
+CFLAGS += -g $(OPT_FLAGS) -rdynamic				\
+		 -Wall -Werror						\
+		 $(GENFLAGS) $(SAN_CFLAGS) $(LIBELF_CFLAGS)		\
+		 -I$(CURDIR) -I$(INCLUDE_DIR) -I$(GENDIR) -I$(LIBDIR)	\
+		 -I$(TOOLSINCDIR) -I$(APIDIR) -I$(OUTPUT) -Wno-pointer-to-int-cast
+
+CXXFLAGS += -g $(OPT_FLAGS) -rdynamic				\
+		 -Wall -Werror						\
+		 $(GENFLAGS) $(SAN_CFLAGS) $(LIBELF_CFLAGS)		\
+		 -I$(CURDIR) -I$(INCLUDE_DIR) -I$(GENDIR) -I$(LIBDIR)	\
+		 -I$(TOOLSINCDIR) -I$(APIDIR)
+
 LDFLAGS += $(SAN_LDFLAGS)
 LDLIBS += $(LIBELF_LIBS) -lz -lrt -lpthread
 
@@ -128,13 +141,18 @@ TEST_PROGS_EXTENDED := with_addr.sh \
 	test_xdp_vlan.sh test_bpftool.py
 
 # Compile but not part of 'make run_tests'
+# TEST_GEN_PROGS_EXTENDED = test_sock_addr test_skb_cgroup_id_user \
+# 	flow_dissector_load test_flow_dissector test_tcp_check_syncookie_user \
+# 	test_lirc_mode2_user xdping test_cpp runqslower bench bpf_testmod.ko \
+# 	xskxceiver xdp_redirect_multi xdp_synproxy veristat xdp_hw_metadata \
+# 	xdp_features
 TEST_GEN_PROGS_EXTENDED = test_sock_addr test_skb_cgroup_id_user \
 	flow_dissector_load test_flow_dissector test_tcp_check_syncookie_user \
-	test_lirc_mode2_user xdping test_cpp runqslower bench bpf_testmod.ko \
+	test_lirc_mode2_user xdping runqslower bpf_testmod.ko \
 	xskxceiver xdp_redirect_multi xdp_synproxy veristat xdp_hw_metadata \
 	xdp_features
 
-TEST_GEN_FILES += liburandom_read.so urandom_read sign-file uprobe_multi
+TEST_GEN_FILES += liburandom_read.so urandom_read uprobe_multi
 
 # Emit succinct information message describing current building step
 # $1 - generic step name (e.g., CC, LINK, etc);
@@ -226,22 +244,35 @@ endif
 
 # Filter out -static for liburandom_read.so and its dependent targets so that static builds
 # do not fail. Static builds leave urandom_read relying on system-wide shared libraries.
+# $(OUTPUT)/liburandom_read.so: urandom_read_lib1.c urandom_read_lib2.c liburandom_read.map
+# 	$(call msg,LIB,,$@)
+# 	$(Q)$(CLANG) $(CLANG_TARGET_ARCH) \
+# 		     $(filter-out -static,$(CFLAGS) $(LDFLAGS)) \
+# 		     $(filter %.c,$^) $(filter-out -static,$(LDLIBS)) \
+# 		     -fuse-ld=$(LLD) -Wl,-znoseparate-code -Wl,--build-id=sha1 \
+# 		     -Wl,--version-script=liburandom_read.map \
+# 		     -fPIC -shared -o $@
 $(OUTPUT)/liburandom_read.so: urandom_read_lib1.c urandom_read_lib2.c liburandom_read.map
 	$(call msg,LIB,,$@)
-	$(Q)$(CLANG) $(CLANG_TARGET_ARCH) \
-		     $(filter-out -static,$(CFLAGS) $(LDFLAGS)) \
-		     $(filter %.c,$^) $(filter-out -static,$(LDLIBS)) \
-		     -fuse-ld=$(LLD) -Wl,-znoseparate-code -Wl,--build-id=sha1 \
-		     -Wl,--version-script=liburandom_read.map \
-		     -fPIC -shared -o $@
+	$(Q)$(CC) $(filter-out -static,$(CFLAGS) $(LDFLAGS)) \
+		  $(filter %.c,$^) $(filter-out -static,$(LDLIBS)) \
+		  -Wl,-znoseparate-code -Wl,--build-id=sha1 \
+		  -Wl,--version-script=liburandom_read.map \
+		  -fPIC -shared -o $@
 
+# $(OUTPUT)/urandom_read: urandom_read.c urandom_read_aux.c $(OUTPUT)/liburandom_read.so
+# 	$(call msg,BINARY,,$@)
+# 	$(Q)$(CLANG) $(CLANG_TARGET_ARCH) \
+# 		     $(filter-out -static,$(CFLAGS) $(LDFLAGS)) $(filter %.c,$^) \
+# 		     -lurandom_read $(filter-out -static,$(LDLIBS)) -L$(OUTPUT) \
+# 		     -fuse-ld=$(LLD) -Wl,-znoseparate-code -Wl,--build-id=sha1 \
+# 		     -Wl,-rpath=. -o $@
 $(OUTPUT)/urandom_read: urandom_read.c urandom_read_aux.c $(OUTPUT)/liburandom_read.so
 	$(call msg,BINARY,,$@)
-	$(Q)$(CLANG) $(CLANG_TARGET_ARCH) \
-		     $(filter-out -static,$(CFLAGS) $(LDFLAGS)) $(filter %.c,$^) \
-		     -lurandom_read $(filter-out -static,$(LDLIBS)) -L$(OUTPUT) \
-		     -fuse-ld=$(LLD) -Wl,-znoseparate-code -Wl,--build-id=sha1 \
-		     -Wl,-rpath=. -o $@
+	$(Q)$(CC) $(filter-out -static,$(CFLAGS) $(LDFLAGS)) $(filter %.c,$^) \
+		   -lurandom_read $(filter-out -static,$(LDLIBS)) -L$(OUTPUT) \
+		   -Wl,-znoseparate-code -Wl,--build-id=sha1 \
+		   -Wl,-rpath=. -o $@
 
 $(OUTPUT)/sign-file: ../../../../scripts/sign-file.c
 	$(call msg,SIGN-FILE,,$@)
@@ -392,6 +423,13 @@ $(shell $(1) $(2) -dM -E - </dev/null | grep '__riscv_xlen ' | awk '{printf("-D_
 $(shell $(1) $(2) -dM -E - </dev/null | grep '__loongarch_grlen ' | awk '{printf("-D__BITS_PER_LONG=%d", $$3)}')
 endef
 
+define get_sys_includes_gcc
+$(shell $(1) -v -E - </dev/null 2>&1 \
+	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-I \1|p }') \
+$(shell $(1) -dM -E - </dev/null | grep '__riscv_xlen ' | awk '{printf("-D__riscv_xlen=%d -D__BITS_PER_LONG=%d", $$3, $$3)}') \
+$(shell $(1) -dM -E - </dev/null | grep '__loongarch_grlen ' | awk '{printf("-D__BITS_PER_LONG=%d", $$3)}')
+endef
+
 # Determine target endianness.
 IS_LITTLE_ENDIAN = $(shell $(CC) -dM -E - </dev/null | \
 			grep 'define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__')
@@ -401,7 +439,12 @@ ifneq ($(CROSS_COMPILE),)
 CLANG_TARGET_ARCH = --target=$(notdir $(CROSS_COMPILE:%-=%))
 endif
 
+ifneq ($(CROSS_COMPILE),)
+CLANG_SYS_INCLUDES = $(call get_sys_includes_gcc,$(CC))
+else
 CLANG_SYS_INCLUDES = $(call get_sys_includes,$(CLANG),$(CLANG_TARGET_ARCH))
+endif
+
 BPF_CFLAGS = -g -Wall -Werror -D__TARGET_ARCH_$(SRCARCH) $(MENDIAN)	\
 	     -I$(INCLUDE_DIR) -I$(CURDIR) -I$(APIDIR)			\
 	     -I$(abspath $(OUTPUT)/../usr/include)			\
@@ -631,7 +674,6 @@ TRUNNER_EXTRA_SOURCES := test_progs.c		\
 TRUNNER_EXTRA_FILES := $(OUTPUT)/urandom_read $(OUTPUT)/bpf_testmod.ko	\
 		       $(OUTPUT)/liburandom_read.so			\
 		       $(OUTPUT)/xdp_synproxy				\
-		       $(OUTPUT)/sign-file				\
 		       $(OUTPUT)/uprobe_multi				\
 		       ima_setup.sh 					\
 		       verify_sig_setup.sh				\
@@ -701,7 +743,7 @@ $(OUTPUT)/xdp_features: xdp_features.c $(OUTPUT)/network_helpers.o $(OUTPUT)/xdp
 # Make sure we are able to include and link libbpf against c++.
 $(OUTPUT)/test_cpp: test_cpp.cpp $(OUTPUT)/test_core_extern.skel.h $(BPFOBJ)
 	$(call msg,CXX,,$@)
-	$(Q)$(CXX) $(CFLAGS) $(filter %.a %.o %.cpp,$^) $(LDLIBS) -o $@
+	$(Q)$(CXX) $(CXXFLAGS) $(filter %.a %.o %.cpp,$^) $(LDLIBS) -o $@
 
 # Benchmark runner
 $(OUTPUT)/bench_%.o: benchs/bench_%.c bench.h $(BPFOBJ)

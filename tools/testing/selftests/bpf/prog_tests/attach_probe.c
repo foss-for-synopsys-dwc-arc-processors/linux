@@ -277,7 +277,7 @@ static void test_uprobe_sleepable(struct test_attach_probe *skel)
 	if (!ASSERT_OK_PTR(skel->links.handle_uretprobe_byname3, "attach_uretprobe_byname3"))
 		return;
 
-	skel->bss->user_ptr = test_data;
+	skel->bss->user_ptr = (__u64) test_data;
 
 	/* trigger & validate sleepable uprobe attached by name */
 	trigger_func3();

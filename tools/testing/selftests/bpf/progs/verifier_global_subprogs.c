@@ -98,7 +98,7 @@ int unguarded_unsupp_global_called(void)
 	return global_unsupp(&x);
 }
 
-long stack[128];
+__s64 stack[128];
 
 __weak int subprog_nullable_ptr_bad(int *p)
 {

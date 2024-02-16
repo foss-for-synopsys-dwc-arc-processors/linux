@@ -27,7 +27,7 @@ int output_bss1;
 int output_data1;
 int output_rodata1;
 
-long output_sink1;
+__s64 output_sink1;
 
 static __noinline int get_bss_res(void)
 {
@@ -47,7 +47,7 @@ int BPF_PROG(handler1)
 	 */
 	output_sink1 = LINUX_KERNEL_VERSION
 		       + CONFIG_BPF_SYSCALL
-		       + (long)&bpf_link_fops;
+		       + (__s64)&bpf_link_fops;
 	return 0;
 }
 

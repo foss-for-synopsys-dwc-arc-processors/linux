@@ -113,7 +113,7 @@ static int open_xsk(int ifindex, struct xsk *xsk, __u32 queue_id)
 
 	for (i = 0; i < UMEM_NUM / 2; i++) {
 		addr = i * UMEM_FRAME_SIZE;
-		printf("%p: tx_desc[%d] -> %lx\n", xsk, i, addr);
+		printf("%p: tx_desc[%d] -> %llx\n", xsk, i, addr);
 	}
 
 	/* Second half of umem is for RX. */
@@ -121,7 +121,7 @@ static int open_xsk(int ifindex, struct xsk *xsk, __u32 queue_id)
 	ret = xsk_ring_prod__reserve(&xsk->fill, UMEM_NUM / 2, &idx);
 	for (i = 0; i < UMEM_NUM / 2; i++) {
 		addr = (UMEM_NUM / 2 + i) * UMEM_FRAME_SIZE;
-		printf("%p: rx_desc[%d] -> %lx\n", xsk, i, addr);
+		printf("%p: rx_desc[%d] -> %llx\n", xsk, i, addr);
 		*xsk_ring_prod__fill_addr(&xsk->fill, idx + i) = addr;
 	}
 	xsk_ring_prod__submit(&xsk->fill, ret);
@@ -266,7 +266,7 @@ static void verify_skb_metadata(int fd)
 		case SCM_TIMESTAMPING:
 			ts = (struct scm_timestamping *)CMSG_DATA(cmsg);
 			if (ts->ts[2].tv_sec || ts->ts[2].tv_nsec) {
-				printf("found skb hwtstamp = %lu.%lu\n",
+				printf("found skb hwtstamp = %llu.%lu\n",
 				       ts->ts[2].tv_sec, ts->ts[2].tv_nsec);
 				return;
 			}

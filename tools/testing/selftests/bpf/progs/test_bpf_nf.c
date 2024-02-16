@@ -9,7 +9,7 @@
 #define EINVAL 22
 #define ENOENT 2
 
-extern unsigned long CONFIG_HZ __kconfig;
+extern __u64 CONFIG_HZ __kconfig;
 
 int test_einval_bpf_tuple = 0;
 int test_einval_reserved = 0;

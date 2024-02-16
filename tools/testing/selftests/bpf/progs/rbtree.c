@@ -8,14 +8,14 @@
 #include "bpf_experimental.h"
 
 struct node_data {
-	long key;
-	long data;
+	__s64 key;
+	__s64 data;
 	struct bpf_rb_node node;
 };
 
-long less_callback_ran = -1;
-long removed_key = -1;
-long first_data[2] = {-1, -1};
+__s64 less_callback_ran = -1;
+__s64 removed_key = -1;
+__s64 first_data[2] = {-1, -1};
 
 #define private(name) SEC(".data." #name) __hidden __attribute__((aligned(8)))
 private(A) struct bpf_spin_lock glock;
@@ -33,7 +33,7 @@ static bool less(struct bpf_rb_node *a, const struct bpf_rb_node *b)
 	return node_a->key < node_b->key;
 }
 
-static long __add_three(struct bpf_rb_root *root, struct bpf_spin_lock *lock)
+static __s64 __add_three(struct bpf_rb_root *root, struct bpf_spin_lock *lock)
 {
 	struct node_data *n, *m;
 
@@ -66,13 +66,13 @@ static long __add_three(struct bpf_rb_root *root, struct bpf_spin_lock *lock)
 }
 
 SEC("tc")
-long rbtree_add_nodes(void *ctx)
+__s64 rbtree_add_nodes(void *ctx)
 {
 	return __add_three(&groot, &glock);
 }
 
 SEC("tc")
-long rbtree_add_and_remove(void *ctx)
+__s64 rbtree_add_and_remove(void *ctx)
 {
 	struct bpf_rb_node *res = NULL;
 	struct node_data *n, *m = NULL;
@@ -110,7 +110,7 @@ err_out:
 }
 
 SEC("tc")
-long rbtree_first_and_remove(void *ctx)
+__s64 rbtree_first_and_remove(void *ctx)
 {
 	struct bpf_rb_node *res = NULL;
 	struct node_data *n, *m, *o;
@@ -178,7 +178,7 @@ err_out:
 }
 
 SEC("tc")
-long rbtree_api_release_aliasing(void *ctx)
+__s64 rbtree_api_release_aliasing(void *ctx)
 {
 	struct node_data *n, *m, *o;
 	struct bpf_rb_node *res, *res2;

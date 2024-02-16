@@ -12,7 +12,7 @@ int kretprobe_res = 0;
 int uprobe_res = 0;
 int uretprobe_res = 0;
 int uprobe_byname_res = 0;
-void *user_ptr = 0;
+__u64 user_ptr = 0;
 
 SEC("kprobe")
 int handle_kprobe(struct pt_regs *ctx)

@@ -10,7 +10,7 @@ char _license[] SEC("license") = "GPL";
 struct sample {
 	int pid;
 	int seq;
-	long value;
+	__s64 value;
 	char comm[16];
 };
 
@@ -29,7 +29,7 @@ struct {
 int pid = 0;
 
 /* inner state */
-long seq = 0;
+__s64 seq = 0;
 
 SEC("fentry/" SYS_PREFIX "sys_getpgid")
 int test_ringbuf_mem_map_key(void *ctx)

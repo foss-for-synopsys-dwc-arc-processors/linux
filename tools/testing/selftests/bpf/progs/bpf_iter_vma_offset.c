@@ -6,8 +6,8 @@
 char _license[] SEC("license") = "GPL";
 
 __u32 unique_tgid_cnt = 0;
-uintptr_t address = 0;
-uintptr_t offset = 0;
+__u64 address = 0;
+__u64 offset = 0;
 __u32 last_tgid = 0;
 __u32 pid = 0;
 __u32 page_shift = 0;

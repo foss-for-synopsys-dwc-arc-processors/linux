@@ -5,7 +5,7 @@
 
 char _license[] SEC("license") = "GPL";
 
-unsigned long uprobe_trigger_body;
+__u64 uprobe_trigger_body;
 
 __u64 test1_result = 0;
 SEC("uprobe//proc/self/exe:uprobe_trigger_body+1")

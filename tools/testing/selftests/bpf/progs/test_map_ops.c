@@ -27,7 +27,7 @@ struct {
 } array_map SEC(".maps");
 
 const volatile pid_t pid;
-long err = 0;
+__u64 err = 0;
 
 static u64 callback(u64 map, u64 key, u64 val, u64 ctx, u64 flags)
 {

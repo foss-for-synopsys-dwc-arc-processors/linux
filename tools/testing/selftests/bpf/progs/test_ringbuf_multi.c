@@ -9,7 +9,7 @@ char _license[] SEC("license") = "GPL";
 struct sample {
 	int pid;
 	int seq;
-	long value;
+	__s64 value;
 	char comm[16];
 };
 
@@ -46,12 +46,12 @@ struct {
 /* inputs */
 int pid = 0;
 int target_ring = 0;
-long value = 0;
+__s64 value = 0;
 
 /* outputs */
-long total = 0;
-long dropped = 0;
-long skipped = 0;
+__s64 total = 0;
+__s64 dropped = 0;
+__s64 skipped = 0;
 
 SEC("tp/syscalls/sys_enter_getpgid")
 int test_ringbuf(void *ctx)

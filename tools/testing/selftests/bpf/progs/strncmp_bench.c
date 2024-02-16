@@ -11,7 +11,7 @@
 const volatile unsigned int cmp_str_len = 1;
 const char target[STRNCMP_STR_SZ];
 
-long hits = 0;
+__s64 hits = 0;
 char str[STRNCMP_STR_SZ];
 
 char _license[] SEC("license") = "GPL";

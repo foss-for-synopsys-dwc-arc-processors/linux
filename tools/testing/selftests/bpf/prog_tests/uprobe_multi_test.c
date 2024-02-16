@@ -95,7 +95,7 @@ static void uprobe_multi_test_run(struct uprobe_multi *skel, struct child *child
 	skel->bss->uprobe_multi_func_2_addr = (__u64) uprobe_multi_func_2;
 	skel->bss->uprobe_multi_func_3_addr = (__u64) uprobe_multi_func_3;
 
-	skel->bss->user_ptr = test_data;
+	skel->bss->user_ptr = (__u64) test_data;
 
 	/*
 	 * Disable pid check in bpf program if we are pid filter test,

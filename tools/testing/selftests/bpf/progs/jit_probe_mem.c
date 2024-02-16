@@ -6,15 +6,15 @@
 #include "../bpf_testmod/bpf_testmod_kfunc.h"
 
 static struct prog_test_ref_kfunc __kptr *v;
-long total_sum = -1;
+__s64 total_sum = -1;
 
 SEC("tc")
 int test_jit_probe_mem(struct __sk_buff *ctx)
 {
 	struct prog_test_ref_kfunc *p;
-	unsigned long zero = 0, sum;
+	__u64 zero = 0, sum;
 
-	p = bpf_kfunc_call_test_acquire(&zero);
+	p = bpf_kfunc_call_test_acquire((unsigned long *) &zero);
 	if (!p)
 		return 1;
 

@@ -5,7 +5,7 @@
 
 char _license[] SEC("license") = "GPL";
 
-unsigned long last_sym_value = 0;
+__u64 last_sym_value = 0;
 
 static inline char to_lower(char c)
 {
@@ -31,7 +31,7 @@ int dump_ksym(struct bpf_iter__ksym *ctx)
 	struct seq_file *seq = ctx->meta->seq;
 	struct kallsym_iter *iter = ctx->ksym;
 	__u32 seq_num = ctx->meta->seq_num;
-	unsigned long value;
+	__u64 value;
 	char type;
 
 	if (!iter)

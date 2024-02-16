@@ -102,7 +102,7 @@ static int open_xsk(int ifindex, struct xsk *xsk)
 
 	for (i = 0; i < UMEM_NUM / 2; i++) {
 		addr = i * UMEM_FRAME_SIZE;
-		printf("%p: tx_desc[%d] -> %lx\n", xsk, i, addr);
+		printf("%p: tx_desc[%d] -> %llx\n", xsk, i, addr);
 	}
 
 	/* Second half of umem is for RX. */
@@ -115,7 +115,7 @@ static int open_xsk(int ifindex, struct xsk *xsk)
 
 	for (i = 0; i < UMEM_NUM / 2; i++) {
 		addr = (UMEM_NUM / 2 + i) * UMEM_FRAME_SIZE;
-		printf("%p: rx_desc[%d] -> %lx\n", xsk, i, addr);
+		printf("%p: rx_desc[%d] -> %llx\n", xsk, i, addr);
 		*xsk_ring_prod__fill_addr(&xsk->fill, i) = addr;
 	}
 	xsk_ring_prod__submit(&xsk->fill, ret);

@@ -17,7 +17,7 @@ int uprobe_byname3_sleepable_res = 0;
 int uprobe_byname3_res = 0;
 int uretprobe_byname3_sleepable_res = 0;
 int uretprobe_byname3_res = 0;
-void *user_ptr = 0;
+__u64 user_ptr = 0;
 
 SEC("ksyscall/nanosleep")
 int BPF_KSYSCALL(handle_kprobe_auto, struct __kernel_timespec *req, struct __kernel_timespec *rem)
@@ -83,7 +83,7 @@ static __always_inline bool verify_sleepable_user_copy(void)
 {
 	char data[9];
 
-	bpf_copy_from_user(data, sizeof(data), user_ptr);
+	bpf_copy_from_user(data, sizeof(data), (void *) user_ptr);
 	return bpf_strncmp(data, sizeof(data), "test_data") == 0;
 }
 

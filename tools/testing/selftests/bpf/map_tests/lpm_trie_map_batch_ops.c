@@ -30,9 +30,12 @@ static void map_batch_update(int map_fd, __u32 max_entries,
 		.flags = 0,
 	);
 
+	CHECK(max_entries > 255, "map_batch_update()",
+	      "max_entries is %u and it is > 255", max_entries);
+
 	for (i = 0; i < max_entries; i++) {
 		keys[i].prefix = 32;
-		snprintf(buff, 16, "192.168.1.%d", i + 1);
+		snprintf(buff, 16, "192.168.1.%d", (__u8) (i + 1));
 		inet_pton(AF_INET, buff, &keys[i].ipv4);
 		values[i] = i + 1;
 	}

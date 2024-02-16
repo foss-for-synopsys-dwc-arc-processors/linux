@@ -8,7 +8,7 @@
 /* volatile to force a read */
 const volatile int var1;
 volatile int var2 = 1;
-struct {
+struct __attribute__((packed)) {
 	int var3_1;
 	__s64 var3_2;
 } var3;
@@ -25,7 +25,7 @@ extern int var6;
 
 int var7 SEC(".data.custom");
 
-int (*fn_ptr)(void);
+__u64 fn_ptr;
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);

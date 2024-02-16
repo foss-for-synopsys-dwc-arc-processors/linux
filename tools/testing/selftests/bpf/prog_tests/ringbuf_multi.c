@@ -9,7 +9,7 @@ static int duration = 0;
 struct sample {
 	int pid;
 	int seq;
-	long value;
+	__s64 value;
 	char comm[16];
 };
 
@@ -21,16 +21,16 @@ static int process_sample(void *ctx, void *data, size_t len)
 	switch (s->seq) {
 	case 0:
 		CHECK(ring != 1, "sample1_ring", "exp %d, got %d\n", 1, ring);
-		CHECK(s->value != 333, "sample1_value", "exp %ld, got %ld\n",
-		      333L, s->value);
+		CHECK(s->value != 333, "sample1_value", "exp %lld, got %lld\n",
+		      333LL, s->value);
 		break;
 	case 1:
 		CHECK(ring != 2, "sample2_ring", "exp %d, got %d\n", 2, ring);
-		CHECK(s->value != 777, "sample2_value", "exp %ld, got %ld\n",
-		      777L, s->value);
+		CHECK(s->value != 777, "sample2_value", "exp %lld, got %lld\n",
+		      777LL, s->value);
 		break;
 	default:
-		CHECK(true, "extra_sample", "unexpected sample seq %d, val %ld\n",
+		CHECK(true, "extra_sample", "unexpected sample seq %d, val %lld\n",
 		      s->seq, s->value);
 		return -1;
 	}
@@ -132,12 +132,12 @@ void test_ringbuf_multi(void)
 	if (CHECK(err < 0, "extra_samples", "poll result: %d\n", err))
 		goto cleanup;
 
-	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %ld, got %ld\n",
-	      0L, skel->bss->dropped);
-	CHECK(skel->bss->skipped != 1, "err_skipped", "exp %ld, got %ld\n",
-	      1L, skel->bss->skipped);
-	CHECK(skel->bss->total != 2, "err_total", "exp %ld, got %ld\n",
-	      2L, skel->bss->total);
+	CHECK(skel->bss->dropped != 0, "err_dropped", "exp %lld, got %lld\n",
+	      0LL, skel->bss->dropped);
+	CHECK(skel->bss->skipped != 1, "err_skipped", "exp %lld, got %lld\n",
+	      1LL, skel->bss->skipped);
+	CHECK(skel->bss->total != 2, "err_total", "exp %lld, got %lld\n",
+	      2LL, skel->bss->total);
 
 cleanup:
 	if (proto_fd >= 0)

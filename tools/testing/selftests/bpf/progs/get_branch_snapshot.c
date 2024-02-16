@@ -10,7 +10,7 @@ __u64 test1_hits = 0;
 __u64 address_low = 0;
 __u64 address_high = 0;
 int wasted_entries = 0;
-long total_entries = 0;
+__s64 total_entries = 0;
 
 #define ENTRY_CNT 32
 struct perf_branch_entry entries[ENTRY_CNT] = {};
@@ -23,7 +23,7 @@ static inline bool gbs_in_range(__u64 val)
 SEC("fexit/bpf_testmod_loop_test")
 int BPF_PROG(test1, int n, int ret)
 {
-	long i;
+	__s64 i;
 
 	total_entries = bpf_get_branch_snapshot(entries, sizeof(entries), 0);
 	total_entries /= sizeof(struct perf_branch_entry);

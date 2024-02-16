@@ -83,7 +83,7 @@ int test6(struct pt_regs *ctx)
 	return 0;
 }
 
-unsigned long uprobe_trigger;
+__u64 uprobe_trigger;
 
 __u64 test7_result = 0;
 SEC("uprobe//proc/self/exe:uprobe_trigger")

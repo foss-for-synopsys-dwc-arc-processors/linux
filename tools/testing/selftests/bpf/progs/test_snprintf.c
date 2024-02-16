@@ -7,30 +7,30 @@
 __u32 pid = 0;
 
 char num_out[64] = {};
-long num_ret = 0;
+__s64 num_ret = 0;
 
 char ip_out[64] = {};
-long ip_ret = 0;
+__s64 ip_ret = 0;
 
 char sym_out[64] = {};
-long sym_ret = 0;
+__s64 sym_ret = 0;
 
 char addr_out[64] = {};
-long addr_ret = 0;
+__s64 addr_ret = 0;
 
 char str_out[64] = {};
-long str_ret = 0;
+__s64 str_ret = 0;
 
 char over_out[6] = {};
-long over_ret = 0;
+__s64 over_ret = 0;
 
 char pad_out[10] = {};
-long pad_ret = 0;
+__s64 pad_ret = 0;
 
 char noarg_out[64] = {};
-long noarg_ret = 0;
+__s64 noarg_ret = 0;
 
-long nobuf_ret = 0;
+__s64 nobuf_ret = 0;
 
 extern const void schedule __ksym;
 

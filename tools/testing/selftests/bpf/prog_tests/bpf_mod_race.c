@@ -109,7 +109,7 @@ static void test_bpf_mod_race_config(const struct test_config *config)
 
 	skel->rodata->bpf_mod_race_config.tgid = getpid();
 	skel->rodata->bpf_mod_race_config.inject_error = -4242;
-	skel->rodata->bpf_mod_race_config.fault_addr = fault_addr;
+	skel->rodata->bpf_mod_race_config.fault_addr = (__u64) fault_addr;
 	if (!ASSERT_OK(bpf_mod_race__load(skel), "bpf_mod___load"))
 		goto end_destroy;
 	blockingp = (_Atomic int *)&skel->bss->bpf_blocking;

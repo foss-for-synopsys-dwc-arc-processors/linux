@@ -411,7 +411,7 @@ static void test_sk_storage_map_stress_free(void)
 		rlim_new.rlim_cur = nr_sk_threads * nr_sk_per_thread + 128;
 		rlim_new.rlim_max = rlim_new.rlim_cur + 128;
 		err = setrlimit(RLIMIT_NOFILE, &rlim_new);
-		CHECK(err, "setrlimit(RLIMIT_NOFILE)", "rlim_new:%lu errno:%d",
+		CHECK(err, "setrlimit(RLIMIT_NOFILE)", "rlim_new:%llu errno:%d",
 		      rlim_new.rlim_cur, errno);
 	}
 

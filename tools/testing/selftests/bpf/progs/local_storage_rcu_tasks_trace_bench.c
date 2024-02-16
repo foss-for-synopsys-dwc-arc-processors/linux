@@ -12,11 +12,11 @@ struct {
 	__type(value, int);
 } task_storage SEC(".maps");
 
-long hits;
-long gp_hits;
-long gp_times;
-long current_gp_start;
-long unexpected;
+__s64 hits;
+__s64 gp_hits;
+__s64 gp_times;
+__s64 current_gp_start;
+__s64 unexpected;
 bool postgp_seen;
 
 SEC("fentry/" SYS_PREFIX "sys_getpgid")

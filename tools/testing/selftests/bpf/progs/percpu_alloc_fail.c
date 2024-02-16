@@ -33,7 +33,7 @@ struct {
 	__type(value, struct elem);
 } array SEC(".maps");
 
-long ret;
+__u64 ret;
 
 SEC("?fentry/bpf_fentry_test1")
 __failure __msg("store to referenced kptr disallowed")

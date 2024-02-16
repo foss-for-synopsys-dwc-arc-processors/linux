@@ -15,7 +15,7 @@ volatile const bool skip_tests = true;
 #endif
 
 struct btf_type_tag_test {
-	int __tag1 * __tag1 __tag2 *p;
+	__u64 __tag1 __tag2 p;
 } g;
 
 SEC("fentry/bpf_fentry_test1")

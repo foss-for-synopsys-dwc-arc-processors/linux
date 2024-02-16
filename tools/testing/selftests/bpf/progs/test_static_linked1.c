@@ -5,7 +5,7 @@
 #include <bpf/bpf_helpers.h>
 
 /* 8-byte aligned .data */
-static volatile long static_var1 = 2;
+static volatile __s64 static_var1 = 2;
 static volatile int static_var2 = 3;
 int var1 = -1;
 /* 4-byte aligned .rodata */

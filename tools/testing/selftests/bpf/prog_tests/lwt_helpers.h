@@ -124,7 +124,7 @@ static int wait_for_packet(int fd, filter_t filter, struct timeval *timeout)
 		ret = read(fd, buf, sizeof(buf));
 
 		if (ret <= 0) {
-			log_err("read(dev): %ld", ret);
+			log_err("read(dev): %zd", ret);
 			return -1;
 		}
 
