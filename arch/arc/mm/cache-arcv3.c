@@ -14,6 +14,10 @@
 #include <asm/setup.h>
 #include <asm/cachectl.h>
 
+/* Based on ARCv3 documentation, line size for L2$ is fixed to 64 bytes */
+#define ARCV3_L2_CACHE_LINE_SIZE        64
+#define ARCV3_L2_CACHE_LINE_SHIFT       6
+
 int l2_enable = IS_ENABLED(CONFIG_ARC_HAS_SCM);
 
 static struct cpuinfo_arc_cache {
@@ -37,6 +41,7 @@ static int read_decode_cache_bcr_arcv3(int c, char *buf, int len)
 	struct bcr_cln_0_cfg cln0;
 	struct bcr_cln_scm_0_cfg scm0;
 	int n = 0;
+	int assoc;
 
 	p_l2->sz_k = 0;
 
@@ -51,9 +56,12 @@ static int read_decode_cache_bcr_arcv3(int c, char *buf, int len)
 	if (cln0.has_scm) {
 		READ_BCR(ARC_REG_CLNR_SCM_BCR_0, scm0);
 
-		p_l2->sz_k = (1 << scm0.data_bank_sz) * (1 << scm0.data_banks);
-		/* Fixed to 64. */
-		p_l2->line_len = 64;
+		assoc = (scm0.cache_assoc == 0) ? 16 : scm0.cache_assoc;
+		p_l2->sz_k = (scm0.cache_blk_sz << ARCV3_L2_CACHE_LINE_SHIFT) * assoc *
+				(1 << scm0.cache_sets);
+		p_l2->sz_k /= 1024;
+		/* Fixed to 64 */
+		p_l2->line_len = ARCV3_L2_CACHE_LINE_SIZE;
 
 		n += scnprintf(buf + n, len - n,
 			       "L2\t\t: %uK, %uB Line%s\n",
