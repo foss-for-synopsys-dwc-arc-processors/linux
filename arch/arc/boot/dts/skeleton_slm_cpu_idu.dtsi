@@ -80,7 +80,7 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x80000000 0x10000000>;
+		reg = <0x80000000 0x07000000>; /*112 MB */
 	};
 
 }

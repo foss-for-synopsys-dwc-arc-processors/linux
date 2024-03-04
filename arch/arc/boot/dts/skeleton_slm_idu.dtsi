@@ -11,7 +11,7 @@
 
 	memory {
 		device_type = "memory";
-                reg = <0x80000000 0x20000000>; 
+                reg = <0x80000000 0x07000000>;  /* 112MB */
 	};
 
 
@@ -30,9 +30,43 @@
 		core_clk: core_clk {
 			#clock-cells = <0>;
 			compatible = "fixed-clock";
-			clock-frequency = <20000000>;	/* 20 MHZ */
+			clock-frequency = <2000000000>;	/* 2 GHZ */
 		};
 
+		mmcclk_ciu: mmcclk-ciu {
+			compatible = "fixed-clock";
+			/*
+			 * DW sdio controller has external ciu clock divider
+			 * controlled via register in SDIO IP. Due to its
+			 * unexpected default value (it should divide by 1
+			 * but it divides by 8) SDIO IP uses wrong clock and
+			 * works unstable (see STAR 9001204800)
+			 * We switched to the minimum possible value of the
+			 * divisor (div-by-2) in HSDK platform code.
+			 * So add temporary fix and change clock frequency
+			 * to 50000000 Hz until we fix dw sdio driver itself.
+			 */
+			clock-frequency = <50000000>;
+			#clock-cells = <0>;
+		};
+
+		mmcclk_biu: mmcclk-biu {
+			compatible = "fixed-clock";
+			clock-frequency = <400000000>;
+			#clock-cells = <0>;
+		};
+
+		dmac_core_clk: dmac-core-clk {
+			compatible = "fixed-clock";
+			clock-frequency = <400000000>;
+			#clock-cells = <0>;
+		};
+
+		dmac_cfg_clk: dmac-gpu-cfg-clk {
+			compatible = "fixed-clock";
+			clock-frequency = <250000000>;
+			#clock-cells = <0>;
+		};
 		core_intc: interrupt-controller {
 			compatible = "snps,archs-intc";
 			interrupt-controller;
@@ -51,7 +85,7 @@
 			reg = <0x40000000 0x2000>;
 			interrupt-parent = <&idu_intc>;
 			interrupts = <0>;
-			clock-frequency = <20000000>;
+			clock-frequency = <25000000>;
 			baud = <115200>;
 			reg-shift = <2>;
 			reg-io-width = <4>;
@@ -69,5 +103,50 @@
 			#interrupt-cells = <1>;
 			interrupts = <23>;
 		};
+
+/*		dmac: dmac@600010 {
+			compatible = "snps,axi-dma-1.01a";
+			reg = <0x600010 0x1000>;
+			interrupt-parent = <&idu_intc>;
+			interrupts = <6>;
+			clocks = <&dmac_core_clk>, <&dmac_cfg_clk>;
+			clock-names = "core-clk", "cfgr-clk";
+
+			dma-channels = <1>;
+			snps,dma-masters = <2>;
+			snps,data-width = <3>;
+			snps,block-size = <1024>;
+			snps,priority = <0>;
+			snps,axi-max-burst-len = <16>;
+		};
+*/		
+	/*	mmc@60000000 {
+			compatible = "altr,socfpga-dw-mshc";
+			reg = <0x60000000 0x1000>;
+			num-slots = <1>;
+			fifo-depth = <16>;
+			card-detect-delay = <200>;
+			clocks = <&mmcclk_biu>, <&mmcclk_ciu>;
+			clock-names = "biu", "ciu";
+			interrupt-parent = <&idu_intc>;
+			interrupts = <5>;
+			bus-width = <4>;
+			dma-coherent;
+		};
+
+		gpio: gpio@40300000 {
+			compatible = "snps,dw-apb-gpio";
+			reg = <0x40300000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			gpio_port_a: gpio-controller@0 {
+				compatible = "snps,dw-apb-gpio-port";
+				gpio-controller;
+				#gpio-cells = <2>;
+				snps,nr-gpios = <24>;
+				reg = <0>;
+			};
+		};*/
 	};
 };
