@@ -425,7 +425,7 @@ config ARC_CANT_LLSC
 
 config ARC_HAS_LLSC
 	bool "Insn: LLOCK/SCOND (efficient atomic ops)"
-	default y
+	default n
 	depends on !ARC_CANT_LLSC
 
 config ARC_HAS_ATLD
