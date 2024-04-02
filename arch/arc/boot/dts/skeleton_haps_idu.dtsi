@@ -68,5 +68,40 @@
 			#interrupt-cells = <1>;
 			interrupts = <23>;
 		};
+
+		virtio0: virtio@f0100000 {
+			compatible = "virtio,mmio";
+			reg = <0xf0100000 0x2000>;
+			interrupt-parent = <&idu_intc>;
+			interrupts = <7>;
+		};
+
+		virtio1: virtio@f0102000 {
+			compatible = "virtio,mmio";
+			reg = <0xf0102000 0x2000>;
+			interrupt-parent = <&idu_intc>;
+			interrupts = <8>;
+		};
+
+		virtio2: virtio@f0104000 {
+			compatible = "virtio,mmio";
+			reg = <0xf0104000 0x2000>;
+			interrupt-parent = <&idu_intc>;
+			interrupts = <9>;
+		};
+
+		virtio3: virtio@f0106000 {
+			compatible = "virtio,mmio";
+			reg = <0xf0106000 0x2000>;
+			interrupt-parent = <&idu_intc>;
+			interrupts = <10>;
+		};
+
+		virtio4: virtio@f0108000 {
+			compatible = "virtio,mmio";
+			reg = <0xf0108000 0x2000>;
+			interrupt-parent = <&idu_intc>;
+			interrupts = <11>;
+		};
 	};
 };
