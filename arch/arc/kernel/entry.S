@@ -29,8 +29,8 @@ ENTRY(sys_clone_wrapper)
 	DISCARD_CALLEE_SAVED_USER
 
 	GET_CURR_THR_INFO_FLAGS   r10
-	btst r10, TIF_SYSCALL_TRACE
-	bnz  tracesys_exit
+	and.f 0, r10, _TIF_SYSCALL_WORK
+	bnz   tracesys_exit
 
 	b .Lret_from_system_call
 END(sys_clone_wrapper)
@@ -41,8 +41,8 @@ ENTRY(sys_clone3_wrapper)
 	DISCARD_CALLEE_SAVED_USER
 
 	GET_CURR_THR_INFO_FLAGS   r10
-	btst r10, TIF_SYSCALL_TRACE
-	bnz  tracesys_exit
+	and.f 0, r10, _TIF_SYSCALL_WORK
+	bnz   tracesys_exit
 
 	b .Lret_from_system_call
 END(sys_clone3_wrapper)
@@ -175,6 +175,7 @@ tracesys_exit:
 	STR  r0, sp, PT_r0
 
 	; POST syscall trace hook
+	MOVR r0, sp				; pt_regs
 	bl  @syscall_trace_exit
 
 	; don't call ret_from_system_call as it saves r0, already done above
@@ -223,8 +224,8 @@ ENTRY(EV_Trap)
 
 	; syscall tracing ongoing, invoke pre-post-hooks around syscall
 	GET_CURR_THR_INFO_FLAGS   r10
-	btst r10, TIF_SYSCALL_TRACE
-	bnz tracesys  ; this never comes back
+	and.f 0, r10, _TIF_SYSCALL_WORK
+	bnz   tracesys  ; this never comes back
 
 	;============ Normal syscall case
 

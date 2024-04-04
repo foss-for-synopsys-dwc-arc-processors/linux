@@ -27,6 +27,9 @@
 #elif defined(__TARGET_ARCH_riscv)
 	#define bpf_target_riscv
 	#define bpf_target_defined
+#elif defined(__TARGET_ARCH_arc)
+	#define bpf_target_arc
+	#define bpf_target_defined
 #else
 
 /* Fall back to what the compiler says */
@@ -53,6 +56,9 @@
 	#define bpf_target_defined
 #elif defined(__riscv) && __riscv_xlen == 64
 	#define bpf_target_riscv
+	#define bpf_target_defined
+#elif defined(__arc__)
+	#define bpf_target_arc
 	#define bpf_target_defined
 #endif /* no compiler target */
 
@@ -319,6 +325,30 @@ struct pt_regs;
 #define PT_REGS_RC_CORE(x) BPF_CORE_READ((PT_REGS_RV *)(x), a5)
 #define PT_REGS_SP_CORE(x) BPF_CORE_READ((PT_REGS_RV *)(x), sp)
 #define PT_REGS_IP_CORE(x) BPF_CORE_READ((PT_REGS_RV *)(x), epc)
+
+#elif defined(bpf_target_arc)
+
+struct pt_regs;
+#define PT_REGS_ARC const volatile struct user_regs_struct
+#define PT_REGS_PARM1(x) (((PT_REGS_ARC *)(x))->scratch.r0)
+#define PT_REGS_PARM2(x) (((PT_REGS_ARC *)(x))->scratch.r1)
+#define PT_REGS_PARM3(x) (((PT_REGS_ARC *)(x))->scratch.r2)
+#define PT_REGS_PARM4(x) (((PT_REGS_ARC *)(x))->scratch.r3)
+#define PT_REGS_PARM5(x) (((PT_REGS_ARC *)(x))->scratch.r4)
+#define PT_REGS_RET(x) (((PT_REGS_ARC *)(x))->scratch.blink)
+#define PT_REGS_RC(x) (((PT_REGS_ARC *)(x))->scratch.r0)
+#define PT_REGS_SP(x) (((PT_REGS_ARC *)(x))->scratch.sp)
+#define PT_REGS_IP(x) (((PT_REGS_ARC *)(x))->scratch.ret)
+
+#define PT_REGS_PARM1_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.r0)
+#define PT_REGS_PARM2_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.r1)
+#define PT_REGS_PARM3_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.r2)
+#define PT_REGS_PARM4_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.r3)
+#define PT_REGS_PARM5_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.r4)
+#define PT_REGS_RET_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.blink)
+#define PT_REGS_RC_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.r0)
+#define PT_REGS_SP_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.sp)
+#define PT_REGS_IP_CORE(x) BPF_CORE_READ((PT_REGS_ARC *)(x), scratch.ret)
 
 #endif
 

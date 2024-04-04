@@ -65,6 +65,10 @@ struct arc_reg_cc_build {
 
 #define PERF_COUNT_ARC_HW_MAX	(PERF_COUNT_HW_MAX + 8)
 
+#ifdef CONFIG_PERF_EVENTS
+#define perf_arch_bpf_user_pt_regs(regs) (struct user_regs_struct *)regs
+#endif
+
 /*
  * Some ARC pct quirks:
  *

@@ -613,14 +613,19 @@ void flush_icache_range(unsigned long kvaddr, unsigned long kvend)
 {
 	unsigned int tot_sz = kvend - kvaddr;
 
-	BUG_ON((kvaddr < VMALLOC_START) || (kvend > VMALLOC_END));
+	BUG_ON(is_vmalloc_addr((void *)kvaddr) && !is_vmalloc_addr((void *)kvend));
+	BUG_ON(!is_vmalloc_addr((void *)kvaddr) && is_vmalloc_addr((void *)kvend));
+	BUG_ON(kvaddr < TASK_SIZE);
 
 	while (tot_sz > 0) {
 		unsigned int off, sz;
 		unsigned long paddr, pfn;
 
 		off = kvaddr % PAGE_SIZE;
-		pfn = vmalloc_to_pfn((void *)kvaddr);
+		if (is_vmalloc_addr((void *)kvaddr))
+			pfn = vmalloc_to_pfn((void *)kvaddr);
+		else
+			pfn = virt_to_pfn((void *)kvaddr);
 		paddr = (pfn << PAGE_SHIFT) + off;
 		sz = min_t(unsigned int, tot_sz, PAGE_SIZE - off);
 		__sync_icache_dcache(paddr, kvaddr, sz);
