@@ -11,7 +11,7 @@
 
 	memory {
 		device_type = "memory";
-                reg = <0x80000000 0x08000000>;  /* 128 MB */
+                reg = <0x80000000 0x01C00000>;  /* 28 MB */
 	};
 
 
@@ -103,50 +103,5 @@
 			#interrupt-cells = <1>;
 			interrupts = <23>;
 		};
-
-/*		dmac: dmac@600010 {
-			compatible = "snps,axi-dma-1.01a";
-			reg = <0x600010 0x1000>;
-			interrupt-parent = <&idu_intc>;
-			interrupts = <6>;
-			clocks = <&dmac_core_clk>, <&dmac_cfg_clk>;
-			clock-names = "core-clk", "cfgr-clk";
-
-			dma-channels = <1>;
-			snps,dma-masters = <2>;
-			snps,data-width = <3>;
-			snps,block-size = <1024>;
-			snps,priority = <0>;
-			snps,axi-max-burst-len = <16>;
-		};
-*/		
-	/*	mmc@60000000 {
-			compatible = "altr,socfpga-dw-mshc";
-			reg = <0x60000000 0x1000>;
-			num-slots = <1>;
-			fifo-depth = <16>;
-			card-detect-delay = <200>;
-			clocks = <&mmcclk_biu>, <&mmcclk_ciu>;
-			clock-names = "biu", "ciu";
-			interrupt-parent = <&idu_intc>;
-			interrupts = <5>;
-			bus-width = <4>;
-			dma-coherent;
-		};
-
-		gpio: gpio@40300000 {
-			compatible = "snps,dw-apb-gpio";
-			reg = <0x40300000 0x1000>;
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			gpio_port_a: gpio-controller@0 {
-				compatible = "snps,dw-apb-gpio-port";
-				gpio-controller;
-				#gpio-cells = <2>;
-				snps,nr-gpios = <24>;
-				reg = <0>;
-			};
-		};*/
 	};
 };

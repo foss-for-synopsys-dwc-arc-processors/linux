@@ -12,7 +12,7 @@
 	compatible = "snps,zebu_hs";
 
 	memory {
-		reg = <0x80000000 0x08000000>;  /* 128 MB */
+		reg = <0x80000000 0x01C00000>;  /* 28 MB */
 	};
 
 	chosen {
