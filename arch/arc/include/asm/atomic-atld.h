@@ -5,11 +5,7 @@
 
 static inline void arch_atomic_set(atomic_t *v, int i)
 {
-	ATOMIC_OPS_FLAGS_VAR_DEF
-
-	atomic_ops_lock(flags);
 	WRITE_ONCE(v->counter, i);
-	atomic_ops_unlock(flags);
 }
 
 #ifndef CONFIG_ARC_HAS_LLSC
@@ -20,26 +16,20 @@ static inline void arch_atomic_set(atomic_t *v, int i)
 static inline void arch_atomic_##op(int i, atomic_t *v)			\
 {									\
 	int val = i;							\
-	ATOMIC_OPS_FLAGS_VAR_DEF					\
 									\
-	atomic_ops_lock(flags);						\
 	__asm__ __volatile__(						\
 	"	atld."#asm_op" %[val], %[ctr]		\n"		\
 	: [val] "+r"(val),						\
 	  [ctr] "+ATOMC" (v->counter)					\
 	:								\
 	: "memory");							\
-	atomic_ops_unlock(flags);					\
-									\
 }
 
 #define ATOMIC_OP_RETURN(op, asm_op)				\
 static inline int arch_atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 {									\
 	int val = i;							\
-	ATOMIC_OPS_FLAGS_VAR_DEF					\
 									\
-	atomic_ops_lock(flags);						\
 	__asm__ __volatile__(						\
 	"	atld."#asm_op" %[val], %[ctr]		\n"		\
 	"	"#asm_op" %[val], %[val], %[i]		\n"		\
@@ -47,7 +37,6 @@ static inline int arch_atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 	  [ctr] "+ATOMC" (v->counter)					\
 	: [i] "ir" (i)							\
 	: "memory");							\
-	atomic_ops_unlock(flags);					\
 									\
 	return val;							\
 }
@@ -56,16 +45,13 @@ static inline int arch_atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 static inline int arch_atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
 {									\
 	int orig = i;							\
-	ATOMIC_OPS_FLAGS_VAR_DEF					\
 									\
-	atomic_ops_lock(flags);						\
 	__asm__ __volatile__(						\
 	"	atld."#asm_op" %[orig], %[ctr]		\n"		\
 	: [orig] "+r"(orig),						\
 	  [ctr] "+ATOMC" (v->counter)					\
 	:								\
 	: "memory");							\
-	atomic_ops_unlock(flags);					\
 									\
 	return orig;							\
 }
