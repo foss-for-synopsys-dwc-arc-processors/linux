@@ -41,6 +41,9 @@ static int genregs_get(struct task_struct *target,
 	membuf_store(&to, ptregs->blink);
 	membuf_store(&to, ptregs->fp);
 	membuf_store(&to, ptregs->gp);
+#ifdef CONFIG_ISA_ARCV3
+	membuf_store(&to, ptregs->r13);
+#endif
 	membuf_store(&to, ptregs->r12);
 	membuf_store(&to, ptregs->r11);
 	membuf_store(&to, ptregs->r10);
@@ -68,9 +71,7 @@ static int genregs_get(struct task_struct *target,
 	membuf_store(&to, cregs->r16);
 	membuf_store(&to, cregs->r15);
 	membuf_store(&to, cregs->r14);
-#ifdef CONFIG_ISA_ARCV3
-	membuf_store(&to, ptregs->r13);
-#else
+#ifndef CONFIG_ISA_ARCV3
 	membuf_store(&to, cregs->r13);
 #endif
 	membuf_store(&to, target->thread.fault_address); // efa
@@ -134,6 +135,9 @@ static int genregs_set(struct task_struct *target,
 	REG_IN_ONE(scratch.blink, &ptregs->blink);
 	REG_IN_ONE(scratch.fp, &ptregs->fp);
 	REG_IN_ONE(scratch.gp, &ptregs->gp);
+#ifdef CONFIG_ISA_ARCV3
+	REG_IN_ONE(scratch.r13, &ptregs->r13);
+#endif
 	REG_IN_ONE(scratch.r12, &ptregs->r12);
 	REG_IN_ONE(scratch.r11, &ptregs->r11);
 	REG_IN_ONE(scratch.r10, &ptregs->r10);
@@ -164,9 +168,7 @@ static int genregs_set(struct task_struct *target,
 	REG_IN_ONE(callee.r15, &cregs->r15);
 	REG_IN_ONE(callee.r14, &cregs->r14);
 
-#ifdef CONFIG_ISA_ARCV3
-	REG_IN_ONE(callee.r13, &ptregs->r13);
-#else
+#ifndef CONFIG_ISA_ARCV3
 	REG_IN_ONE(callee.r13, &cregs->r13);
 #endif
 

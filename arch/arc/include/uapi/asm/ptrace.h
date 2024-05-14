@@ -37,13 +37,21 @@ struct user_regs_struct {
 	struct {
 		unsigned long bta, lp_start, lp_end, lp_count;
 		unsigned long status32, ret, blink, fp, gp;
+#ifdef __ARC64__
+		unsigned long r13, r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0;
+#else
 		unsigned long r12, r11, r10, r9, r8, r7, r6, r5, r4, r3, r2, r1, r0;
+#endif
 		unsigned long sp;
 	} scratch;
 	unsigned long pad2;
 	struct {
 		unsigned long r25, r24, r23, r22, r21, r20;
+#ifdef __ARC64__
+		unsigned long r19, r18, r17, r16, r15, r14;
+#else
 		unsigned long r19, r18, r17, r16, r15, r14, r13;
+#endif
 	} callee;
 	unsigned long efa;	/* break pt addr, for break points in delay slots */
 	unsigned long stop_pc;	/* give dbg stop_pc after ensuring brkpt trap */
