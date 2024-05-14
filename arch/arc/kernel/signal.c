@@ -129,6 +129,9 @@ stash_usr_regs(struct rt_sigframe __user *sf, struct pt_regs *regs,
 	uregs.scratch.blink	= regs->blink;
 	uregs.scratch.fp	= regs->fp;
 	uregs.scratch.gp	= regs->gp;
+#ifdef CONFIG_ISA_ARCV3
+	uregs.scratch.r13	= regs->r13;
+#endif
 	uregs.scratch.r12	= regs->r12;
 	uregs.scratch.r11	= regs->r11;
 	uregs.scratch.r10	= regs->r10;
@@ -147,7 +150,7 @@ stash_usr_regs(struct rt_sigframe __user *sf, struct pt_regs *regs,
 	err = __copy_to_user(&(sf->uc.uc_mcontext.regs.scratch), &uregs.scratch,
 			     sizeof(sf->uc.uc_mcontext.regs.scratch));
 
-	if (is_isa_arcv2())
+	if (!is_isa_arcompact())
 		err |= save_arcv2_regs(&(sf->uc.uc_mcontext), regs);
 
 	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(sigset_t));
@@ -166,7 +169,7 @@ static int restore_usr_regs(struct pt_regs *regs, struct rt_sigframe __user *sf)
 				&(sf->uc.uc_mcontext.regs.scratch),
 				sizeof(sf->uc.uc_mcontext.regs.scratch));
 
-	if (is_isa_arcv2())
+	if (!is_isa_arcompact())
 		err |= restore_arcv2_regs(&(sf->uc.uc_mcontext), regs);
 
 	if (err)
@@ -184,6 +187,9 @@ static int restore_usr_regs(struct pt_regs *regs, struct rt_sigframe __user *sf)
 	regs->blink	= uregs.scratch.blink;
 	regs->fp	= uregs.scratch.fp;
 	regs->gp	= uregs.scratch.gp;
+#ifdef CONFIG_ISA_ARCV3
+	regs->r13	= uregs.scratch.r13;
+#endif
 	regs->r12	= uregs.scratch.r12;
 	regs->r11	= uregs.scratch.r11;
 	regs->r10	= uregs.scratch.r10;
