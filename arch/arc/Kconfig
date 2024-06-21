@@ -19,7 +19,7 @@ config ARC
 	select CLONE_BACKWARDS
 	select COMMON_CLK
 	select DMA_DIRECT_REMAP
-	select GENERIC_ATOMIC64 if ISA_ARCOMPACT || !(ARC_HAS_LL64 && ARC_HAS_LLSC)
+	select GENERIC_ATOMIC64 if ISA_ARCOMPACT || !(ARC_HAS_LL64 && ARC_HAS_LLSC) || (!64BIT && ARC_LLSC_BACKOFF)
 	select GENERIC_FIND_FIRST_BIT
 	# for now, we don't need GENERIC_IRQ_PROBE, CONFIG_GENERIC_IRQ_CHIP
 	select GENERIC_IRQ_SHOW
@@ -427,6 +427,11 @@ config ARC_HAS_LLSC
 	bool "Insn: LLOCK/SCOND (efficient atomic ops)"
 	default y
 	depends on !ARC_CANT_LLSC
+
+config ARC_LLSC_BACKOFF
+    bool "Workaround for llock/scond livelock"
+    default y
+    depends on ISA_ARCV3 && SMP && ARC_HAS_LLSC
 
 config ARC_HAS_ATLD
 	bool "Insn: ATLD (efficient atomic ops)"
