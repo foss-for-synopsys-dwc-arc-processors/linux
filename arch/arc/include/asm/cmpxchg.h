@@ -18,6 +18,8 @@
  * if (*ptr == @old)
  *      *ptr = @new
  */
+#ifndef CONFIG_ARC_LLSC_BACKOFF
+
 #define __cmpxchg(ptr, old, new)					\
 ({									\
 	__typeof__(*(ptr)) _prev;					\
@@ -38,7 +40,49 @@
 	_prev;								\
 })
 
+#else	/* CONFIG_ARC_LLSC_BACKOFF */
+
+#define __cmpxchg(ptr, old, new)					\
+({									\
+	__typeof__(*(ptr)) _prev;					\
+	unsigned int delay, tmp;					\
+									\
+	__asm__ __volatile__(						\
+	"	mov	%1, 0x800	\n"				\
+	"1:	llock	%0, [%3]	\n"				\
+	"	brne	%0, %4, 4f	\n"				\
+	"	scond	%5, [%3]	\n"				\
+	"	bz	4f		\n"				\
+	"   ; --- scond fail delay ---	\n"				\
+	"	brlo	%1, 0x800, 3f	\n"				\
+	"	lr	%1, [0x4]	\n"	/* read core id */	\
+	"	lsr	%1, %1 ,8	\n"				\
+	"	and	%1, %1, 0xFF	\n"				\
+	"	add	%1, %1, 1	\n"				\
+	"3:	mov	%2, %1		\n"				\
+	"2:	brne.d	%2, 0, 2b	\n"				\
+	"	sub	%2, %2, 1	\n"				\
+	"	asl	%1, %1		\n"				\
+	"	b	1b		\n"				\
+	"4: ; --- success ---		\n"				\
+	: "=&r"(_prev),	/* Early clobber prevent reg reuse */		\
+	  "=&r"(delay),							\
+	  "=&r"(tmp)							\
+	: "r"(ptr),	/* Not "m": llock only supports reg */		\
+	  "ir"(old),							\
+	  "r"(new)	/* Not "ir": scond can't take LIMM */		\
+	: "cc",								\
+	  "memory");	/* gcc knows memory is clobbered */		\
+									\
+	_prev;								\
+})
+
+#endif	/* !CONFIG_ARC_LLSC_BACKOFF */
+
+
 #ifdef CONFIG_64BIT
+
+#ifndef CONFIG_ARC_LLSC_BACKOFF
 
 #define __cmpxchg64_relaxed(ptr, old, new)				\
 ({									\
@@ -52,7 +96,7 @@
 	"2:				\n"				\
 	: "=&r"(__prev)							\
 	: "r"(ptr),							\
-	  "ir"(old),						\
+	  "ir"(old),							\
 	  "r"(new)							\
 	: "cc",								\
 	  "memory");							\
@@ -61,6 +105,45 @@
 })
 
 #else
+
+#define __cmpxchg64_relaxed(ptr, old, new)				\
+({									\
+	__typeof__(*(ptr)) __prev;					\
+	unsigned int delay, tmp;					\
+									\
+	__asm__ __volatile__(						\
+	"	mov	%1, 0x800	\n"				\
+	"1:	llockl  %0, [%3]	\n"				\
+	"	brnel   %0, %4, 4f	\n"				\
+	"	scondl  %5, [%3]	\n"				\
+	"	bz	4f		\n"				\
+	"   ; --- scond fail delay ---	\n"				\
+	"	brlo	%1, 0x800, 3f	\n"				\
+	"	lr	%1, [0x4]	\n"	/* read core id */	\
+	"	lsr	%1, %1 ,8	\n"				\
+	"	and	%1, %1, 0xFF	\n"				\
+	"	add	%1, %1, 1	\n"				\
+	"3:	mov	%2, %1		\n"				\
+	"2: 	brne.d	%2, 0, 2b	\n"				\
+	"	sub	%2, %2, 1	\n"				\
+	"	asl	%1, %1		\n"				\
+	"	b	1b		\n"				\
+	"4: ; --- success ---		\n"				\
+	: "=&r"(__prev),						\
+	  "=&r" (delay),						\
+	  "=&r" (tmp)							\
+	: "r"(ptr),							\
+	  "ir"(old),							\
+	  "r"(new)							\
+	: "cc",								\
+	  "memory");							\
+									\
+	__prev;								\
+})
+
+#endif	/* !CONFIG_ARC_LLSC_BACKOFF */
+
+#else	/* !CONFIG_64BIT */
 
 #define __cmpxchg64_relaxed(ptr, old, new)				\
 ({									\

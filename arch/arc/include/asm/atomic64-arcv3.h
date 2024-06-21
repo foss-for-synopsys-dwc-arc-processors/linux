@@ -15,53 +15,97 @@
 #define arch_atomic64_read(v)	READ_ONCE((v)->counter)
 #define arch_atomic64_set(v, i)	WRITE_ONCE(((v)->counter), (i))
 
+#ifdef CONFIG_ARC_LLSC_BACKOFF
+
+#define SCOND_FAIL_RETRY_VAR_DEF						\
+	unsigned int delay = 0x800, tmp;					\
+
+#define SCOND_FAIL_RETRY_ASM							\
+	"	bz	4f			\n"				\
+	"   ; --- scond fail delay ---		\n"				\
+	"	brlo	%[delay], 0x800, 3f	\n"				\
+	"	lr	%[delay], [0x4]		\n"	/* read core id */	\
+	"	lsr	%[delay], %[delay] ,8	\n"				\
+	"	and	%[delay], %[delay], 0xFF \n"				\
+	"	add	%[delay], %[delay], 1	\n"				\
+	"3:	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
+	"2:	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
+	"	sub	%[tmp], %[tmp], 1	\n"	/* tmp-- */		\
+	"	asl	%[delay], %[delay]	\n"	/* delay *= 2 */	\
+	"	b	1b			\n"	/* start over */	\
+	"4: ; --- success ---			\n"				\
+
+#define SCOND_FAIL_RETRY_VARS							\
+	  ,[delay] "+&r" (delay),[tmp] "=&r" (tmp)				\
+
+#else	/* !CONFIG_ARC_LLSC_BACKOFF */
+
+#define SCOND_FAIL_RETRY_VAR_DEF
+
+#define SCOND_FAIL_RETRY_ASM							\
+	"	bnz     1b			\n"				\
+
+#define SCOND_FAIL_RETRY_VARS
+
+#endif	/* !CONFIG_ARC_LLSC_BACKOFF */
+
 #define ATOMIC64_OP(op, op1)						\
-static inline void arch_atomic64_##op(s64 a, atomic64_t *v)			\
+static inline void arch_atomic64_##op(s64 a, atomic64_t *v)		\
 {									\
 	s64 val;							\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
-	"1:				\n"				\
-	"	llockl   %0, %1		\n"				\
-	"	" #op1 " %0, %0, %2	\n"				\
-	"	scondl   %0, %1		\n"				\
-	"	bnz      1b		\n"				\
-	: "=&r"(val), "+ATOMC"(v->counter)				\
-	: "r"(a)							\
+	"1:					\n"			\
+	"	llockl	%[val], %[ctr]		\n"			\
+	"	" #op1 " %[val], %[val], %[a]	\n"			\
+	"	scondl	%[val], %[ctr]		\n"			\
+	SCOND_FAIL_RETRY_ASM						\
+	: [val] "=&r" (val),						\
+	  [ctr] "+ATOMC"(v->counter)					\
+	  SCOND_FAIL_RETRY_VARS						\
+	: [a] "r" (a)							\
 	: "cc", "memory");						\
-}									\
+}
 
-#define ATOMIC64_OP_RETURN(op, op1)		        	\
+#define ATOMIC64_OP_RETURN(op, op1)					\
 static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val;							\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
-	"1:				\n"				\
-	"	llockl   %0, %1		\n"				\
-	"	" #op1 " %0, %0, %2	\n"				\
-	"	scondl   %0, %1		\n"				\
-	"	bnz      1b		\n"				\
-	: "=&r"(val), "+ATOMC"(v->counter)					\
-	: "r"(a)							\
+	"1:					\n"			\
+	"	llockl	%[val], %[ctr]		\n"			\
+	"	" #op1 " %[val], %[val], %[a]	\n"			\
+	"	scondl	%[val], %[ctr]		\n"			\
+	SCOND_FAIL_RETRY_ASM						\
+	: [val] "=&r"(val),						\
+	  [ctr] "+ATOMC"(v->counter)					\
+	  SCOND_FAIL_RETRY_VARS						\
+	: [a] "r"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
 	return val;							\
 }
 
-#define ATOMIC64_FETCH_OP(op, op1)		        		\
+#define ATOMIC64_FETCH_OP(op, op1)					\
 static inline s64 arch_atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val, orig;							\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
-	"1:				\n"				\
-	"	llockl   %0, %2		\n"				\
-	"	" #op1 " %1, %0, %3	\n"				\
-	"	scondl   %1, %2		\n"				\
-	"	bnz      1b		\n"				\
-	: "=&r"(orig), "=&r"(val), "+ATOMC"(v->counter)			\
-	: "r"(a)							\
+	"1:					\n"			\
+	"	llockl   %[orig], %[ctr]	\n"			\
+	"	" #op1 " %[val], %[orig], %[a]	\n"			\
+	"	scondl   %[val], %[ctr]		\n"			\
+	SCOND_FAIL_RETRY_ASM						\
+	: [orig] "=&r"(orig),						\
+	  [val] "=&r"(val),						\
+	  [ctr] "+ATOMC"(v->counter)					\
+	  SCOND_FAIL_RETRY_VARS						\
+	: [a] "r"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
 	return orig;							\
@@ -147,17 +191,21 @@ static inline s64
 arch_atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 {
 	s64 prev;
+	SCOND_FAIL_RETRY_VAR_DEF
 
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockl  %0, %1		\n"
-	"	brnel   %0, %2, 2f	\n"
-	"	scondl  %3, %1		\n"
-	"	bnz     1b		\n"
-	"2:				\n"
-	: "=&r"(prev), "+ATOMC"(*ptr)
-	: "r"(expected), "r"(new)
+	"1:	llockl  %[prev], %[ptr]		\n"
+	"	brnel   %[prev], %[exp], 5f	\n"
+	"	scondl  %[new], %[ptr]		\n"
+	SCOND_FAIL_RETRY_ASM
+	"5:					\n"
+	: [prev] "=&r"(prev),
+	  [ptr] "+ATOMC"(*ptr)
+	  SCOND_FAIL_RETRY_VARS
+	: [exp] "r"(expected),
+	  [new] "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
@@ -168,16 +216,18 @@ arch_atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
 static inline s64 arch_atomic64_xchg(atomic64_t *ptr, s64 new)
 {
 	s64 prev;
+	SCOND_FAIL_RETRY_VAR_DEF
 
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockl  %0, %1		\n"
-	"	scondl  %2, %1		\n"
-	"	bnz     1b		\n"
-	"2:				\n"
-	: "=&r"(prev), "+ATOMC"(*ptr)
-	: "r"(new)
+	"1:	llockl  %[prev], %[ptr]		\n"
+	"	scondl  %[new], %[ptr]		\n"
+	SCOND_FAIL_RETRY_ASM
+	: [prev] "=&r"(prev),
+	  [ptr] "+ATOMC"(*ptr)
+	  SCOND_FAIL_RETRY_VARS
+	: [new] "r"(new)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
@@ -196,17 +246,20 @@ static inline s64 arch_atomic64_xchg(atomic64_t *ptr, s64 new)
 static inline s64 arch_atomic64_dec_if_positive(atomic64_t *v)
 {
 	s64 val;
+	SCOND_FAIL_RETRY_VAR_DEF
 
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockl  %0, %1		\n"
-	"	subl    %0, %0, 1	\n"
-	"	brltl    %0, 0, 2f	# if signed less-than elide store\n"
-	"	scondl  %0, %1		\n"
-	"	bnz     1b		\n"
-	"2:				\n"
-	: "=&r"(val), "+ATOMC"(v->counter)
+	"1:	llockl	%[val], %[ctr]		\n"
+	"	subl	%[val], %[val], 1	\n"
+	"	brltl	%[val], 0, 5f	# if signed less-than elide store\n"
+	"	scondl	%[val], %[ctr]		\n"
+	SCOND_FAIL_RETRY_ASM
+	"5:				\n"
+	: [val] "=&r"(val),
+	  [ctr] "+ATOMC"(v->counter)
+	  SCOND_FAIL_RETRY_VARS
 	:
 	: "cc");	/* memory clobber comes from smp_mb() */
 
@@ -228,19 +281,23 @@ static inline s64 arch_atomic64_dec_if_positive(atomic64_t *v)
 static inline s64 arch_atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
 {
 	s64 old, temp;
+	SCOND_FAIL_RETRY_VAR_DEF
 
 	smp_mb();
 
 	__asm__ __volatile__(
-	"1:	llockl  %0, %2		\n"
-	"	breql.d	%0, %4, 3f	# return since v == u \n"
-	"2:				\n"
-	"	addl    %1, %0, %3	\n"
-	"	scondl  %1, %2		\n"
-	"	bnz     1b		\n"
-	"3:				\n"
-	: "=&r"(old), "=&r" (temp), "+ATOMC"(v->counter)
-	: "r"(a), "r"(u)
+	"1:	llockl	%[old], %[ctr]		\n"
+	"	breql.d	%[old], %[u], 5f	# return since v == u \n"
+	"	addl	%[temp], %[old], %[a]	\n"
+	"	scondl	%[temp], %[ctr]		\n"
+	SCOND_FAIL_RETRY_ASM
+	"5:				\n"
+	: [old] "=&r"(old),
+	  [temp] "=&r" (temp),
+	  [ctr] "+ATOMC"(v->counter)
+	  SCOND_FAIL_RETRY_VARS
+	: [a] "r"(a),
+	  [u] "r"(u)
 	: "cc");	/* memory clobber comes from smp_mb() */
 
 	smp_mb();
@@ -249,4 +306,8 @@ static inline s64 arch_atomic64_fetch_add_unless(atomic64_t *v, s64 a, s64 u)
 }
 #define arch_atomic64_fetch_add_unless arch_atomic64_fetch_add_unless
 
-#endif
+#undef SCOND_FAIL_RETRY_VAR_DEF
+#undef SCOND_FAIL_RETRY_ASM
+#undef SCOND_FAIL_RETRY_VARS
+
+#endif /* _ASM_ARC_ATOMIC64_ARCV3_H */
