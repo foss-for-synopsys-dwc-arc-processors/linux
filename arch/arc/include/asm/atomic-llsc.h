@@ -11,17 +11,50 @@
 
 #define arch_atomic_set(v, i) WRITE_ONCE(((v)->counter), (i))
 
+#ifdef CONFIG_ARC_LLSC_BACKOFF
+
+#define SCOND_FAIL_RETRY_VAR_DEF						\
+	unsigned int delay = 1, tmp;						\
+
+#define SCOND_FAIL_RETRY_ASM							\
+	"	bz	4f			\n"				\
+	"   ; --- scond fail delay ---		\n"				\
+	"	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
+	"2: 	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
+	"	sub	%[tmp], %[tmp], 1	\n"	/* tmp-- */		\
+	"	cmp	%[delay], 0x400		\n"				\
+	"	mov.eq	%[delay], 1		\n"				\
+	"	rol	%[delay], %[delay]	\n"	/* delay *= 2 */	\
+	"	b	1b			\n"	/* start over */	\
+	"4: ; --- success ---			\n"				\
+
+#define SCOND_FAIL_RETRY_VARS							\
+	  ,[delay] "+&r" (delay),[tmp] "=&r" (tmp)				\
+
+#else	/* !CONFIG_ARC_LLSC_BACKOFF */
+
+#define SCOND_FAIL_RETRY_VAR_DEF
+
+#define SCOND_FAIL_RETRY_ASM							\
+	"	bnz     1b			\n"				\
+
+#define SCOND_FAIL_RETRY_VARS
+
+#endif	/* CONFIG_ARC_LLSC_BACKOFF */
+
 #define ATOMIC_OP(op, asm_op)					\
 static inline void arch_atomic_##op(int i, atomic_t *v)			\
 {									\
 	unsigned int val;						\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
 	"1:	llock   %[val], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[val], %[i]	\n"		\
 	"	scond   %[val], %[ctr]			\n"		\
-	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val), /* Early clobber to prevent reg reuse */	\
+	SCOND_FAIL_RETRY_ASM						\
+	: [val]	"=&r"	(val) /* Early clobber to prevent reg reuse */	\
+	  SCOND_FAIL_RETRY_VARS,					\
 	  [ctr] ATOMIC_CONSTR (v->counter)				\
 	: [i]	"ir"	(i)						\
 	: "cc", "memory");						\
@@ -31,13 +64,15 @@ static inline void arch_atomic_##op(int i, atomic_t *v)			\
 static inline int arch_atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 {									\
 	unsigned int val;						\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
 	"1:	llock   %[val], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[val], %[i]	\n"		\
 	"	scond   %[val], %[ctr]			\n"		\
-	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val),						\
+	SCOND_FAIL_RETRY_ASM						\
+	: [val]	"=&r"	(val)						\
+	  SCOND_FAIL_RETRY_VARS,					\
 	  [ctr] ATOMIC_CONSTR (v->counter)				\
 	: [i]	"ir"	(i)						\
 	: "cc", "memory");						\
@@ -52,13 +87,15 @@ static inline int arch_atomic_##op##_return_relaxed(int i, atomic_t *v)	\
 static inline int arch_atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
 {									\
 	unsigned int val, orig;						\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
 	"1:	llock   %[orig], %[ctr]			\n"		\
 	"	" #asm_op " %[val], %[orig], %[i]	\n"		\
 	"	scond   %[val], %[ctr]			\n"		\
-	"	bnz     1b				\n"		\
-	: [val]	"=&r"	(val),						\
+	SCOND_FAIL_RETRY_ASM						\
+	: [val]	"=&r"	(val)						\
+	  SCOND_FAIL_RETRY_VARS,					\
 	  [orig] "=&r" (orig),						\
 	  [ctr] ATOMIC_CONSTR (v->counter)				\
 	: [i]	"ir"	(i)						\
@@ -106,5 +143,9 @@ ATOMIC_OPS(xor, xor)
 #undef ATOMIC_FETCH_OP
 #undef ATOMIC_OP_RETURN
 #undef ATOMIC_OP
+
+#undef SCOND_FAIL_RETRY_VAR_DEF
+#undef SCOND_FAIL_RETRY_ASM
+#undef SCOND_FAIL_RETRY_VARS
 
 #endif

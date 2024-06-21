@@ -15,18 +15,53 @@
 #define arch_atomic64_read(v)	READ_ONCE((v)->counter)
 #define arch_atomic64_set(v, i)	WRITE_ONCE(((v)->counter), (i))
 
+#ifdef CONFIG_ARC_HAS_LLSC
+
+#ifdef CONFIG_ARC_LLSC_BACKOFF
+
+#define SCOND_FAIL_RETRY_VAR_DEF						\
+	unsigned int delay = 1, tmp;						\
+
+#define SCOND_FAIL_RETRY_ASM							\
+	"	bz	4f			\n"				\
+	"   ; --- scond fail delay ---		\n"				\
+	"	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
+	"2: 	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
+	"	sub	%[tmp], %[tmp], 1	\n"	/* tmp-- */		\
+	"	cmp	%[delay], 0x400	\n"				\
+	"	mov.eq	%[delay], 1		\n"				\
+	"	rol	%[delay], %[delay]	\n"	/* delay *= 2 */	\
+	"	b	1b			\n"	/* start over */	\
+	"4: ; --- success ---			\n"				\
+
+#define SCOND_FAIL_RETRY_VARS							\
+	  ,[delay] "+&r" (delay),[tmp] "=&r"	(tmp)				\
+
+#else	/* !CONFIG_ARC_LLSC_BACKOFF */
+
+#define SCOND_FAIL_RETRY_VAR_DEF
+
+#define SCOND_FAIL_RETRY_ASM							\
+	"	bnz     1b			\n"				\
+
+#define SCOND_FAIL_RETRY_VARS
+
+#endif	/* !CONFIG_ARC_LLSC_BACKOFF */
+
 #define ATOMIC64_OP(op, op1)						\
 static inline void arch_atomic64_##op(s64 a, atomic64_t *v)			\
 {									\
 	s64 val;							\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
 	"1:				\n"				\
 	"	llockl   %0, %1		\n"				\
 	"	" #op1 " %0, %0, %2	\n"				\
 	"	scondl   %0, %1		\n"				\
-	"	bnz      1b		\n"				\
+	SCOND_FAIL_RETRY_ASM						\
 	: "=&r"(val), "+ATOMC"(v->counter)				\
+	SCOND_FAIL_RETRY_VARS						\
 	: "r"(a)							\
 	: "cc", "memory");						\
 }									\
@@ -35,14 +70,16 @@ static inline void arch_atomic64_##op(s64 a, atomic64_t *v)			\
 static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val;							\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
 	"1:				\n"				\
 	"	llockl   %0, %1		\n"				\
 	"	" #op1 " %0, %0, %2	\n"				\
 	"	scondl   %0, %1		\n"				\
-	"	bnz      1b		\n"				\
-	: "=&r"(val), "+ATOMC"(v->counter)					\
+	SCOND_FAIL_RETRY_ASM						\
+	: "=&r"(val), "+ATOMC"(v->counter)				\
+	SCOND_FAIL_RETRY_VARS						\
 	: "r"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
@@ -53,14 +90,16 @@ static inline s64 arch_atomic64_##op##_return_relaxed(s64 a, atomic64_t *v)	\
 static inline s64 arch_atomic64_fetch_##op##_relaxed(s64 a, atomic64_t *v)	\
 {									\
 	s64 val, orig;							\
+	SCOND_FAIL_RETRY_VAR_DEF					\
 									\
 	__asm__ __volatile__(						\
 	"1:				\n"				\
 	"	llockl   %0, %2		\n"				\
 	"	" #op1 " %1, %0, %3	\n"				\
 	"	scondl   %1, %2		\n"				\
-	"	bnz      1b		\n"				\
+	SCOND_FAIL_RETRY_ASM						\
 	: "=&r"(orig), "=&r"(val), "+ATOMC"(v->counter)			\
+	SCOND_FAIL_RETRY_VARS						\
 	: "r"(a)							\
 	: "cc");	/* memory clobber comes from smp_mb() */	\
 									\
@@ -142,6 +181,9 @@ ATOMIC64_FETCH_OP(andnot, bicl)
 #undef ATOMIC64_FETCH_ATLD_OP
 #undef ATOMIC64_OP_RETURN
 #undef ATOMIC64_OP
+#undef SCOND_FAIL_RETRY_VAR_DEF
+#undef SCOND_FAIL_RETRY_ASM
+#undef SCOND_FAIL_RETRY_VARS
 
 static inline s64
 arch_atomic64_cmpxchg(atomic64_t *ptr, s64 expected, s64 new)
