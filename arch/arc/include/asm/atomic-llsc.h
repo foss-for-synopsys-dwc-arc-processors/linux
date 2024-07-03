@@ -14,17 +14,20 @@
 #ifdef CONFIG_ARC_LLSC_BACKOFF
 
 #define SCOND_FAIL_RETRY_VAR_DEF						\
-	unsigned int delay = 1, tmp;						\
+	unsigned int delay = 0x800, tmp;					\
 
 #define SCOND_FAIL_RETRY_ASM							\
 	"	bz	4f			\n"				\
 	"   ; --- scond fail delay ---		\n"				\
-	"	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
-	"2: 	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
+	"	brlo	%[delay], 0x800, 3f	\n"				\
+	"	lr	%[delay], [0x4]		\n"	/* read core id */	\
+	"	lsr	%[delay], %[delay] ,8	\n"				\
+	"	and	%[delay], %[delay], 0xFF \n"				\
+	"	add	%[delay], %[delay], 1	\n"				\
+	"3:	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
+	"2:	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
 	"	sub	%[tmp], %[tmp], 1	\n"	/* tmp-- */		\
-	"	cmp	%[delay], 0x400		\n"				\
-	"	mov.eq	%[delay], 1		\n"				\
-	"	rol	%[delay], %[delay]	\n"	/* delay *= 2 */	\
+	"	asl	%[delay], %[delay]	\n"	/* delay *= 2 */	\
 	"	b	1b			\n"	/* start over */	\
 	"4: ; --- success ---			\n"				\
 

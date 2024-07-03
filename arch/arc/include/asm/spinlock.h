@@ -222,22 +222,24 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
 #else	/* CONFIG_ARC_LLSC_BACKOFF */
 
 #define SCOND_FAIL_RETRY_VAR_DEF						\
-	unsigned int delay, tmp;						\
+	unsigned int delay = 0x800, tmp;					\
 
 #define SCOND_FAIL_RETRY_ASM							\
 	"   ; --- scond fail delay ---		\n"				\
-	"	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
-	"2: 	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
+	"	brlo	%[delay], 0x800, 3f	\n"				\
+	"	lr	%[delay], [0x4]		\n"	/* read core id */	\
+	"	lsr	%[delay], %[delay] ,8	\n"				\
+	"	and	%[delay], %[delay], 0xFF \n"				\
+	"	add	%[delay], %[delay], 1	\n"				\
+	"3:	mov	%[tmp], %[delay]	\n"	/* tmp = delay */	\
+	"2:	brne.d	%[tmp], 0, 2b		\n"	/* while (tmp != 0) */	\
 	"	sub	%[tmp], %[tmp], 1	\n"	/* tmp-- */		\
-	"	cmp	%[delay], 0x400		\n"				\
-	"	mov.eq	%[delay], 1		\n"				\
-	"	rol	%[delay], %[delay]	\n"	/* delay *= 2 */	\
+	"	asl	%[delay], %[delay]	\n"	/* delay *= 2 */	\
 	"	b	1b			\n"	/* start over */	\
-	"					\n"				\
 	"4: ; --- done ---			\n"				\
 
 #define SCOND_FAIL_RETRY_VARS							\
-	  ,[delay] "=&r" (delay), [tmp] "=&r"	(tmp)				\
+	  ,[delay] "+&r" (delay), [tmp] "=&r"	(tmp)				\
 
 static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
@@ -245,7 +247,6 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 	SCOND_FAIL_RETRY_VAR_DEF;
 
 	__asm__ __volatile__(
-	"0:	mov	%[delay], 1		\n"
 	"1:	llock	%[val], [%[slock]]	\n"
 	"	breq	%[val], %[LOCKED], 1b	\n"	/* spin while LOCKED */
 	"	scond	%[LOCKED], [%[slock]]	\n"	/* acquire */
@@ -269,7 +270,6 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 	SCOND_FAIL_RETRY_VAR_DEF;
 
 	__asm__ __volatile__(
-	"0:	mov	%[delay], 1		\n"
 	"1:	llock	%[val], [%[slock]]	\n"
 	"	breq	%[val], %[LOCKED], 4f	\n"	/* already LOCKED, just bail */
 	"	scond	%[LOCKED], [%[slock]]	\n"	/* acquire */
@@ -318,7 +318,6 @@ static inline void arch_read_lock(arch_rwlock_t *rw)
 	 */
 
 	__asm__ __volatile__(
-	"0:	mov	%[delay], 1		\n"
 	"1:	llock	%[val], [%[rwlock]]	\n"
 	"	brls	%[val], %[WR_LOCKED], 1b\n"	/* <= 0: spin while write locked */
 	"	sub	%[val], %[val], 1	\n"	/* reader lock */
@@ -343,7 +342,6 @@ static inline int arch_read_trylock(arch_rwlock_t *rw)
 	SCOND_FAIL_RETRY_VAR_DEF;
 
 	__asm__ __volatile__(
-	"0:	mov	%[delay], 1		\n"
 	"1:	llock	%[val], [%[rwlock]]	\n"
 	"	brls	%[val], %[WR_LOCKED], 4f\n"	/* <= 0: already write locked, bail */
 	"	sub	%[val], %[val], 1	\n"	/* counter-- */
@@ -383,7 +381,6 @@ static inline void arch_write_lock(arch_rwlock_t *rw)
 	 */
 
 	__asm__ __volatile__(
-	"0:	mov	%[delay], 1		\n"
 	"1:	llock	%[val], [%[rwlock]]	\n"
 	"	brne	%[val], %[UNLOCKED], 1b	\n"	/* while !UNLOCKED spin */
 	"	mov	%[val], %[WR_LOCKED]	\n"
@@ -409,7 +406,6 @@ static inline int arch_write_trylock(arch_rwlock_t *rw)
 	SCOND_FAIL_RETRY_VAR_DEF;
 
 	__asm__ __volatile__(
-	"0:	mov	%[delay], 1		\n"
 	"1:	llock	%[val], [%[rwlock]]	\n"
 	"	brne	%[val], %[UNLOCKED], 4f	\n"	/* !UNLOCKED, bail */
 	"	mov	%[val], %[WR_LOCKED]	\n"
