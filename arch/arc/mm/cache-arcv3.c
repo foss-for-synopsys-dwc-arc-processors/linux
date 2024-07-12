@@ -213,46 +213,62 @@ static void scm_op_rgn(phys_addr_t paddr, unsigned long sz, const int op)
 	 * operation can remain incomplete forever (lockup in SLC_CTRL_BUSY loop
 	 * below)
 	 */
+	struct cpuinfo_arc_cache *p_l2 = &l2_info;
 	static DEFINE_SPINLOCK(lock);
 	unsigned long flags;
 	unsigned int cmd;
+	unsigned long csz;
 	u64 end;
 
 	if (sz == 0)
 		return;
 
-	cmd = ARC_CLN_CACHE_CMD_INCR; /* Iterate over all available ways */
-	if (op == OP_INV) {
-		/* Invalidate any line in the cache whose block address is in the range */
-		cmd |= ARC_CLN_CACHE_CMD_OP_ADDR_INV;
-	} else if (op == OP_FLUSH) {
-		/* Writeback any line in the cache whose block address is in the range */
-		cmd |= ARC_CLN_CACHE_CMD_OP_ADDR_CLN;
-	} else { /* OP_FLUSH_N_INV */
-		/* Writeback any line in the cache whose block address is in
-		   the range, then invalidate. */
-		cmd |= ARC_CLN_CACHE_CMD_OP_ADDR_CLN_INV;
-	}
-
-	/*
-	 * Lower bits are ignored, no need to clip
-	 * The range specified by [{CACHE_ADDR_LO1, CACHE_ADDR_LO0,},
-	 *     {CACHE_ADDR_HI1, CACHE_ADDR_HI0}] is inclusive for L2$
+	/* The number of lookups required to execute these operations is never larger than
+	 * the number of lines in the cache. If the size of the requested operation is
+	 * larger than the L2$ size, then we do everything in a loop according to the L2$ size.
+	 * Some cache lines can be processed twice
 	 */
-	end = paddr + sz - 1;
+	while (sz) {
+		csz = sz;
+		if (csz > (p_l2->sz_k - p_l2->line_len))
+			csz = p_l2->sz_k - p_l2->line_len;
 
-	spin_lock_irqsave(&lock, flags);
+		cmd = ARC_CLN_CACHE_CMD_INCR; /* Iterate over all available ways */
+		if (op == OP_INV) {
+			/* Invalidate any line in the cache whose block address is in the range */
+			cmd |= ARC_CLN_CACHE_CMD_OP_ADDR_INV;
+		} else if (op == OP_FLUSH) {
+			/* Writeback any line in the cache whose block address is in the range */
+			cmd |= ARC_CLN_CACHE_CMD_OP_ADDR_CLN;
+		} else { /* OP_FLUSH_N_INV */
+			/* Writeback any line in the cache whose block address is in
+				the range, then invalidate. */
+			cmd |= ARC_CLN_CACHE_CMD_OP_ADDR_CLN_INV;
+		}
 
-	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_LO0, (u32)paddr);
-	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_LO1, (u64)paddr >> 32ULL);
+		/*
+		 * Lower bits are ignored, no need to clip
+		 * The range specified by [{CACHE_ADDR_LO1, CACHE_ADDR_LO0,},
+		 *     {CACHE_ADDR_HI1, CACHE_ADDR_HI0}] is inclusive for L2$
+		 */
+		end = paddr + csz - 1;
 
-	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_HI0, (u32)end);
-	arc_cln_write_reg(ARC_CLN_CACHE_ADDR_HI1, (u64)end >> 32ULL);
+		spin_lock_irqsave(&lock, flags);
 
-	arc_cln_write_reg(ARC_CLN_CACHE_CMD, cmd);
-	while (arc_cln_read_reg(ARC_CLN_CACHE_STATUS) & ARC_CLN_CACHE_STATUS_BUSY);
+		arc_cln_write_reg(ARC_CLN_CACHE_ADDR_LO0, (u32)paddr);
+		arc_cln_write_reg(ARC_CLN_CACHE_ADDR_LO1, (u64)paddr >> 32ULL);
 
-	spin_unlock_irqrestore(&lock, flags);
+		arc_cln_write_reg(ARC_CLN_CACHE_ADDR_HI0, (u32)end);
+		arc_cln_write_reg(ARC_CLN_CACHE_ADDR_HI1, (u64)end >> 32ULL);
+
+		arc_cln_write_reg(ARC_CLN_CACHE_CMD, cmd);
+		while (arc_cln_read_reg(ARC_CLN_CACHE_STATUS) & ARC_CLN_CACHE_STATUS_BUSY);
+
+		spin_unlock_irqrestore(&lock, flags);
+
+		sz -= csz;
+		paddr += csz;
+	}
 }
 
 /*
