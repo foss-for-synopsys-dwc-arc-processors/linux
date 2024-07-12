@@ -57,7 +57,7 @@ struct bcr_cln_2_cfg {
 
 struct bcr_cln_scm_0_cfg {
 #ifdef CONFIG_CPU_BIG_ENDIAN
-	unsigned int res1:2, superblocks:3,
+	unsigned int res1:1, data_bank_sz_75:1, superblocks:3,
 		     data_bank_wid:2, data_sub_banks:2, cache_sets:5,
 		     data_bank_sz:5, data_banks:3, cache_tag_banks:3,
 		     cache_blk_sz:1, cache_assoc:4, scm_cache:1, res:1;
@@ -65,7 +65,7 @@ struct bcr_cln_scm_0_cfg {
 	unsigned int res:1, scm_cache:1, cache_assoc:4, cache_blk_sz:1,
 		     cache_tag_banks:3, data_banks:3, data_bank_sz:5,
 		     cache_sets:5, data_sub_banks:2, data_bank_wid:2,
-		     superblocks:3, res1:2;
+		     superblocks:3, data_bank_sz_75:1, res1:1;
 #endif
 };
 
