@@ -189,8 +189,12 @@ static void dcache_op_rgn(phys_addr_t paddr, int sz, const int op)
 	unsigned long end;
 	unsigned long flags;
 
+	if (sz <= 0)
+		return;
+
 	local_irq_save(flags);
 
+	/* The line specified by DC_ENDR is excluded for L1$ */
 	end = paddr + sz + L1_CACHE_BYTES - 1;
 
 	dc_op_before(op);
@@ -222,6 +226,9 @@ static void scm_op_rgn(phys_addr_t paddr, unsigned long sz, const int op)
 	unsigned int cmd;
 	u64 end;
 
+	if (sz == 0)
+		return;
+
 	cmd = ARC_CLN_CACHE_CMD_INCR; /* Iterate over all available ways */
 	if (op == OP_INV) {
 		/* Invalidate any line in the cache whose block address is in the range */
@@ -237,9 +244,10 @@ static void scm_op_rgn(phys_addr_t paddr, unsigned long sz, const int op)
 
 	/*
 	 * Lower bits are ignored, no need to clip
-	 * END can't be same as START, so add (l2_info.line_len - 1) to sz
+	 * The range specified by [{CACHE_ADDR_LO1, CACHE_ADDR_LO0,},
+	 *     {CACHE_ADDR_HI1, CACHE_ADDR_HI0}] is inclusive for L2$
 	 */
-	end = paddr + sz + l2_info.line_len - 1;
+	end = paddr + sz - 1;
 
 	spin_lock_irqsave(&lock, flags);
 
