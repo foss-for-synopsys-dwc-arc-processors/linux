@@ -222,7 +222,7 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
 #else	/* CONFIG_ARC_LLSC_BACKOFF */
 
 #define SCOND_FAIL_RETRY_VAR_DEF						\
-	unsigned int delay = 0x800, tmp;					\
+	unsigned int delay = 0x800, wait = 0x10, tmp;				\
 
 #define SCOND_FAIL_RETRY_ASM							\
 	"   ; --- scond fail delay ---		\n"				\
@@ -239,7 +239,19 @@ static inline void arch_write_unlock(arch_rwlock_t *rw)
 	"4: ; --- done ---			\n"				\
 
 #define SCOND_FAIL_RETRY_VARS							\
-	  ,[delay] "+&r" (delay), [tmp] "=&r"	(tmp)				\
+	  ,[delay] "+&r" (delay), [wait] "+&r" (wait), [tmp] "=&r" (tmp)	\
+
+#define SPINLOCK_WAIT_LOOP_WITH_DELAY						\
+	"1:	llock	%[val], [%[slock]]	\n"				\
+	"	brne	%[val], %[LOCKED], 11f	\n"	/* if not LOCKED */	\
+	"	mov	%[tmp], %[wait]		\n"				\
+	"12:	brne.d	%[tmp], 0, 12b		\n"	/* wait loop */		\
+	"	sub	%[tmp], %[tmp], 1	\n"	/* tmp-- */		\
+	"	asl	%[wait], %[wait]	\n"	/* wait delay *= 2 */	\
+	"	bmsk.f	%[wait], %[wait], 8	\n"	/* max wait 256 */	\
+	"	mov.eq 	%[wait], 0x10		\n"				\
+	"	b	1b			\n"	/* read again */	\
+	"11:					\n"				\
 
 static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
@@ -247,8 +259,7 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 	SCOND_FAIL_RETRY_VAR_DEF;
 
 	__asm__ __volatile__(
-	"1:	llock	%[val], [%[slock]]	\n"
-	"	breq	%[val], %[LOCKED], 1b	\n"	/* spin while LOCKED */
+	SPINLOCK_WAIT_LOOP_WITH_DELAY
 	"	scond	%[LOCKED], [%[slock]]	\n"	/* acquire */
 	"	bz	4f			\n"	/* done */
 	"					\n"
