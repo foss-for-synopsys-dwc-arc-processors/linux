@@ -434,10 +434,10 @@ config ARC_LLSC_BACKOFF
     depends on ISA_ARCV3 && SMP && ARC_HAS_LLSC
 
 config ARC_HAS_ATLD
-	bool "Insn: ATLD (efficient atomic ops)"
+	bool "Insn: ATLD (efficient fetch-and-operate atomic ops)"
 	default n
 	depends on ISA_ARCV3
-	depends on !ARC_CANT_LLSC
+	depends on ARC_HAS_LLSC
 
 config ARC_HAS_SWAPE
 	bool "Insn: SWAPE (endian-swap)"
