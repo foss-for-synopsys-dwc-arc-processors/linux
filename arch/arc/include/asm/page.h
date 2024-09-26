@@ -31,12 +31,14 @@
 /*
  * TODO: Only one kernel-user split for each MMU currently supported.
  */
+#define	PAGE_OFFSET_SHIFT (CONFIG_LINUX_LINK_BASE - CONFIG_LINUX_RAM_BASE)
+
 #if defined(CONFIG_ARC_MMU_V6_48)
-#define PAGE_OFFSET	_AC(0xffff000000000000, UL)
+#define PAGE_OFFSET	(_AC(0xffff000000000000, UL) + PAGE_OFFSET_SHIFT)
 #elif defined(CONFIG_ARC_MMU_V6_52)
-#define PAGE_OFFSET	_AC(0xfff0000000000000, UL)
+#define PAGE_OFFSET	(_AC(0xfff0000000000000, UL) + PAGE_OFFSET_SHIFT)
 #else
-#define PAGE_OFFSET	_AC(0x80000000, UL)	/* Kernel starts at 2G onwrds */
+#define PAGE_OFFSET	(_AC(0x80000000, UL) + PAGE_OFFSET_SHIFT) /* Kernel starts at 2G onwrds */
 #endif
 
 #define PAGE_MASK	(~(PAGE_SIZE-1))
