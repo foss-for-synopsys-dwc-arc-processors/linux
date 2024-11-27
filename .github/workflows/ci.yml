@@ -74,6 +74,7 @@ jobs:
             libelf-dev \
             libncurses5-dev \
             libssl-dev \
+            u-boot-tools \
             make
 
       - name: Download toolchain
@@ -149,16 +150,15 @@ jobs:
             ;;
           esac
 
+          make -j $(nproc) uImage
+
           if [[ "${{ matrix.targets.cpu }}" =~ ^(hs5x|hs6x) ]]; then
-            image_name="loader"
-            image_path=${{ github.workspace }}/arch/arc/boot/loader
+            cp ${{ github.workspace }}/arch/arc/boot/loader vmlinux-${{ matrix.targets.cpu }}
           else
-            image_name="vmlinux"
-            image_path="${{ github.workspace }}/vmlinux"
+            cp ${{ github.workspace }}/vmlinux vmlinux-${{ matrix.targets.cpu }}
           fi
 
-          make -j $(nproc) ${image_name}
-          cp $image_path vmlinux-${{ matrix.targets.cpu }}
+          cp ${{ github.workspace }}/arch/arc/boot/uImage uImage-${{ matrix.targets.cpu }}
         shell: bash
 
       - name: Upload ${{ matrix.targets.cpu }} vmlinux
@@ -166,6 +166,13 @@ jobs:
         with:
           name: vmlinux-${{ matrix.targets.cpu }}
           path: vmlinux-${{ matrix.targets.cpu }}
+          retention-days: 5
+
+      - name: Upload ${{ matrix.targets.cpu }} uImage
+        uses: actions/upload-artifact@v3
+        with:
+          name: uImage-${{ matrix.targets.cpu }}
+          path: uImage-${{ matrix.targets.cpu }}
           retention-days: 5
 
   test:

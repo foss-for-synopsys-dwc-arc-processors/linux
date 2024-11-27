@@ -35,13 +35,25 @@ $(obj)/vmlinux.bin.gz: $(obj)/vmlinux.bin FORCE
 $(obj)/vmlinux.bin.lzma: $(obj)/vmlinux.bin FORCE
 	$(call if_changed,lzma)
 
+ifeq ($(CONFIG_ISA_ARCV3),y)
+$(obj)/uImage.bin: $(obj)/vmlinux.bin $(obj)/loader FORCE
+else
 $(obj)/uImage.bin: $(obj)/vmlinux.bin FORCE
+endif
 	$(call if_changed,uimage,none)
 
+ifeq ($(CONFIG_ISA_ARCV3),y)
+$(obj)/uImage.gz: $(obj)/vmlinux.bin.gz $(obj)/loader FORCE
+else
 $(obj)/uImage.gz: $(obj)/vmlinux.bin.gz FORCE
+endif
 	$(call if_changed,uimage,gzip)
 
+ifeq ($(CONFIG_ISA_ARCV3),y)
+$(obj)/uImage.lzma: $(obj)/vmlinux.bin.lzma $(obj)/loader FORCE
+else
 $(obj)/uImage.lzma: $(obj)/vmlinux.bin.lzma FORCE
+endif
 	$(call if_changed,uimage,lzma)
 
 $(obj)/loader.o: $(src)/loader.S $(obj)/vmlinux.bin
